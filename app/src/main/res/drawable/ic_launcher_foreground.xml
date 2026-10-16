@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Icône : les quatre bandes inclinées du style « Signal » (cyan, vert, or, rouge), une par domaine de
+    l'appli. Dessinées dans la zone visible de 72 dp au centre du canevas de 108 dp.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#3CC4D8" android:pathData="M31,76 L39,76 L47,32 L39,32 Z" />
+    <path android:fillColor="#6CCB5F" android:pathData="M41,76 L49,76 L57,32 L49,32 Z" />
+    <path android:fillColor="#F2B233" android:pathData="M51,76 L59,76 L67,32 L59,32 Z" />
+    <path android:fillColor="#F0544A" android:pathData="M61,76 L69,76 L77,32 L69,32 Z" />
+</vector>

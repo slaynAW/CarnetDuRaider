@@ -18,7 +18,7 @@ class ListeDeCoursesEtVerdictTest {
     @Test
     fun `libelles des objectifs avec les noms officiels`() {
         assertEquals("Station utilitaire · niveau 1", planificateur.libelle(stationUtilitaire1))
-        assertEquals("Quête « Ciel dégagé »", planificateur.libelle(cielDegage))
+        assertEquals("Quête «\u00a0Ciel dégagé\u00a0»", planificateur.libelle(cielDegage))
     }
 
     @Test

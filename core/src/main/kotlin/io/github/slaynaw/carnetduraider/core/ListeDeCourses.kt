@@ -40,7 +40,7 @@ class Planificateur(private val catalogue: Catalogue) {
         is Objectif.NiveauDEtabli ->
             "${catalogue.etabli(objectif.etabliId)?.nom ?: Catalogue.NOM_A_VERIFIER} · niveau ${objectif.niveau}"
         is Objectif.QueteATerminer ->
-            "Quête « ${catalogue.quete(objectif.queteId)?.nom ?: Catalogue.NOM_A_VERIFIER} »"
+            "Quête «\u00a0${catalogue.quete(objectif.queteId)?.nom ?: Catalogue.NOM_A_VERIFIER}\u00a0»"
     }
 
     fun besoins(objectif: Objectif): List<Quantite> = when (objectif) {
