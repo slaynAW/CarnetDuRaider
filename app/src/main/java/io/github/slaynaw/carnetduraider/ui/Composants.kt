@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,8 +18,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -150,6 +155,26 @@ fun Tuile(
                 Text(chiffre, style = MaterialTheme.typography.headlineMedium)
                 Text(legende, style = MaterialTheme.typography.labelMedium, maxLines = 1)
             }
+        }
+    }
+}
+
+/** En-tête de toutes les sections : logo (les quatre bandes), nom de l'appli et réglages. */
+@Composable
+fun EnTete(reglagesOuverts: Boolean, ouvrirReglages: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(Signal.Fond)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Bandes(hauteur = 20.dp, largeurBande = 5.dp)
+        Text("Carnet du Raider", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        IconButton(onClick = ouvrirReglages) {
+            Icon(Icons.Filled.Settings, contentDescription = "Réglages", tint = if (reglagesOuverts) Signal.Or else Signal.TexteDoux)
         }
     }
 }

@@ -92,6 +92,14 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
 
     Scaffold(
         containerColor = Signal.Fond,
+        topBar = {
+            EnTete(reglagesOuverts = reglages) {
+                objetOuvert = null
+                ajoutObjectif = false
+                choixQuetes = false
+                reglages = true
+            }
+        },
         bottomBar = {
             NavigationBar(containerColor = Signal.Surface) {
                 Onglet.entries.forEach { o ->
@@ -130,7 +138,6 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
                         aller = ::aller,
                         nouvelleVersion = miseAJour.nouvelle?.version,
                         conditionsEnCours = calendrierOfficiel?.enCours(vm.region, t)?.size,
-                        ouvrirReglages = { reglages = true },
                         afficherMiseAJour = { dialogueMiseAJour = true },
                     )
                     Onglet.OBJETS -> EcranObjets(vm, recherche, { recherche = it }, ouvrir = { objetOuvert = it })
