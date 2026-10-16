@@ -5,7 +5,7 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
 > Projet de fan, **non officiel**. ARC Raiders est une marque d'Embark Studios AB ; cette application
 > n'est ni affiliée à Embark Studios ni approuvée par Embark Studios.
 
-## Ce que fait la version 0.1
+## Ce que fait l'appli
 
 - **Garder, recycler ou vendre ?** Recherche d'un objet parmi tout le catalogue du jeu (sans tenir
   compte des accents), puis une fiche avec un verdict selon *tes* objectifs : ce qu'il t'en manque, ou,
@@ -46,7 +46,7 @@ s'installent pas par-dessus la version officielle ([docs/SIGNATURE.md](docs/SIGN
 ## Publier une version
 
 Compléter [NOUVEAUTES.md](NOUVEAUTES.md), puis **Actions → Build → Run workflow** avec le numéro
-(ex. `0.1.0`) et valider la publication. Détails : [docs/MISES-A-JOUR.md](docs/MISES-A-JOUR.md) et,
+(ex. `0.2.0`) et valider la publication. Détails : [docs/MISES-A-JOUR.md](docs/MISES-A-JOUR.md) et,
 pour la mise en place de la clé (une seule fois), [docs/SIGNATURE.md](docs/SIGNATURE.md).
 
 ## Développement

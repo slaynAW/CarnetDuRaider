@@ -5,12 +5,17 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.2.0
+
+- **Progression automatique** : indique une fois le niveau de tes établis et tes quêtes en cours, l'appli suit d'elle-même la suite. Coche une amélioration ou une quête terminée : la suite apparaît et ce que le jeu a pris peut être retiré de ta réserve.
+- **Conditions de la carte** : le calendrier officiel d'Embark dans l'appli, avec les noms français du jeu. Ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois de chaque condition, pour ta région. Il reste lisible sans connexion.
+- La liste de courses additionne maintenant tout ce qu'il faut pour ta progression ; tu peux toujours y ajouter un objectif plus lointain.
+
 ## 0.1.0
 
 Première version du Carnet du Raider.
 
 - **Garder, recycler ou vendre ?** Cherche un objet du jeu (sans te soucier des accents) : sa fiche te dit s'il t'en manque pour tes objectifs, ou s'il vaut mieux le vendre ou le recycler.
-- **Progression automatique** : indique une fois le niveau de tes établis et tes quêtes en cours, l'appli suit d'elle-même la suite. Coche une amélioration ou une quête terminée : la suite apparaît et ce que le jeu a pris est retiré de ta réserve.
-- **Liste de courses** : tous les objets à trouver pour ta progression, et ta réserve mise à jour en une touche.
-- **Conditions de la carte** : le calendrier officiel d'Embark dans l'appli, avec les noms français du jeu. Ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois de chaque condition, pour ta région.
+- **Liste de courses** : choisis des niveaux d'établis de l'Atelier et des quêtes, l'appli additionne les objets à trouver. Ta réserve se met à jour en une touche.
+- **Conditions de la carte** : les cartes et conditions du jeu, avec un accès direct au calendrier officiel d'Embark.
 - **Mises à jour intégrées** : l'appli propose elle-même les nouvelles versions officielles, vérifiées avant l'installation. Ta réserve et tes objectifs sont conservés.
