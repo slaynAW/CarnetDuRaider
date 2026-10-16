@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,6 +34,7 @@ fun EcranAccueil(
     nouvelleVersion: String?,
     /** Conditions de la carte en cours (calendrier officiel), ou `null` s'il n'a pas encore été lu. */
     conditionsEnCours: Int?,
+    retourDeRaid: () -> Unit,
     afficherMiseAJour: () -> Unit,
 ) {
     val donnees = vm.catalogue.donnees
@@ -70,6 +74,16 @@ fun EcranAccueil(
                     Text("Cherche un objet…", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
                 }
             }
+        }
+
+        // Après chaque raid : saisie rapide de ce qu'on rapporte.
+        Button(
+            onClick = retourDeRaid,
+            colors = ButtonDefaults.buttonColors(containerColor = Signal.Or, contentColor = Signal.SurCouleur),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+        ) {
+            Text("Retour de raid\u00a0: ajouter mon butin", style = MaterialTheme.typography.titleSmall)
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

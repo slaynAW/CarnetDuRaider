@@ -118,7 +118,8 @@ fun EcranCartes(vm: CarnetViewModel) {
             val prochaines = calendrier.prochaineFois(region, t)
             if (prochaines.isNotEmpty()) {
                 item { Titre("Prochaine fois") }
-                items(prochaines, key = { "prochaine-${it.conditionId ?: it.condition}" }) { ProchaineFois(it, t) }
+                item { Discret("Touche la cloche pour être prévenu avant le début d'une condition.") }
+                items(prochaines, key = { "prochaine-${it.conditionId ?: it.condition}" }) { ProchaineFois(vm, it, t) }
             }
             if (calendrier.connuJusqua(region) < t + HORIZON_MS) {
                 item { Discret("Le calendrier lu s'arrête bientôt\u00a0: actualise-le une fois connecté.") }
@@ -180,7 +181,7 @@ private fun Horaire(debut: Long, creneaux: List<Creneau>, t: Long) {
 }
 
 @Composable
-private fun ProchaineFois(c: Creneau, t: Long) {
+private fun ProchaineFois(vm: CarnetViewModel, c: Creneau, t: Long) {
     Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Point(c)
@@ -188,6 +189,7 @@ private fun ProchaineFois(c: Creneau, t: Long) {
                 Text(c.condition, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(c.carte, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
+            c.conditionId?.let { BoutonAlerte(vm, it, c.condition) }
             Column(horizontalAlignment = Alignment.End) {
                 if (c.enCours(t)) {
                     Text("En cours", style = MaterialTheme.typography.titleSmall, color = Signal.Cyan)

@@ -58,6 +58,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).
   Un nom inconnu s'affiche « Nom à vérifier en jeu ». Le workflow « Calendrier officiel » vérifie
   chaque jour que la page est toujours lisible.
+- Alertes (`core/…/calendrier/Alertes.kt`, `app/…/alertes`) : un seul réveil Android programmé à la
+  fois (le prochain), calculé sur le calendrier gardé sur le téléphone ; reprogrammé au démarrage du
+  téléphone, à la mise à jour de l'appli et quand le calendrier ou les réglages changent.
 - Connexions de l'appli : uniquement GitHub (mises à jour) et arcraiders.com (calendrier). Jamais le
   compte Embark ni les serveurs du jeu, jamais de jeton de connexion du joueur.
 - Mises à jour intégrées (`core/…/miseajour`, `app/…/miseajour`) : vers les Releases GitHub du dépôt,

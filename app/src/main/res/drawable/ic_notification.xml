@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Petite icône des notifications : les quatre bandes, en silhouette. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="52"
+    android:viewportHeight="52">
+    <group android:translateX="-28" android:translateY="-28">
+        <path android:fillColor="#FFFFFFFF" android:pathData="M31,76 L39,76 L47,32 L39,32 Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M41,76 L49,76 L57,32 L49,32 Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M51,76 L59,76 L67,32 L59,32 Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M61,76 L69,76 L77,32 L69,32 Z" />
+    </group>
+</vector>

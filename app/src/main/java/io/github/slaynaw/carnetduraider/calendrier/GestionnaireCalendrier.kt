@@ -44,6 +44,9 @@ class GestionnaireCalendrier(context: Context, private val portee: CoroutineScop
         }
     }
 
+    /** Calendrier connu (en mémoire, sinon celui gardé sur le téléphone), sans connexion. */
+    suspend fun donneesDisponibles(): DonneesCalendrier? = _etat.value.donnees ?: withContext(Dispatchers.IO) { lireCache() }
+
     /** Relit le calendrier s'il date de plus d'une heure (ou s'il n'y en a pas encore). */
     fun actualiserSiNecessaire() {
         val e = _etat.value
