@@ -27,7 +27,9 @@ class CalendrierTest {
           {"conditionName":"Electromagnetic Storm","mapDisplayName":"The Blue Gate","startTimestamp":${t0 + 2 * h},"endTimestamp":${t0 + 3 * h}},
           {"conditionName":"Matriarch","mapDisplayName":"Spaceport","startTimestamp":${t0 + 3 * h},"endTimestamp":${t0 + 4 * h}},
           {"conditionName":"Hurricane","mapDisplayName":"Riven Tides","startTimestamp":${t0 + h},"endTimestamp":${t0 + 2 * h},
-           "note":"crochets [dans] un \"texte\""}]}
+           "regionTimestamps":"${'$'}undefined","note":"crochets [dans] un \"texte\""},
+          {"conditionName":"${'$'}undefined","mapDisplayName":"Spaceport","startTimestamp":${t0 + 5 * h}},
+          {"conditionName":"Night Raid","mapDisplayName":"Buried City","startTimestamp":"${'$'}undefined"}]}
     """.trimIndent()
 
     /** Comme la page Next.js : le JSON est une chaîne JavaScript, avec guillemets et barres obliques échappés. */

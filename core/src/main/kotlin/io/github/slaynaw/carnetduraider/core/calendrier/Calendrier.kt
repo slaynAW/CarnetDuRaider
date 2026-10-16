@@ -6,6 +6,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.longOrNull
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -44,7 +50,8 @@ data class EntreeEmbark(
     val conditionName: String,
     val mapDisplayName: String,
     val startTimestamp: Long,
-    val endTimestamp: Long,
+    /** 0 si Embark ne l'indique pas : le créneau dure alors une heure. */
+    val endTimestamp: Long = 0,
     val regionTimestamps: Map<String, List<Long>> = emptyMap(),
 )
 
@@ -137,8 +144,8 @@ class Calendrier(val donnees: DonneesCalendrier, catalogue: Catalogue) {
             val types = extraireTableau(page, "conditionItems") ?: "[]"
             return try {
                 DonneesCalendrier(
-                    types = json.decodeFromString(types),
-                    entrees = json.decodeFromString(entrees),
+                    types = tableau(types).mapNotNull(::type),
+                    entrees = tableau(entrees).mapNotNull(::entree),
                     luLe = luLe,
                 ).also { if (it.entrees.isEmpty()) throw ErreurCalendrier(true, "calendrier vide") }
             } catch (e: SerializationException) {
@@ -146,6 +153,39 @@ class Calendrier(val donnees: DonneesCalendrier, catalogue: Catalogue) {
             } catch (e: IllegalArgumentException) {
                 throw ErreurCalendrier(true, "calendrier illisible", e)
             }
+        }
+
+        private fun tableau(texte: String): JsonArray = json.parseToJsonElement(texte) as? JsonArray
+            ?: throw ErreurCalendrier(true, "calendrier illisible")
+
+        /*
+         * Lecture champ par champ, tolérante : la page (React) met parfois "$undefined" à la place d'une
+         * valeur absente. Une entrée incomplète est ignorée au lieu de rendre tout le calendrier illisible.
+         */
+        private fun texte(o: JsonObject, cle: String): String? =
+            (o[cle] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.takeIf { it.isNotEmpty() && !it.startsWith("$") }
+
+        private fun nombre(e: JsonElement?): Long? =
+            (e as? JsonPrimitive)?.takeIf { !it.isString }?.let { it.longOrNull ?: it.doubleOrNull?.toLong() }
+
+        private fun type(e: JsonElement): TypeEmbark? {
+            val o = e as? JsonObject ?: return null
+            return TypeEmbark(texte(o, "name") ?: return null, texte(o, "type").orEmpty())
+        }
+
+        private fun entree(e: JsonElement): EntreeEmbark? {
+            val o = e as? JsonObject ?: return null
+            val regions = (o["regionTimestamps"] as? JsonObject).orEmpty().mapNotNull { (region, horaires) ->
+                val valeurs = (horaires as? JsonArray)?.mapNotNull { nombre(it) }.orEmpty()
+                if (valeurs.isEmpty()) null else region to valeurs
+            }.toMap()
+            return EntreeEmbark(
+                conditionName = texte(o, "conditionName") ?: return null,
+                mapDisplayName = texte(o, "mapDisplayName") ?: return null,
+                startTimestamp = nombre(o["startTimestamp"]) ?: return null,
+                endTimestamp = nombre(o["endTimestamp"]) ?: 0,
+                regionTimestamps = regions,
+            )
         }
 
         fun lire(texte: String): DonneesCalendrier = json.decodeFromString(texte)
