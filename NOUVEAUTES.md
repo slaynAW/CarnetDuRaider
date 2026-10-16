@@ -10,6 +10,7 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 Première version du Carnet du Raider.
 
 - **Garder, recycler ou vendre ?** Cherche un objet du jeu (sans te soucier des accents) : sa fiche te dit s'il t'en manque pour tes objectifs, ou s'il vaut mieux le vendre ou le recycler.
-- **Liste de courses** : choisis des niveaux d'établis de l'Atelier et des quêtes, l'appli additionne les objets à trouver. Ta réserve se met à jour en une touche.
-- **Conditions de la carte** : les cartes et conditions du jeu, avec un accès direct au calendrier officiel d'Embark.
+- **Progression automatique** : indique une fois le niveau de tes établis et tes quêtes en cours, l'appli suit d'elle-même la suite. Coche une amélioration ou une quête terminée : la suite apparaît et ce que le jeu a pris est retiré de ta réserve.
+- **Liste de courses** : tous les objets à trouver pour ta progression, et ta réserve mise à jour en une touche.
+- **Conditions de la carte** : le calendrier officiel d'Embark dans l'appli, avec les noms français du jeu. Ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois de chaque condition, pour ta région.
 - **Mises à jour intégrées** : l'appli propose elle-même les nouvelles versions officielles, vérifiées avant l'installation. Ta réserve et tes objectifs sont conservés.

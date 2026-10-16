@@ -21,6 +21,9 @@ rétablir un, vérifie son nom dans le jeu en français : s'il est vraiment iden
 | Quête | `milestone_1` |  | pas de texte français |
 | Quête | `milestone_1_2` |  | pas de texte français |
 | Quête | `milestone_1_3` |  | pas de texte français |
+| Quête | `queens_pve_quest_unlock` |  | pas de texte français |
+| Quête | `the_first_nomads_unlock` |  | pas de texte français |
+| Quête | `unlock_nomad_envoy_questgiver` |  | pas de texte français |
 | Carte | `riven-tides` | Riven Tides | texte français identique à l'anglais |
 | Condition de la carte | `beachcombing` | Beachcombing | texte français identique à l'anglais |
 | Condition de la carte | `close-scrutiny` | Close Scrutiny | texte français identique à l'anglais |

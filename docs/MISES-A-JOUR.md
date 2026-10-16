@@ -56,8 +56,16 @@ publier un numéro déjà publié ou plus ancien que la dernière version.
   que l'application installée.
 - Chaque fichier publié porte une **attestation de provenance** (Sigstore) :
   `gh attestation verify <fichier> --repo slaynAW/CarnetDuRaider`.
-- Seule la recherche de mises à jour contacte Internet (GitHub, en HTTPS). Elle ne transmet aucune
-  donnée personnelle (ni réserve, ni objectifs, ni compte) et peut être désactivée.
+- La recherche de mises à jour contacte GitHub (en HTTPS). Elle ne transmet aucune donnée personnelle
+  (ni réserve, ni objectifs, ni compte) et peut être désactivée.
+
+## Dépôt public obligatoire
+
+L'application lit `update.json` et l'APK sans compte GitHub : les fichiers des Releases doivent donc
+être publics. **Le dépôt doit être public** ; dans un dépôt privé, l'application ne trouve jamais de
+mise à jour (et l'attestation de provenance demande une offre GitHub payante). Rendre le dépôt public
+n'expose rien de sensible : la clé de signature n'est que dans les secrets de l'environnement
+`publication`, jamais dans le dépôt.
 
 ## Fichiers
 

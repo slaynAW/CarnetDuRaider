@@ -14718,9 +14718,43 @@
  ],
  "quetes": [
   {
+   "id": "a_bad_feeling",
+   "nom": "Un mauvais pressentiment",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
+   "objets": []
+  },
+  {
+   "id": "a_balanced_harvest",
+   "nom": "Une récolte équilibrée",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "eyes_in_the_sky"
+   ],
+   "objets": []
+  },
+  {
+   "id": "a_better_use",
+   "nom": "Un meilleur usage",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "the_right_tool"
+   ],
+   "objets": []
+  },
+  {
    "id": "a_dead_end",
    "nom": "Une impasse",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "groundbreaking"
+   ],
    "objets": [
     {
      "id": "dusty_film_reel",
@@ -14729,9 +14763,23 @@
    ]
   },
   {
+   "id": "a_first_foothold",
+   "nom": "Premier point d'appui",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
+   "objets": []
+  },
+  {
    "id": "a_lay_of_the_land",
    "nom": "Un aperçu du terrain",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "a_reveal_in_ruins"
+   ],
    "objets": [
     {
      "id": "lidar_scanner",
@@ -14743,6 +14791,10 @@
    "id": "a_new_type_of_plant",
    "nom": "Un nouveau type de plante",
    "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "building_a_library"
+   ],
    "objets": [
     {
      "id": "possibly_toxic_plant",
@@ -14754,6 +14806,10 @@
    "id": "a_path_not_yours",
    "nom": "Un chemin qui n'est pas le vôtre",
    "commercant": "Juanito",
+   "histoire": true,
+   "requiert": [
+    "taking_stock"
+   ],
    "objets": [
     {
      "id": "broken_compass",
@@ -14765,6 +14821,10 @@
    "id": "a_prime_specimen",
    "nom": "Un spécimen de choix",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "the_clean_dream"
+   ],
    "objets": [
     {
      "id": "arc_powercell",
@@ -14776,6 +14836,10 @@
    "id": "a_reveal_in_ruins",
    "nom": "Ruines révélatrices",
    "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "medical_merchandise"
+   ],
    "objets": [
     {
      "id": "esr_analyzer",
@@ -14784,9 +14848,96 @@
    ]
   },
   {
+   "id": "a_rising_tide",
+   "nom": "La marée montante",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "a_dead_end"
+   ],
+   "objets": []
+  },
+  {
+   "id": "a_symbol_of_unification",
+   "nom": "Un symbole d'union",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "unexpected_initiative"
+   ],
+   "objets": []
+  },
+  {
+   "id": "a_toxic_trail",
+   "nom": "Une traînée toxique",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "life_of_a_pharmacist"
+   ],
+   "objets": []
+  },
+  {
+   "id": "a_warm_place_to_rest",
+   "nom": "Un nid douillet",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "switching_the_supply"
+   ],
+   "objets": []
+  },
+  {
+   "id": "a_wrench_in_the_works",
+   "nom": "Grain de sable dans l'engrenage",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "safe_harbor"
+   ],
+   "objets": []
+  },
+  {
+   "id": "after_rain_comes",
+   "nom": "Après la pluie",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "eyes_in_the_sky"
+   ],
+   "objets": []
+  },
+  {
+   "id": "armored_transports",
+   "nom": "Transports blindés",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "a_new_type_of_plant",
+    "with_a_trace"
+   ],
+   "objets": []
+  },
+  {
+   "id": "back_on_top",
+   "nom": "Retour au sommet",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "celestes_journals",
+    "eyes_in_the_sky",
+    "the_majors_footlocker"
+   ],
+   "objets": []
+  },
+  {
    "id": "bait_fetch_blast",
    "nom": "Appâter, ramasser, détruire",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "tracks_of_the_beast"
+   ],
    "objets": [
     {
      "id": "bully_fragmenter",
@@ -14795,9 +14946,34 @@
    ]
   },
   {
+   "id": "battening_down",
+   "nom": "Mise en berne",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
+   "objets": []
+  },
+  {
+   "id": "bees",
+   "nom": "Des abeilles !",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "flickering_threat"
+   ],
+   "objets": []
+  },
+  {
    "id": "belly_of_the_beast",
    "nom": "Au cœur de la bête",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "sizing_things_up",
+    "tracks_of_the_beast"
+   ],
    "objets": [
     {
      "id": "collector_material_1",
@@ -14813,6 +14989,8 @@
    "id": "blue_gate_content_unlock",
    "nom": "Déverrouillage de contenu du Portail bleu",
    "commercant": null,
+   "histoire": true,
+   "requiert": [],
    "objets": [
     {
      "id": "rounds_played",
@@ -14821,9 +14999,23 @@
    ]
   },
   {
+   "id": "boarding_the_frigate",
+   "nom": "Abordage de la Frégate",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
+   "objets": []
+  },
+  {
    "id": "bombing_run",
    "nom": "Bombardement",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "combat_recon"
+   ],
    "objets": [
     {
      "id": "bombardier_cell",
@@ -14835,6 +15027,10 @@
    "id": "broken_monument",
    "nom": "Monument brisé",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "what_we_left_behind"
+   ],
    "objets": [
     {
      "id": "first_wave_compass",
@@ -14854,6 +15050,10 @@
    "id": "building_a_library",
    "nom": "Collection littéraire",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "digging_up_dirt"
+   ],
    "objets": [
     {
      "id": "library_book",
@@ -14862,9 +15062,23 @@
    ]
   },
   {
+   "id": "celestes_childhood_drawings",
+   "nom": "Les dessins d'enfance de Celeste",
+   "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "shoring_up_defenses"
+   ],
+   "objets": []
+  },
+  {
    "id": "celestes_journals",
    "nom": "Journaux de Celeste",
    "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "a_symbol_of_unification"
+   ],
    "objets": [
     {
      "id": "celeste_journal",
@@ -14873,9 +15087,33 @@
    ]
   },
   {
+   "id": "celestes_teenage_rebellion",
+   "nom": "La crise d'ado de Celeste",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "celestes_childhood_drawings"
+   ],
+   "objets": []
+  },
+  {
+   "id": "clamoring_for_attention",
+   "nom": "En quête de reconnaissance",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "dormant_barons"
+   ],
+   "objets": []
+  },
+  {
    "id": "clean_hands",
    "nom": "Mains propres",
    "commercant": "Juanito",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
    "objets": [
     {
      "id": "equatorial_sundial",
@@ -14887,6 +15125,10 @@
    "id": "clearer_skies",
    "nom": "Ciel dégagé",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "picking_up_the_pieces"
+   ],
    "objets": [
     {
      "id": "arc_alloy",
@@ -14898,6 +15140,10 @@
    "id": "cold_storage",
    "nom": "Chambre froide",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "in_my_image"
+   ],
    "objets": [
     {
      "id": "old_world_books",
@@ -14909,6 +15155,10 @@
    "id": "collision_course",
    "nom": "Droit à la collision",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "safe_passage"
+   ],
    "objets": [
     {
      "id": "comet_igniter",
@@ -14920,6 +15170,11 @@
    "id": "combat_recon",
    "nom": "Reconnaissance de combat",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "into_the_fray",
+    "out_of_the_shadows"
+   ],
    "objets": [
     {
      "id": "spotter_relay",
@@ -14928,9 +15183,53 @@
    ]
   },
   {
+   "id": "communication_hideout",
+   "nom": "La tour de communication",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "lost_in_transmission"
+   ],
+   "objets": []
+  },
+  {
+   "id": "deciphering_the_data",
+   "nom": "Déchiffrer les données",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "paving_the_way"
+   ],
+   "objets": []
+  },
+  {
+   "id": "digging_up_dirt",
+   "nom": "Déterrer la vérité",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "tribute_to_toledo"
+   ],
+   "objets": []
+  },
+  {
+   "id": "disrupting_the_frigate",
+   "nom": "Perturber la Frégate",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "boarding_the_frigate"
+   ],
+   "objets": []
+  },
+  {
    "id": "doctors_orders",
    "nom": "Consignes du docteur",
    "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "greasing_her_palms"
+   ],
    "objets": [
     {
      "id": "antiseptic",
@@ -14951,9 +15250,34 @@
    ]
   },
   {
+   "id": "dormant_barons",
+   "nom": "Barons latents",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "greasing_her_palms",
+    "the_trifecta"
+   ],
+   "objets": []
+  },
+  {
+   "id": "down_to_earth",
+   "nom": "Retour sur terre",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "hatch_repairs"
+   ],
+   "objets": []
+  },
+  {
    "id": "dust_on_the_wires",
    "nom": "Poussière sur les câbles",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "the_trifecta"
+   ],
    "objets": [
     {
      "id": "scout_patrol_note",
@@ -14965,6 +15289,10 @@
    "id": "echoes_of_victory_ridge",
    "nom": "Échos de la Crête de la victoire",
    "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "keeping_the_memory"
+   ],
    "objets": [
     {
      "id": "major_aivas_patch",
@@ -14976,6 +15304,10 @@
    "id": "empathetic_prototypes",
    "nom": "Prototypes empathiques",
    "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "someone_elses_shoes"
+   ],
    "objets": [
     {
      "id": "project_pathos_empathy_core",
@@ -14987,6 +15319,10 @@
    "id": "espresso",
    "nom": "Expresso",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "bees"
+   ],
    "objets": [
     {
      "id": "espresso_machine_parts",
@@ -14995,9 +15331,64 @@
    ]
   },
   {
+   "id": "exploring_pendola_pass",
+   "nom": "Exploration du Col de Pendola",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
+   "objets": []
+  },
+  {
+   "id": "eyes_in_the_sky",
+   "nom": "Yeux dans le ciel",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "a_lay_of_the_land"
+   ],
+   "objets": []
+  },
+  {
+   "id": "eyes_on_the_prize",
+   "nom": "Ensoleillement",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "market_correction"
+   ],
+   "objets": []
+  },
+  {
+   "id": "flickering_threat",
+   "nom": "Menace vacillante",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "power_out"
+   ],
+   "objets": []
+  },
+  {
+   "id": "fragmented_logs",
+   "nom": "Journaux fragmentés",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "a_dead_end",
+    "dust_on_the_wires"
+   ],
+   "objets": []
+  },
+  {
    "id": "furtive_meetings",
    "nom": "Réunions furtives",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "fragmented_logs"
+   ],
    "objets": [
     {
      "id": "secret_meeting_info",
@@ -15006,9 +15397,74 @@
    ]
   },
   {
+   "id": "greasing_her_palms",
+   "nom": "Graisser la patte",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "a_better_use"
+   ],
+   "objets": []
+  },
+  {
+   "id": "groundbreaking",
+   "nom": "Révolutionnaire",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "deciphering_the_data"
+   ],
+   "objets": []
+  },
+  {
+   "id": "hatch_repairs",
+   "nom": "Réparation de trappes",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "a_bad_feeling"
+   ],
+   "objets": []
+  },
+  {
+   "id": "home_to_roost",
+   "nom": "Retour au bercail",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "a_wrench_in_the_works"
+   ],
+   "objets": []
+  },
+  {
+   "id": "in_my_image",
+   "nom": "À mon image",
+   "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "a_bad_feeling"
+   ],
+   "objets": []
+  },
+  {
+   "id": "industrial_espionage",
+   "nom": "Espionnage industriel",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "eyes_on_the_prize"
+   ],
+   "objets": []
+  },
+  {
    "id": "into_the_fray",
    "nom": "Dans la mêlée",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "communication_hideout",
+    "water_troubles"
+   ],
    "objets": [
     {
      "id": "leaper_pulse_unit",
@@ -15017,9 +15473,33 @@
    ]
   },
   {
+   "id": "keeping_an_eye_out",
+   "nom": "Rester à l'affût",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "the_clean_dream"
+   ],
+   "objets": []
+  },
+  {
+   "id": "keeping_the_memory",
+   "nom": "Conservation mémorielle",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "straight_record"
+   ],
+   "objets": []
+  },
+  {
    "id": "last_entry",
    "nom": "Dernier message",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "furtive_meetings"
+   ],
    "objets": [
     {
      "id": "official_shutdown_documentation",
@@ -15028,9 +15508,73 @@
    ]
   },
   {
+   "id": "life_of_a_pharmacist",
+   "nom": "La vie d'un pharmacien",
+   "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "espresso"
+   ],
+   "objets": []
+  },
+  {
+   "id": "line_in_the_sand",
+   "nom": "Dernière limite",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "last_entry"
+   ],
+   "objets": []
+  },
+  {
+   "id": "lost_in_transmission",
+   "nom": "Perte de transmission",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "our_presence_up_there"
+   ],
+   "objets": []
+  },
+  {
+   "id": "marked_for_death",
+   "nom": "Condamnation",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "broken_monument"
+   ],
+   "objets": []
+  },
+  {
+   "id": "market_correction",
+   "nom": "Correction du marché",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "marked_for_death"
+   ],
+   "objets": []
+  },
+  {
+   "id": "medical_merchandise",
+   "nom": "Marchandises médicales",
+   "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "doctors_orders"
+   ],
+   "objets": []
+  },
+  {
    "id": "mixed_signals",
    "nom": "Signaux confus",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "dormant_barons"
+   ],
    "objets": [
     {
      "id": "surveyor_vault",
@@ -15042,6 +15586,10 @@
    "id": "movie_night",
    "nom": "Soirée ciné",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "with_a_view"
+   ],
    "objets": [
     {
      "id": "portable_tv",
@@ -15057,6 +15605,10 @@
    "id": "nothing_gained",
    "nom": "Qui ne tente rien",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "nothing_ventured"
+   ],
    "objets": [
     {
      "id": "matriarch_reactor",
@@ -15072,6 +15624,8 @@
    "id": "nothing_ventured",
    "nom": "N'a rien",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [],
    "objets": [
     {
      "id": "arc_circuitry",
@@ -15092,9 +15646,56 @@
    ]
   },
   {
+   "id": "off_the_radar",
+   "nom": "Hors du radar",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "clearer_skies",
+    "trash_into_treasure"
+   ],
+   "objets": []
+  },
+  {
+   "id": "on_deaf_ears",
+   "nom": "Faire la sourde oreille",
+   "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "snap_and_salvage",
+    "worth_your_salt"
+   ],
+   "objets": []
+  },
+  {
+   "id": "on_the_map",
+   "nom": "Sur la carte",
+   "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "on_deaf_ears"
+   ],
+   "objets": []
+  },
+  {
+   "id": "our_presence_up_there",
+   "nom": "Retour à la Surface",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "back_on_top"
+   ],
+   "objets": []
+  },
+  {
    "id": "out_of_the_shadows",
    "nom": "Hors des ombres",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "a_symbol_of_unification",
+    "sparks_fly"
+   ],
    "objets": [
     {
      "id": "rocketeer_driver",
@@ -15106,6 +15707,10 @@
    "id": "outstanding_balance",
    "nom": "Équilibre d'exception",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "the_clean_dream"
+   ],
    "objets": [
     {
      "id": "dodgers_note",
@@ -15114,9 +15719,71 @@
    ]
   },
   {
+   "id": "paving_the_way",
+   "nom": "Ouvrir la voie",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "into_the_fray"
+   ],
+   "objets": []
+  },
+  {
+   "id": "picking_up_the_pieces",
+   "nom": "Ramasser les morceaux",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [],
+   "objets": []
+  },
+  {
+   "id": "power_out",
+   "nom": "Panne de courant",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "prescriptions_of_the_past"
+   ],
+   "objets": []
+  },
+  {
+   "id": "prescriptions_of_the_past",
+   "nom": "Prescriptions passées",
+   "commercant": "Lance",
+   "histoire": true,
+   "requiert": [
+    "a_warm_place_to_rest"
+   ],
+   "objets": []
+  },
+  {
+   "id": "reduced_to_rubble",
+   "nom": "Chemin de destruction",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "a_first_foothold"
+   ],
+   "objets": []
+  },
+  {
+   "id": "ruins_and_reverberations",
+   "nom": "Ruines et résonances",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "wires_crossed"
+   ],
+   "objets": []
+  },
+  {
    "id": "safe_harbor",
    "nom": "Havre de paix",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "line_in_the_sand"
+   ],
    "objets": [
     {
      "id": "precision_gimbal",
@@ -15125,9 +15792,23 @@
    ]
   },
   {
+   "id": "safe_passage",
+   "nom": "Passage sûr",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "a_bad_feeling"
+   ],
+   "objets": []
+  },
+  {
    "id": "settled_in_full",
    "nom": "Solde complet",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "outstanding_balance"
+   ],
    "objets": [
     {
      "id": "bastion_cell",
@@ -15136,9 +15817,23 @@
    ]
   },
   {
+   "id": "shoring_up_defenses",
+   "nom": "Renforcer les défenses",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
+   "objets": []
+  },
+  {
    "id": "sizing_things_up",
    "nom": "Évaluer la situation",
    "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
    "objets": [
     {
      "id": "arc_conductive_coupler",
@@ -15150,6 +15845,10 @@
    "id": "snap_and_salvage",
    "nom": "Démolir et recycler",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "cold_storage"
+   ],
    "objets": [
     {
      "id": "flow_controller",
@@ -15162,9 +15861,43 @@
    ]
   },
   {
+   "id": "someone_elses_shoes",
+   "nom": "Dans les chaussures de quelqu'un d'autre",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "home_to_roost"
+   ],
+   "objets": []
+  },
+  {
+   "id": "source_of_the_contamination",
+   "nom": "Source de la contamination",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "water_troubles"
+   ],
+   "objets": []
+  },
+  {
+   "id": "sparks_fly",
+   "nom": "Pluie d'étincelles",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "what_goes_around"
+   ],
+   "objets": []
+  },
+  {
    "id": "stable_housing",
    "nom": "Logement stable",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "with_a_view"
+   ],
    "objets": [
     {
      "id": "project_heartwood_blueprints",
@@ -15173,9 +15906,33 @@
    ]
   },
   {
+   "id": "straight_record",
+   "nom": "Rectification",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "broken_monument"
+   ],
+   "objets": []
+  },
+  {
+   "id": "switching_the_supply",
+   "nom": "Problèmes d'alimentation",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "source_of_the_contamination"
+   ],
+   "objets": []
+  },
+  {
    "id": "taking_stock",
    "nom": "Faire le point",
    "commercant": "Juanito",
+   "histoire": true,
+   "requiert": [
+    "clean_hands"
+   ],
    "objets": [
     {
      "id": "industrial_battery",
@@ -15187,6 +15944,10 @@
    "id": "test_case",
    "nom": "Expérimentation",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "the_league"
+   ],
    "objets": [
     {
      "id": "fireball_burner",
@@ -15206,6 +15967,10 @@
    "id": "the_clean_dream",
    "nom": "Le rêve immaculé",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "with_a_trace"
+   ],
    "objets": [
     {
      "id": "purification_system_blueprint",
@@ -15214,9 +15979,21 @@
    ]
   },
   {
+   "id": "the_first_nomads",
+   "nom": "Les premiers nomades",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [],
+   "objets": []
+  },
+  {
    "id": "the_league",
    "nom": "La ligue",
    "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "sparks_fly"
+   ],
    "objets": [
     {
      "id": "bicycle_pump",
@@ -15232,6 +16009,10 @@
    "id": "the_majors_footlocker",
    "nom": "Le casier de la capitaine",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "a_symbol_of_unification"
+   ],
    "objets": [
     {
      "id": "major_aivas_mementos",
@@ -15240,9 +16021,23 @@
    ]
   },
   {
+   "id": "the_right_tool",
+   "nom": "Le bon outil",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "a_bad_feeling"
+   ],
+   "objets": []
+  },
+  {
    "id": "the_root_of_the_matter",
    "nom": "La racine du problème",
    "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "untended_garden"
+   ],
    "objets": [
     {
      "id": "experimental_seed_sample",
@@ -15251,9 +16046,43 @@
    ]
   },
   {
+   "id": "the_stench_of_corruption",
+   "nom": "La puanteur de la corruption",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "a_toxic_trail"
+   ],
+   "objets": []
+  },
+  {
+   "id": "the_trifecta",
+   "nom": "Trio gagnant",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "down_to_earth"
+   ],
+   "objets": []
+  },
+  {
+   "id": "to_the_skies",
+   "nom": "Vers les cieux",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "off_the_radar"
+   ],
+   "objets": []
+  },
+  {
    "id": "tracks_of_the_beast",
    "nom": "Sur les traces de la bête",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "exploring_pendola_pass"
+   ],
    "objets": [
     {
      "id": "skulker_targeter",
@@ -15265,6 +16094,10 @@
    "id": "trash_into_treasure",
    "nom": "Déchets précieux",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "picking_up_the_pieces"
+   ],
    "objets": [
     {
      "id": "battery",
@@ -15280,6 +16113,10 @@
    "id": "tribute_to_toledo",
    "nom": "Hommage à Toledo",
    "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "life_of_a_pharmacist"
+   ],
    "objets": [
     {
      "id": "power_rod",
@@ -15288,9 +16125,24 @@
    ]
   },
   {
+   "id": "turnabout",
+   "nom": "Revirement",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "digging_up_dirt"
+   ],
+   "objets": []
+  },
+  {
    "id": "unexpected_initiative",
    "nom": "Initiative inattendue",
    "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "echoes_of_victory_ridge",
+    "industrial_espionage"
+   ],
    "objets": [
     {
      "id": "moisture_meter",
@@ -15303,9 +16155,94 @@
    ]
   },
   {
+   "id": "untended_garden",
+   "nom": "Jardin abandonné",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "a_balanced_harvest"
+   ],
+   "objets": []
+  },
+  {
+   "id": "waking_the_grid",
+   "nom": "Réactivation du réseau",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "dust_on_the_wires"
+   ],
+   "objets": []
+  },
+  {
+   "id": "water_troubles",
+   "nom": "Navigation en eaux troubles",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "after_rain_comes",
+    "the_root_of_the_matter"
+   ],
+   "objets": []
+  },
+  {
+   "id": "what_goes_around",
+   "nom": "Qui sème le vent",
+   "commercant": "Apollo",
+   "histoire": true,
+   "requiert": [
+    "safe_passage"
+   ],
+   "objets": []
+  },
+  {
+   "id": "what_we_left_behind",
+   "nom": "Ce que nous avons laissé derrière nous",
+   "commercant": "Tian Wen",
+   "histoire": true,
+   "requiert": [
+    "dormant_barons"
+   ],
+   "objets": []
+  },
+  {
+   "id": "when_everything_falls",
+   "nom": "Quand tout s'effondre",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "empathetic_prototypes"
+   ],
+   "objets": []
+  },
+  {
+   "id": "wires_crossed",
+   "nom": "Les fils se croisent",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "exploring_pendola_pass"
+   ],
+   "objets": []
+  },
+  {
+   "id": "with_a_trace",
+   "nom": "Avec une trace",
+   "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "reduced_to_rubble"
+   ],
+   "objets": []
+  },
+  {
    "id": "with_a_view",
    "nom": "Une vue imprenable",
    "commercant": "Shani",
+   "histoire": true,
+   "requiert": [
+    "snap_and_salvage"
+   ],
    "objets": [
     {
      "id": "ion_sputter",
@@ -15316,104 +16253,134 @@
      "quantite": 1
     }
    ]
+  },
+  {
+   "id": "worth_your_salt",
+   "nom": "Une pincée de sel",
+   "commercant": "Celeste",
+   "histoire": true,
+   "requiert": [
+    "groundbreaking"
+   ],
+   "objets": []
   }
  ],
  "cartes": [
   {
    "id": "blue-gate",
-   "nom": "Le Portail bleu"
+   "nom": "Le Portail bleu",
+   "cleCalendrier": "The Blue Gate"
   },
   {
    "id": "buried-city",
-   "nom": "Ville enfouie"
+   "nom": "Ville enfouie",
+   "cleCalendrier": "Buried City"
   },
   {
    "id": "dam-battleground",
-   "nom": "Champ de bataille du Barrage"
+   "nom": "Champ de bataille du Barrage",
+   "cleCalendrier": "Dam Battlegrounds"
   },
   {
    "id": "pendola-pass",
-   "nom": "Col de Pendola"
+   "nom": "Col de Pendola",
+   "cleCalendrier": "Pendola Pass"
   },
   {
    "id": "stella-montis",
-   "nom": "Stella Montis"
+   "nom": "Stella Montis",
+   "cleCalendrier": "Stella Montis"
   },
   {
    "id": "the-spaceport",
-   "nom": "Port spatial"
+   "nom": "Port spatial",
+   "cleCalendrier": "Spaceport"
   }
  ],
  "conditions": [
   {
    "id": "arc-frigate",
    "nom": "Frégate ARC",
-   "majeure": true
+   "majeure": true,
+   "cleCalendrier": "ARC Frigate"
   },
   {
    "id": "bird-city",
    "nom": "Cité des Oiseaux",
-   "majeure": false
+   "majeure": false,
+   "cleCalendrier": "Bird City"
   },
   {
    "id": "cold-snap",
    "nom": "Vague de froid",
-   "majeure": true
+   "majeure": true,
+   "cleCalendrier": "Cold Snap"
   },
   {
    "id": "electromagnetic-storm",
    "nom": "Tempête électromagnétique",
-   "majeure": true
+   "majeure": true,
+   "cleCalendrier": "Electromagnetic Storm"
   },
   {
    "id": "harvester",
    "nom": "Récolteur",
-   "majeure": false
+   "majeure": false,
+   "cleCalendrier": "Harvester"
   },
   {
    "id": "hidden-bunker",
    "nom": "Bunker caché",
-   "majeure": true
+   "majeure": true,
+   "cleCalendrier": "Hidden Bunker"
   },
   {
    "id": "husk-graveyard",
    "nom": "Cimetière d'épaves",
-   "majeure": false
+   "majeure": false,
+   "cleCalendrier": "Husk Graveyard"
   },
   {
    "id": "launch-tower-loot",
    "nom": "Butin de la tour de lancement",
-   "majeure": false
+   "majeure": false,
+   "cleCalendrier": "Launch Tower Loot"
   },
   {
    "id": "locked-gate",
    "nom": "Portail verrouillé",
-   "majeure": true
+   "majeure": true,
+   "cleCalendrier": "Locked Gate"
   },
   {
    "id": "lush-blooms",
    "nom": "Floraisons luxuriantes",
-   "majeure": false
+   "majeure": false,
+   "cleCalendrier": "Lush Blooms"
   },
   {
    "id": "matriarch",
    "nom": "Matriarche",
-   "majeure": false
+   "majeure": false,
+   "cleCalendrier": "Matriarch"
   },
   {
    "id": "night-raid",
    "nom": "Raid nocturne",
-   "majeure": true
+   "majeure": true,
+   "cleCalendrier": "Night Raid"
   },
   {
    "id": "prospecting-probes",
    "nom": "Sondes de prospection",
-   "majeure": false
+   "majeure": false,
+   "cleCalendrier": "Prospecting Probes"
   },
   {
    "id": "uncovered-caches",
    "nom": "Caches de raider",
-   "majeure": false
+   "majeure": false,
+   "cleCalendrier": "Uncovered Caches"
   }
  ]
 }

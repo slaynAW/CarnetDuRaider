@@ -30,6 +30,7 @@ GROUPES = {"CraftingItems", "Misc", "Weapons", "Utilities", "Keys", "Modificatio
 RARETES = {"Common": "COMMUN", "Uncommon": "INHABITUEL", "Rare": "RARE", "Epic": "EPIQUE",
            "Legendary": "LEGENDAIRE"}
 OBJECTIFS_OBJET = {"Deliver", "Obtain"}
+CATEGORIES_HISTOIRE = {"main", "side"}
 
 
 def charger(dossier, nom):
@@ -140,32 +141,42 @@ def main():
     quetes = []
     for ident, q in sorted(quests.items()):
         requis = objets_de_quete(q.get("objective", {}), {})
-        if not requis:
+        # Quêtes de l'histoire (principales et secondaires) : toutes gardées, pour suivre leur
+        # enchaînement ; les autres (quotidiennes, hebdomadaires…) seulement si elles demandent des objets.
+        histoire = q.get("category") in CATEGORIES_HISTOIRE
+        if not requis and not histoire:
             continue
         nom = filtre.nom("Quête", ident, quests_fr.get(ident, {}).get("name"),
                          quests_en.get(ident, {}).get("name") or q.get("nameEn"))
         if nom is None:
+            # Quête technique sans nom français (déblocage de contenu…) : jamais affichée, et
+            # considérée comme faite par l'appli (ses suites ne l'attendent pas).
             continue
         commercant = commercants.get(q.get("traderId", ""), {}).get("name")
         if commercant is not None:
             commercant = filtre.nom("Commerçant", q["traderId"], commercant,
                                     trades["traders"].get(q["traderId"], {}).get("nameEn", commercant))
-        quetes.append({"id": ident, "nom": nom, "commercant": commercant,
+        quetes.append({"id": ident, "nom": nom, "commercant": commercant, "histoire": histoire,
+                       "requiert": sorted(r["questId"] for r in q.get("requires", []) if r.get("questId")),
                        "objets": [{"id": i, "quantite": n} for i, n in sorted(requis.items())]})
+    ids_quetes = {q["id"] for q in quetes}
+    for q in quetes:
+        q["requiert"] = [r for r in q["requiert"] if r in ids_quetes]
 
     cartes_src = charger(src, "maps.json")
     cartes_fr, cartes_en = charger(src, "maps.text.fr.json"), charger(src, "maps.text.en.json")
     cartes, conditions = [], []
     for ident, c in sorted(cartes_src["maps"].items()):
-        nom = filtre.nom("Carte", ident, cartes_fr.get(ident, {}).get("name"),
-                         cartes_en.get(ident, {}).get("name") or c.get("nameEn"))
+        anglais = cartes_en.get(ident, {}).get("name") or c.get("nameEn")
+        nom = filtre.nom("Carte", ident, cartes_fr.get(ident, {}).get("name"), anglais)
         if nom is not None:
-            cartes.append({"id": ident, "nom": nom})
+            cartes.append({"id": ident, "nom": nom, "cleCalendrier": c.get("nameEn") or anglais})
     for ident, e in sorted(cartes_src["eventTypes"].items()):
-        nom = filtre.nom("Condition de la carte", ident, cartes_fr.get(ident, {}).get("name"),
-                         cartes_en.get(ident, {}).get("name") or e.get("nameEn"))
+        anglais = cartes_en.get(ident, {}).get("name") or e.get("nameEn")
+        nom = filtre.nom("Condition de la carte", ident, cartes_fr.get(ident, {}).get("name"), anglais)
         if nom is not None:
-            conditions.append({"id": ident, "nom": nom, "majeure": bool(e.get("major"))})
+            conditions.append({"id": ident, "nom": nom, "majeure": bool(e.get("major")),
+                               "cleCalendrier": e.get("nameEn") or anglais})
 
     donnees = {
         "versionJeu": version,

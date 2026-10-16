@@ -88,8 +88,8 @@ fun EcranReglages(miseAJour: GestionnaireMiseAJour, etat: EtatMiseAJour, affiche
         Text(
             "Les mises à jour viennent uniquement des versions officielles publiées sur GitHub. Chacune est " +
                 "vérifiée avant l'installation (signature, taille et empreinte du fichier), puis Android contrôle " +
-                "qu'elle est signée avec la même clé que l'appli installée. C'est la seule connexion de l'appli\u00a0: " +
-                "aucune donnée personnelle n'est envoyée.",
+                "qu'elle est signée avec la même clé que l'appli installée. L'appli ne se connecte qu'à GitHub (mises à jour) " +
+                "et au site d'Embark (calendrier des conditions de la carte)\u00a0: aucune donnée personnelle n'est envoyée.",
             style = MaterialTheme.typography.bodySmall,
             color = Signal.TexteDiscret,
         )

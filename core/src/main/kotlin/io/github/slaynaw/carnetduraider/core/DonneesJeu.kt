@@ -74,12 +74,20 @@ data class Quete(
     val id: String,
     val nom: String,
     val commercant: String? = null,
+    /** Quête de l'histoire (principale ou secondaire) : fait partie de l'enchaînement suivi par l'appli. */
+    val histoire: Boolean = false,
+    /** Quêtes à terminer avant de pouvoir commencer celle-ci. */
+    val requiert: List<String> = emptyList(),
     /** Objets à livrer ou à obtenir pour la terminer. */
-    val objets: List<Quantite>,
+    val objets: List<Quantite> = emptyList(),
 )
 
+/**
+ * [cleCalendrier] : nom anglais officiel, utilisé seulement pour reconnaître la carte dans le
+ * calendrier d'Embark (publié en anglais). Jamais affiché.
+ */
 @Serializable
-data class Carte(val id: String, val nom: String)
+data class Carte(val id: String, val nom: String, val cleCalendrier: String? = null)
 
 @Serializable
-data class Condition(val id: String, val nom: String, val majeure: Boolean = false)
+data class Condition(val id: String, val nom: String, val majeure: Boolean = false, val cleCalendrier: String? = null)

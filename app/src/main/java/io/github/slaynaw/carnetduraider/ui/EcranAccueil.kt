@@ -31,6 +31,8 @@ fun EcranAccueil(
     vm: CarnetViewModel,
     aller: (Onglet) -> Unit,
     nouvelleVersion: String?,
+    /** Conditions de la carte en cours (calendrier officiel), ou `null` s'il n'a pas encore été lu. */
+    conditionsEnCours: Int?,
     ouvrirReglages: () -> Unit,
     afficherMiseAJour: () -> Unit,
 ) {
@@ -102,9 +104,9 @@ fun EcranAccueil(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Tuile(
-                titre = "Cartes",
-                chiffre = donnees.cartes.size.toString(),
-                legende = pluriel(donnees.conditions.size, "condition", "conditions"),
+                titre = "Conditions",
+                chiffre = conditionsEnCours?.toString() ?: donnees.cartes.size.toString(),
+                legende = if (conditionsEnCours != null) "en cours" else pluriel(donnees.cartes.size, "carte", "cartes"),
                 couleur = Signal.Cyan,
                 onClick = { aller(Onglet.CARTES) },
                 modifier = Modifier.weight(1f),
