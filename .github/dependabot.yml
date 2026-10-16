@@ -1,0 +1,14 @@
+# Mises à jour des actions GitHub proposées par Dependabot, une fois par mois et regroupées.
+# Délai de 14 jours après la sortie d'une version : une version piégée puis retirée n'est jamais
+# proposée. Les dépendances Gradle sont mises à jour à la main (gradle/libs.versions.toml).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    groups:
+      actions:
+        patterns: ["*"]

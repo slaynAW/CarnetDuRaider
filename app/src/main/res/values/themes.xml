@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Thème de la fenêtre uniquement (toujours sombre) : l'interface est dessinée en Compose. -->
+    <style name="Theme.CarnetDuRaider" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/fond</item>
+    </style>
+</resources>

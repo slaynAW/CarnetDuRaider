@@ -1,0 +1,45 @@
+{
+  "commentaire": "Vecteurs produits avec OpenSSL comme en CI (openssl dgst -sha256 -sign, base64) : la vérification de l'application doit les accepter. Clé de test jetable, sans rapport avec la clé de publication.",
+  "clePublique": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAskBnmsDs4DE659vo3Kz9lZGu/POYeY0x8ATbzsAXVkDDZmVoJAddyPKxiW0hB5gzJIvnQO+IjdwMdPZ1x37ris6QasegmrX/Z8bRqh8dmgCGvpXL8k2M5J33eA2+hUgKIPY6qybIwCCvG09bWYivvk1SwjZ2SwKDeTk4gI3dagMn+L270xyf5BYz8oejsJvMffZmo6r3xLVI62pFyloHr6yHfDyFUFoLfJSVUxT2PFrj13Qbtd4dV3hq6oi6Rflxew+JuFSUku6/IgN+v5wKhnXMw5OekHwpKs6X7d01RiRzVhKNgRFdVj1/WxUlHYV6vmZmY1zLvjA7DtihzrO0eQIDAQAB",
+  "manifeste": "{\n  \"format\": 1,\n  \"version\": \"1.2.0\",\n  \"code\": 57,\n  \"date\": \"2026-11-02\",\n  \"notes\": \"### Nouveautés\\n\\n- **Minuteurs** des conditions de la carte\",\n  \"files\": [\n    {\n      \"platform\": \"android\",\n      \"name\": \"CarnetDuRaider-1.2.0.apk\",\n      \"size\": 7,\n      \"sha256\": \"3016ef88e3166466281c563b984abed5412a2de823d37ed99c2af39be422fab1\"\n    }\n  ]\n}\n",
+  "signature": "TlDMJ0VKS76aLOmFZ1opIHGF/Fc9dmItNl54EBlLBoJ5E7gh1k58UMOQZAgaVF4B3Z7bwuc6n3orj0NqfedYNEQ3Cbll6NdaOWKL2sfrdqpn5RCauQDMSmSOgALnRUr/I8pw8moiEE0Al7x3w/PvqrWlJN7kqCOCqpcfPdIKCtbTc3yJ+qzNOIStrJXV9sXUGR2qP3F3hkl/O2o93QJY61ygKIGpviKIcpsS4TqrS9G6poCxHJl37DAm1cM1m2UZJIf0c20ag+HK9fORNVzTA0cSrfA8o06nkSc/gYFW1hwPvoK6BdUp8pGK1SlK0VIzqGjJiLDIvjB8r79h7q+uKQ==",
+  "manifesteModifie": "{\n  \"format\": 1,\n  \"version\": \"1.2.0\",\n  \"code\": 58,\n  \"date\": \"2026-11-02\",\n  \"notes\": \"### Nouveautés\\n\\n- **Minuteurs** des conditions de la carte\",\n  \"files\": [\n    {\n      \"platform\": \"android\",\n      \"name\": \"CarnetDuRaider-1.2.0.apk\",\n      \"size\": 7,\n      \"sha256\": \"3016ef88e3166466281c563b984abed5412a2de823d37ed99c2af39be422fab1\"\n    }\n  ]\n}\n",
+  "invalides": [
+    {
+      "raison": "format inconnu",
+      "manifeste": "{\"format\":2,\"version\":\"1.0.0\",\"code\":1}"
+    },
+    {
+      "raison": "version non numérique",
+      "manifeste": "{\"format\":1,\"version\":\"1.0.0-dev.3\",\"code\":1}"
+    },
+    {
+      "raison": "code nul",
+      "manifeste": "{\"format\":1,\"version\":\"1.0.0\",\"code\":0}"
+    },
+    {
+      "raison": "date mal formée",
+      "manifeste": "{\"format\":1,\"version\":\"1.0.0\",\"code\":1,\"date\":\"02/11/2026\"}"
+    },
+    {
+      "raison": "nom de fichier avec chemin",
+      "manifeste": "{\"format\":1,\"version\":\"1.0.0\",\"code\":1,\"files\":[{\"platform\":\"android\",\"name\":\"../a.apk\",\"size\":1,\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"}]}"
+    },
+    {
+      "raison": "taille trop grande",
+      "manifeste": "{\"format\":1,\"version\":\"1.0.0\",\"code\":1,\"files\":[{\"platform\":\"android\",\"name\":\"a.apk\",\"size\":999999999999,\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"}]}"
+    },
+    {
+      "raison": "empreinte en majuscules",
+      "manifeste": "{\"format\":1,\"version\":\"1.0.0\",\"code\":1,\"files\":[{\"platform\":\"android\",\"name\":\"a.apk\",\"size\":1,\"sha256\":\"ABCDEF0000000000000000000000000000000000000000000000000000000000\"}]}"
+    },
+    {
+      "raison": "plateforme en double",
+      "manifeste": "{\"format\":1,\"version\":\"1.0.0\",\"code\":1,\"files\":[{\"platform\":\"android\",\"name\":\"a.apk\",\"size\":1,\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"},{\"platform\":\"android\",\"name\":\"b.apk\",\"size\":1,\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"}]}"
+    },
+    {
+      "raison": "pas du JSON",
+      "manifeste": "<html>"
+    }
+  ]
+}

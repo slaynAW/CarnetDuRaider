@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- L'appli fonctionne hors connexion avec les données du jeu embarquées. Seules les mises à jour
+         intégrées contactent Internet (versions officielles publiées sur GitHub, docs/MISES-A-JOUR.md). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Mises à jour intégrées : installation de la nouvelle version (confirmée par l'utilisateur). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application
+        android:name=".CarnetApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.CarnetDuRaider"
+        android:enableOnBackInvokedCallback="true"
+        tools:targetApi="37">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Résultat de l'installation d'une mise à jour (confirmation, échec). -->
+        <receiver
+            android:name=".miseajour.RecepteurInstallation"
+            android:exported="false" />
+    </application>
+
+    <!-- Ouverture du calendrier officiel et de GitHub (https) dans le navigateur, visible depuis Android 11. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+</manifest>

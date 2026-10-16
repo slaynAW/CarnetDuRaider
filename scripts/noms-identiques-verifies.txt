@@ -1,0 +1,49 @@
+# Noms du jeu dont le texte français officiel est identique au texte anglais, et qui sont donc
+# acceptés tels quels par scripts/importer_donnees_jeu.py.
+#
+# Pourquoi cette liste : quand une traduction manque, les données source reprennent l'anglais. Un nom
+# identique dans les deux langues peut donc être une vraie traduction... ou un texte non traduit. Seuls
+# les noms listés ici, vérifiés un par un, entrent dans l'appli ; tous les autres sont exclus et listés
+# dans docs/NOMS-A-VERIFIER.md (règle du projet : uniquement les traductions françaises officielles).
+#
+# Une ligne par nom exact. « * » en fin de ligne accepte aussi les variantes numérotées (« Ferro IV »).
+
+# Armes : noms propres italiens ou latins, gardés dans la version française.
+Aphelion
+Bantam *
+Bettina *
+Burletta *
+Canto *
+Dolabra
+Ferro *
+Il Toro *
+Jupiter
+Stiletto *
+Torrente *
+Venator *
+Vulcano *
+
+# Mots identiques en français.
+Agave
+Bandage
+Banjo
+Harmonica
+Microscope
+Olives
+Radio
+Sacrifice
+Sextant
+Statuette
+Tellurion
+Thermostat
+Vase
+Fortuna
+
+# Lieux et personnages (noms propres).
+Stella Montis
+Apollo
+Celeste
+Juanito
+Lance
+Shani
+Tian Wen
