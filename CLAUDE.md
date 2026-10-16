@@ -69,6 +69,16 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   installée ; l'APK doit avoir la taille et l'empreinte annoncées.
   Ne jamais affaiblir ces contrôles ni ajouter d'autre source de mise à jour (docs/MISES-A-JOUR.md).
 
+## Aperçu web (à tenir à jour)
+
+`apercu/` contient une version web de l'appli (mêmes données, mêmes règles que `core/`, réécrites en
+JavaScript dans `apercu/modele.html`), publiée comme artifact claude.ai :
+https://claude.ai/artifact/5pwyAtzHArvPaTgxtnU3ek. **À chaque fonction ajoutée ou modifiée dans
+l'appli, reporter le changement dans `apercu/modele.html`**, puis `python3 apercu/construire.py`
+et republier `apercu/index.html` sur la même URL, avec `apercu/icones.json` en fichier joint. Ce qui
+ne peut pas tourner dans une page web (calendrier en direct, alertes, mises à jour) y est signalé
+comme propre à l'appli Android.
+
 ## Publication et clé de signature
 
 - La clé de signature n'est **jamais** dans le dépôt ni dans un job autre que « Publication
