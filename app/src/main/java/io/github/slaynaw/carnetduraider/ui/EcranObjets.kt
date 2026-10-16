@@ -39,7 +39,10 @@ import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
 @Composable
 fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) -> Unit, ouvrir: (String) -> Unit) {
-    val resultats = remember(recherche) { vm.catalogue.rechercher(recherche, limite = 50) }
+    // Sans recherche : tout le catalogue, par ordre alphabétique.
+    val resultats = remember(recherche) {
+        if (recherche.isBlank()) vm.catalogue.tous else vm.catalogue.rechercher(recherche, limite = 200)
+    }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -65,14 +68,15 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                when {
-                    recherche.isBlank() -> Text(
-                        "Tape quelques lettres du nom\u00a0: la fiche te dit s'il faut garder, recycler ou vendre l'objet.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Signal.TexteDoux,
-                    )
-                    resultats.isEmpty() -> Text("Aucun objet ne correspond.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
-                }
+                Text(
+                    when {
+                        recherche.isBlank() -> "${pluriel(resultats.size, "objet", "objets")} par ordre alphabétique. Touche un objet\u00a0: sa fiche te dit s'il faut le garder, le recycler ou le vendre."
+                        resultats.isEmpty() -> "Aucun objet ne correspond."
+                        else -> pluriel(resultats.size, "objet trouvé", "objets trouvés")
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Signal.TexteDoux,
+                )
             }
         }
         items(resultats, key = { it.id }) { objet ->

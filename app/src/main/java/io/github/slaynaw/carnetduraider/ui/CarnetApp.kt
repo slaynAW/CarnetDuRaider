@@ -40,13 +40,14 @@ enum class Onglet(val titre: String, val icone: ImageVector, val couleur: Color)
 }
 
 @Composable
-fun CarnetApp(vm: CarnetViewModel = viewModel()) {
+fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm: CarnetViewModel = viewModel()) {
     var onglet by rememberSaveable { mutableStateOf(Onglet.ACCUEIL) }
     var objetOuvert by rememberSaveable { mutableStateOf<String?>(null) }
     var ajoutObjectif by rememberSaveable { mutableStateOf(false) }
     var recherche by rememberSaveable { mutableStateOf("") }
     var reglages by rememberSaveable { mutableStateOf(false) }
     var choixQuetes by rememberSaveable { mutableStateOf(false) }
+    var retourRaid by rememberSaveable { mutableStateOf(false) }
     val calendrier by vm.calendrier.etat.collectAsStateWithLifecycle()
     val calendrierOfficiel = remember(calendrier.donnees) { calendrier.donnees?.let(vm::calendrierOfficiel) }
     val t = maintenant()
@@ -76,15 +77,25 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
         ajoutObjectif = false
         reglages = false
         choixQuetes = false
+        retourRaid = false
         onglet = cible
     }
 
+    // Ouverture depuis une notification : directement sur l'onglet demandé.
+    LaunchedEffect(ongletDemande) {
+        ongletDemande?.let {
+            aller(it)
+            demandeTraitee()
+        }
+    }
+
     // Retour : d'abord l'écran ouvert par-dessus l'onglet, puis l'accueil.
-    BackHandler(enabled = objetOuvert != null || ajoutObjectif || choixQuetes || reglages || onglet != Onglet.ACCUEIL) {
+    BackHandler(enabled = objetOuvert != null || ajoutObjectif || choixQuetes || retourRaid || reglages || onglet != Onglet.ACCUEIL) {
         when {
             objetOuvert != null -> objetOuvert = null
             ajoutObjectif -> ajoutObjectif = false
             choixQuetes -> choixQuetes = false
+            retourRaid -> retourRaid = false
             reglages -> reglages = false
             else -> onglet = Onglet.ACCUEIL
         }
@@ -97,6 +108,7 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
                 objetOuvert = null
                 ajoutObjectif = false
                 choixQuetes = false
+                retourRaid = false
                 reglages = true
             }
         },
@@ -126,7 +138,9 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
                 id != null -> EcranFiche(vm, id, onRetour = { objetOuvert = null })
                 ajoutObjectif -> EcranAjoutObjectif(vm, onRetour = { ajoutObjectif = false })
                 choixQuetes -> EcranQuetesEnCours(vm, onRetour = { choixQuetes = false })
+                retourRaid -> EcranRetourRaid(vm, onRetour = { retourRaid = false })
                 reglages -> EcranReglages(
+                    vm,
                     vm.miseAJour,
                     miseAJour,
                     afficherMiseAJour = { dialogueMiseAJour = true },
@@ -138,6 +152,7 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
                         aller = ::aller,
                         nouvelleVersion = miseAJour.nouvelle?.version,
                         conditionsEnCours = calendrierOfficiel?.enCours(vm.region, t)?.size,
+                        retourDeRaid = { retourRaid = true },
                         afficherMiseAJour = { dialogueMiseAJour = true },
                     )
                     Onglet.OBJETS -> EcranObjets(vm, recherche, { recherche = it }, ouvrir = { objetOuvert = it })
@@ -146,6 +161,7 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
                         vm,
                         ajouterObjectif = { ajoutObjectif = true },
                         choisirQuetes = { choixQuetes = true },
+                        retourDeRaid = { retourRaid = true },
                         ouvrir = { objetOuvert = it },
                     )
                 }

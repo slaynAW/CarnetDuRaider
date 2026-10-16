@@ -14,13 +14,16 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
   l'appli suit d'elle-même le prochain niveau de chaque établi et les quêtes disponibles (d'après
   l'enchaînement des quêtes du jeu). Quand tu coches une amélioration ou une quête terminée, la suite
   apparaît et ce que le jeu a pris est retiré de ta réserve.
+- **Retour de raid.** Après un raid, un écran pour ajouter vite ce que tu rapportes (« +1 », « +5 »),
+  en commençant par les objets encore à trouver.
 - **Liste de courses.** Les objets à trouver pour tout ça, avec ta réserve mise à jour en une touche
   (« − » / « + »). Des objectifs plus lointains peuvent s'ajouter à la main.
 - **Conditions de la carte.** Le calendrier officiel d'Embark
   ([arcraiders.com/map-conditions](https://arcraiders.com/map-conditions)) dans l'appli, avec les noms
   français officiels : ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois
   de chaque condition, à l'heure de ton téléphone, pour ta région. Gardé sur le téléphone, il reste
-  lisible sans connexion.
+  lisible sans connexion. **Alertes** : une notification quelques minutes avant les conditions que tu
+  suis, même appli fermée.
 - **Sans compte.** Les données du jeu sont embarquées dans l'appli ; elle ne se connecte jamais à ton
   compte Embark ni aux serveurs du jeu, et ne touche jamais au jeu.
 - **Mises à jour sécurisées depuis GitHub.** L'appli propose elle-même les nouvelles versions

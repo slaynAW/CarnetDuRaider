@@ -7,7 +7,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.Conseiller
-import io.github.slaynaw.carnetduraider.core.DonneesJeu
 import io.github.slaynaw.carnetduraider.core.Etabli
 import io.github.slaynaw.carnetduraider.core.ListeDeCourses
 import io.github.slaynaw.carnetduraider.core.Objectif
@@ -25,7 +24,7 @@ import io.github.slaynaw.carnetduraider.core.calendrier.Region
  * cours), plus ceux que le joueur ajoute lui-même.
  */
 class CarnetViewModel(application: Application) : AndroidViewModel(application) {
-    val catalogue = Catalogue(DonneesJeu.embarquees())
+    val catalogue: Catalogue = application.carnet.catalogue
     val planificateur = Planificateur(catalogue)
     val suivi = SuiviProgression(catalogue)
     private val conseiller = Conseiller(catalogue, planificateur)
@@ -34,6 +33,7 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     /** Mises à jour intégrées et calendrier : vivent avec l'appli, pas avec l'écran. */
     val miseAJour = (application as CarnetApplication).miseAJour
     val calendrier = application.carnet.calendrier
+    val alertes = application.carnet.alertes
 
     var reserve by mutableStateOf(memoire.lireReserve())
         private set
@@ -108,7 +108,11 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     fun changerRegion(nouvelle: Region) {
         region = nouvelle
         memoire.region = nouvelle
+        alertes.replanifier()
     }
+
+    /** Remet la réserve telle qu'elle était (annulation d'une saisie de retour de raid). */
+    fun restaurerReserve(sauvegarde: Map<String, Int>) = changerReserve(sauvegarde)
 
     fun calendrierOfficiel(donnees: DonneesCalendrier): Calendrier = Calendrier(donnees, catalogue)
 

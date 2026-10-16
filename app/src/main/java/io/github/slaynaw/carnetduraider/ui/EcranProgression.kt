@@ -61,7 +61,13 @@ private sealed interface AConfirmer {
 }
 
 @Composable
-fun EcranProgression(vm: CarnetViewModel, ajouterObjectif: () -> Unit, choisirQuetes: () -> Unit, ouvrir: (String) -> Unit) {
+fun EcranProgression(
+    vm: CarnetViewModel,
+    ajouterObjectif: () -> Unit,
+    choisirQuetes: () -> Unit,
+    retourDeRaid: () -> Unit,
+    ouvrir: (String) -> Unit,
+) {
     val liste = vm.listeDeCourses()
     val enCours = vm.suivi.quetesEnCours(vm.progression)
     val autres = vm.objectifsManuels.filter { it !in vm.objectifsAutomatiques }
@@ -147,7 +153,12 @@ fun EcranProgression(vm: CarnetViewModel, ajouterObjectif: () -> Unit, choisirQu
         }
 
         if (liste.lignes.isNotEmpty()) {
-            item { SousTitre("Objets à trouver") }
+            item {
+                Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Objets à trouver", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = retourDeRaid) { Text("Retour de raid", color = Signal.Or) }
+                }
+            }
         }
         items(liste.lignes, key = { it.objetId }) { ligne ->
             LigneCourses(vm, ligne, onClick = { ouvrir(ligne.objetId) })

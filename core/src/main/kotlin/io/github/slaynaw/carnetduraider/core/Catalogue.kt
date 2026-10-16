@@ -37,6 +37,9 @@ class Catalogue(val donnees: DonneesJeu) {
             .map { it.first }
     }
 
+    /** Tout le catalogue, par ordre alphabétique (sans tenir compte des majuscules ni des accents). */
+    val tous: List<Objet> = index.sortedWith(compareBy({ it.second }, { it.first.nom })).map { it.first }
+
     /** Ce que rapporte le recyclage d'une unité, en pièces (valeur des matériaux obtenus). */
     fun valeurRecyclage(objet: Objet): Int =
         objet.recyclage.sumOf { (objetsParId[it.id]?.valeur ?: 0) * it.quantite }

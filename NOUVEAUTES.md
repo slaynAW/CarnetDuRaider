@@ -5,6 +5,12 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.4.0
+
+- **Alertes des conditions de la carte** : touche la cloche d'une condition (onglet Cartes) ou choisis-les dans les réglages, et le téléphone te prévient 5 à 30 minutes avant son début, même appli fermée et sans connexion.
+- **Retour de raid** : un écran pour ajouter vite ce que tu rapportes. Les objets encore à trouver pour ta progression sont en tête, avec de gros boutons « +1 » et « +5 » ; « Annuler » remet ta réserve comme avant.
+- **Tous les objets** : l'onglet Objets affiche tout le catalogue par ordre alphabétique, la recherche sert à filtrer.
+
 ## 0.3.0
 
 - **Icônes des objets** : chaque objet s'affiche avec son icône du jeu, sur une tuile aux couleurs de sa rareté (recherche, fiche, liste de courses).

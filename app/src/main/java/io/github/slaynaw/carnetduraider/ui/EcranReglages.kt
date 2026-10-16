@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.BuildConfig
+import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.miseajour.MisesAJour
 import io.github.slaynaw.carnetduraider.miseajour.EtatMiseAJour
 import io.github.slaynaw.carnetduraider.miseajour.GestionnaireMiseAJour
@@ -32,7 +33,7 @@ import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import kotlinx.coroutines.launch
 
 @Composable
-fun EcranReglages(miseAJour: GestionnaireMiseAJour, etat: EtatMiseAJour, afficherMiseAJour: () -> Unit, onRetour: () -> Unit) {
+fun EcranReglages(vm: CarnetViewModel, miseAJour: GestionnaireMiseAJour, etat: EtatMiseAJour, afficherMiseAJour: () -> Unit, onRetour: () -> Unit) {
     val portee = rememberCoroutineScope()
     val liens = LocalUriHandler.current
 
@@ -93,6 +94,8 @@ fun EcranReglages(miseAJour: GestionnaireMiseAJour, etat: EtatMiseAJour, affiche
             style = MaterialTheme.typography.bodySmall,
             color = Signal.TexteDiscret,
         )
+
+        SectionAlertes(vm)
 
         Text("À propos", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
         Reglage(
