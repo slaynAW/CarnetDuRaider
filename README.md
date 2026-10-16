@@ -17,6 +17,9 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
   les alertes arrivent dans une prochaine version.
 - **Hors connexion et sans compte.** Les données du jeu sont embarquées dans l'appli ; elle ne se
   connecte jamais à ton compte Embark et ne touche jamais au jeu.
+- **Mises à jour sécurisées depuis GitHub.** L'appli propose elle-même les nouvelles versions
+  officielles, avec leurs nouveautés. Chacune est signée par la CI avec la clé de l'appli et vérifiée
+  avant l'installation ([docs/MISES-A-JOUR.md](docs/MISES-A-JOUR.md)).
 
 ## Noms du jeu : uniquement les traductions françaises officielles
 
@@ -27,13 +30,23 @@ officielle n'est pas vérifiée est retiré de l'appli et listé dans
 
 ## Installer
 
-L'APK de test est produit par GitHub à chaque modification : onglet **Actions** → dernier build →
-artefact **apk**. Android 8 ou plus récent.
+Depuis le téléphone, télécharger l'APK de la dernière version sur la page
+[Releases](https://github.com/slaynAW/CarnetDuRaider/releases/latest), puis l'ouvrir. Android 8 ou plus
+récent. Les versions suivantes s'installent ensuite depuis l'appli (*Réglages → Mises à jour*).
+
+La pré-version `dev` et les artefacts des builds sont signés avec une clé de test : ils ne
+s'installent pas par-dessus la version officielle ([docs/SIGNATURE.md](docs/SIGNATURE.md)).
+
+## Publier une version
+
+Compléter [NOUVEAUTES.md](NOUVEAUTES.md), puis **Actions → Build → Run workflow** avec le numéro
+(ex. `0.1.0`) et valider la publication. Détails : [docs/MISES-A-JOUR.md](docs/MISES-A-JOUR.md) et,
+pour la mise en place de la clé (une seule fois), [docs/SIGNATURE.md](docs/SIGNATURE.md).
 
 ## Développement
 
 ```bash
-./gradlew :core:test                 # tests de la logique (données, liste de courses, verdict)
+./gradlew :core:test                 # tests de la logique (données, liste de courses, verdict, mises à jour)
 ./gradlew :app:assembleDebug          # APK de debug
 ```
 

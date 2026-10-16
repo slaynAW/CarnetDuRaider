@@ -26,7 +26,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Pas encore de clé de publication : l'APK de test est signé avec la clé de debug.
+            // Jamais de clé de publication ici : l'APK est signé avec la clé de debug (clé de test).
+            // Seul le job « Publication officielle » de la CI le re-signe avec la clé définitive,
+            // après validation (docs/SIGNATURE.md).
             signingConfig = signingConfigs.getByName("debug")
         }
         debug {
@@ -42,6 +44,8 @@ android {
 
     buildFeatures {
         compose = true
+        // Code de version de l'appli installée, comparé à celui des versions publiées.
+        buildConfig = true
     }
 
     packaging {

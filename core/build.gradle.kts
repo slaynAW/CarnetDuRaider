@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 // Module Kotlin pur (sans dépendance Android) : données du jeu et logique (recherche, liste de
-// courses, verdict), testées rapidement sur la JVM et réutilisées par l'appli.
+// courses, verdict) et vérification des mises à jour, testées rapidement sur la JVM et réutilisées par l'appli.
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -21,6 +21,8 @@ kotlin {
 
 dependencies {
     api(libs.kotlinx.serialization.json)
+    // Mises à jour : téléchargement en arrière-plan (fonctions suspendues).
+    api(libs.kotlinx.coroutines.core)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

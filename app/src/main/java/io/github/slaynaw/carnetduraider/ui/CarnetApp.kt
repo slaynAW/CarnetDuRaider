@@ -16,6 +16,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -23,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
@@ -41,18 +44,39 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
     var objetOuvert by rememberSaveable { mutableStateOf<String?>(null) }
     var ajoutObjectif by rememberSaveable { mutableStateOf(false) }
     var recherche by rememberSaveable { mutableStateOf("") }
+    var reglages by rememberSaveable { mutableStateOf(false) }
+    val miseAJour by vm.miseAJour.etat.collectAsStateWithLifecycle()
+    var dialogueMiseAJour by rememberSaveable { mutableStateOf(false) }
+    var versionProposee by rememberSaveable { mutableStateOf("") }
+
+    // À chaque retour dans l'appli : recherche d'une mise à jour, au plus toutes les 12 h.
+    LifecycleStartEffect(Unit) {
+        vm.miseAJour.rechercherSiNecessaire()
+        onStopOrDispose { }
+    }
+
+    // Nouvelle version : proposée d'elle-même une fois (sauf « Plus tard » dans les dernières 24 h).
+    LaunchedEffect(miseAJour.nouvelle?.version, miseAJour.reportee) {
+        val version = miseAJour.nouvelle?.version ?: return@LaunchedEffect
+        if (!miseAJour.reportee && versionProposee != version) {
+            versionProposee = version
+            dialogueMiseAJour = true
+        }
+    }
 
     fun aller(cible: Onglet) {
         objetOuvert = null
         ajoutObjectif = false
+        reglages = false
         onglet = cible
     }
 
     // Retour : d'abord l'écran ouvert par-dessus l'onglet, puis l'accueil.
-    BackHandler(enabled = objetOuvert != null || ajoutObjectif || onglet != Onglet.ACCUEIL) {
+    BackHandler(enabled = objetOuvert != null || ajoutObjectif || reglages || onglet != Onglet.ACCUEIL) {
         when {
             objetOuvert != null -> objetOuvert = null
             ajoutObjectif -> ajoutObjectif = false
+            reglages -> reglages = false
             else -> onglet = Onglet.ACCUEIL
         }
     }
@@ -84,8 +108,20 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
             when {
                 id != null -> EcranFiche(vm, id, onRetour = { objetOuvert = null })
                 ajoutObjectif -> EcranAjoutObjectif(vm, onRetour = { ajoutObjectif = false })
+                reglages -> EcranReglages(
+                    vm.miseAJour,
+                    miseAJour,
+                    afficherMiseAJour = { dialogueMiseAJour = true },
+                    onRetour = { reglages = false },
+                )
                 else -> when (onglet) {
-                    Onglet.ACCUEIL -> EcranAccueil(vm, aller = ::aller)
+                    Onglet.ACCUEIL -> EcranAccueil(
+                        vm,
+                        aller = ::aller,
+                        nouvelleVersion = miseAJour.nouvelle?.version,
+                        ouvrirReglages = { reglages = true },
+                        afficherMiseAJour = { dialogueMiseAJour = true },
+                    )
                     Onglet.OBJETS -> EcranObjets(vm, recherche, { recherche = it }, ouvrir = { objetOuvert = it })
                     Onglet.CARTES -> EcranCartes(vm)
                     Onglet.PROGRESSION -> EcranProgression(
@@ -96,5 +132,16 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
                 }
             }
         }
+    }
+
+    if (dialogueMiseAJour && miseAJour.nouvelle != null) {
+        DialogueMiseAJour(
+            miseAJour,
+            plusTard = {
+                dialogueMiseAJour = false
+                vm.miseAJour.reporter()
+            },
+            installer = vm.miseAJour::installer,
+        )
     }
 }

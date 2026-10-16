@@ -20,6 +20,9 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     private val conseiller = Conseiller(catalogue, planificateur)
     private val memoire = Memoire(application)
 
+    /** Mises à jour intégrées : vivent avec l'appli, pas avec l'écran (téléchargement en cours). */
+    val miseAJour = (application as CarnetApplication).miseAJour
+
     var reserve by mutableStateOf(memoire.lireReserve())
         private set
     var objectifs by mutableStateOf(memoire.lireObjectifs())

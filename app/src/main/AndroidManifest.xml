@@ -2,10 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Aucune permission : l'appli fonctionne hors connexion avec les données du jeu embarquées.
-         Le calendrier officiel des conditions de la carte s'ouvre dans le navigateur. -->
+    <!-- L'appli fonctionne hors connexion avec les données du jeu embarquées. Seules les mises à jour
+         intégrées contactent Internet (versions officielles publiées sur GitHub, docs/MISES-A-JOUR.md). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Mises à jour intégrées : installation de la nouvelle version (confirmée par l'utilisateur). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
+        android:name=".CarnetApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
@@ -27,9 +31,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Résultat de l'installation d'une mise à jour (confirmation, échec). -->
+        <receiver
+            android:name=".miseajour.RecepteurInstallation"
+            android:exported="false" />
     </application>
 
-    <!-- Ouverture du calendrier officiel (https) dans le navigateur, visible depuis Android 11. -->
+    <!-- Ouverture du calendrier officiel et de GitHub (https) dans le navigateur, visible depuis Android 11. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />

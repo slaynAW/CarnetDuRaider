@@ -10,8 +10,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,7 +27,13 @@ import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import java.time.LocalTime
 
 @Composable
-fun EcranAccueil(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
+fun EcranAccueil(
+    vm: CarnetViewModel,
+    aller: (Onglet) -> Unit,
+    nouvelleVersion: String?,
+    ouvrirReglages: () -> Unit,
+    afficherMiseAJour: () -> Unit,
+) {
     val donnees = vm.catalogue.donnees
     val liste = vm.listeDeCourses()
     val heure = LocalTime.now().hour
@@ -40,6 +49,21 @@ fun EcranAccueil(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
                 Text("Carnet du Raider", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
             }
             Bandes()
+            IconButton(onClick = ouvrirReglages) {
+                Icon(Icons.Filled.Settings, contentDescription = "Réglages", tint = Signal.TexteDoux)
+            }
+        }
+
+        if (nouvelleVersion != null) {
+            Surface(onClick = afficherMiseAJour, color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(Icons.Filled.Refresh, contentDescription = null, tint = Signal.Or)
+                    Column {
+                        Text("Mise à jour disponible", style = MaterialTheme.typography.titleSmall)
+                        Text("Version $nouvelleVersion\u00a0: touche pour voir les nouveautés", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                    }
+                }
+            }
         }
 
         // Accès direct à la question la plus fréquente du jeu.

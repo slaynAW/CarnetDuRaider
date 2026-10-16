@@ -46,6 +46,18 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   les ARC. Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
 - La réserve et les objectifs du joueur sont saisis à la main (`Memoire`) : l'appli ne se connecte
   jamais au compte Embark et ne touche jamais au jeu (pas de lecture de mémoire, de trafic ou de jeton).
+- Mises à jour intégrées (`core/…/miseajour`, `app/…/miseajour`) : seule connexion de l'appli, vers
+  les Releases GitHub du dépôt. Le manifeste `update.json` est signé par la CI avec la clé de l'APK et
+  vérifié avec le certificat de l'appli installée ; l'APK doit avoir la taille et l'empreinte annoncées.
+  Ne jamais affaiblir ces contrôles ni ajouter d'autre source de mise à jour (docs/MISES-A-JOUR.md).
+
+## Publication et clé de signature
+
+- La clé de signature n'est **jamais** dans le dépôt ni dans un job autre que « Publication
+  officielle » (environnement protégé `publication`, secrets `CDR_KEYSTORE_*`). Voir docs/SIGNATURE.md.
+- Une version officielle exige une section `## X.Y.Z` dans `NOUVEAUTES.md` (texte affiché dans
+  l'appli) ; les noms du jeu y suivent la règle des traductions officielles.
+- Actions épinglées par empreinte de commit, jeton en lecture seule par défaut.
 
 ## Vérifications
 
