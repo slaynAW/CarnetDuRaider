@@ -58,7 +58,8 @@ pour la mise en place de la clé (une seule fois), [docs/SIGNATURE.md](docs/SIGN
 
 ## Sources et licences
 
-- Données du jeu : textes officiels d'Embark Studios, extraits par le projet communautaire
+- Données du jeu : textes officiels et icônes des objets d'Embark Studios, extraits des fichiers du
+  jeu par le projet communautaire
   [baschny/arcraiders-raider-tools](https://github.com/baschny/arcraiders-raider-tools)
   (`scripts/importer_donnees_jeu.py`). Tout le contenu du jeu est © Embark Studios AB.
 - Polices : [Prompt](https://fonts.google.com/specimen/Prompt) et

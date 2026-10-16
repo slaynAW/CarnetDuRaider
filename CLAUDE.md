@@ -12,6 +12,8 @@ telle qu'elle apparaît dans le jeu.
 - Ne jamais traduire, adapter ni « deviner » un nom du jeu, même s'il paraît évident.
 - Les noms viennent uniquement de `core/src/main/resources/donnees-jeu.json`, produit par
   `scripts/importer_donnees_jeu.py` à partir des données du jeu. Ne pas modifier ce fichier à la main.
+- Les icônes des objets (`app/src/main/assets/objets/<identifiant>.webp`) sont les icônes officielles
+  du jeu, réduites par le même script (Pillow). Ne jamais en dessiner ni en ajouter à la main.
 - Un nom sans traduction officielle vérifiée n'entre pas dans l'appli : le script l'exclut et le liste
   dans `docs/NOMS-A-VERIFIER.md`. Dans l'interface, un objet absent s'affiche « Nom à vérifier en jeu »
   (`Catalogue.NOM_A_VERIFIER`), jamais avec un nom inventé.
@@ -44,6 +46,8 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
 - `app/` : interface Jetpack Compose, style « Signal » (`ui/theme/Theme.kt`) : fond sombre, et une
   couleur par domaine — or pour les objets, cyan pour les cartes, vert pour la progression, rouge pour
   les ARC. Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
+  En-tête commun à toutes les sections (`EnTete` : logo, nom, réglages) ; objets affichés avec leur
+  icône sur une tuile aux couleurs de leur rareté (`IconeObjet`).
 - La réserve et la progression du joueur sont saisies dans l'appli (`Memoire`) : l'appli ne se connecte
   jamais au compte Embark et ne touche jamais au jeu (pas de lecture de mémoire, de trafic ou de jeton).
 - Progression automatique (`core/Progression.kt`) : le joueur indique le niveau de ses établis et ses

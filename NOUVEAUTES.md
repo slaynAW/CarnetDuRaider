@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.3.0
+
+- **Icônes des objets** : chaque objet s'affiche avec son icône du jeu, sur une tuile aux couleurs de sa rareté (recherche, fiche, liste de courses).
+- **En-tête commun** : le nom de l'appli, son logo et l'accès aux réglages en haut de chaque section.
+
 ## 0.2.0
 
 - **Progression automatique** : indique une fois le niveau de tes établis et tes quêtes en cours, l'appli suit d'elle-même la suite. Coche une amélioration ou une quête terminée : la suite apparaît et ce que le jeu a pris peut être retiré de ta réserve.

@@ -12,9 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,7 +31,6 @@ fun EcranAccueil(
     nouvelleVersion: String?,
     /** Conditions de la carte en cours (calendrier officiel), ou `null` s'il n'a pas encore été lu. */
     conditionsEnCours: Int?,
-    ouvrirReglages: () -> Unit,
     afficherMiseAJour: () -> Unit,
 ) {
     val donnees = vm.catalogue.donnees
@@ -45,16 +42,7 @@ fun EcranAccueil(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(salutation, style = MaterialTheme.typography.headlineMedium)
-                Text("Carnet du Raider", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
-            }
-            Bandes()
-            IconButton(onClick = ouvrirReglages) {
-                Icon(Icons.Filled.Settings, contentDescription = "Réglages", tint = Signal.TexteDoux)
-            }
-        }
+        Text(salutation, style = MaterialTheme.typography.headlineMedium)
 
         if (nouvelleVersion != null) {
             Surface(onClick = afficherMiseAJour, color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {

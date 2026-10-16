@@ -1,6 +1,5 @@
 package io.github.slaynaw.carnetduraider.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,7 +40,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -275,7 +272,12 @@ private fun DialogueConsommation(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(question, style = MaterialTheme.typography.bodyMedium)
                 Text("Retirer de ta réserve ce que le jeu a pris\u00a0:", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
-                cout.forEach { Text("${it.quantite} × ${catalogue.nomObjet(it.id)}", style = MaterialTheme.typography.bodyMedium) }
+                cout.forEach { q ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconeObjet(q.id, catalogue.objet(q.id)?.rarete, 28.dp)
+                        Text("${q.quantite} × ${catalogue.nomObjet(q.id)}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         },
         confirmButton = {
@@ -309,7 +311,7 @@ private fun LigneCourses(vm: CarnetViewModel, ligne: LigneDeCourses, onClick: ()
         Row(Modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(Signal.rarete(rarete)))
+                    IconeObjet(ligne.objetId, rarete, 40.dp)
                     Text(ligne.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     Text(
                         "${ligne.possede}/${ligne.besoin}",

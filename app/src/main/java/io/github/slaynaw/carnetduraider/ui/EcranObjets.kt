@@ -1,8 +1,6 @@
 package io.github.slaynaw.carnetduraider.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,11 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -33,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
@@ -89,8 +84,8 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
 @Composable
 private fun LigneObjet(objet: Objet, possede: Int, onClick: () -> Unit) {
     Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(Signal.rarete(objet.rarete)))
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconeObjet(objet.id, objet.rarete, 48.dp)
             Column(Modifier.weight(1f)) {
                 Text(objet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 val details = listOfNotNull(objet.rarete?.libelle, objet.categorie).joinToString(" · ")
@@ -120,10 +115,13 @@ fun EcranFiche(vm: CarnetViewModel, objetId: String, onRetour: () -> Unit) {
             return@Column
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(objet.nom, style = MaterialTheme.typography.headlineLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                PuceRarete(objet.rarete)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            IconeObjet(objet.id, objet.rarete, 104.dp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(objet.nom, style = MaterialTheme.typography.headlineMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PuceRarete(objet.rarete)
+                }
                 objet.categorie?.let { Puce(it, couleur = Signal.TexteDoux) }
             }
         }
@@ -142,9 +140,7 @@ fun EcranFiche(vm: CarnetViewModel, objetId: String, onRetour: () -> Unit) {
             if (objet.recyclage.isEmpty()) {
                 Text("Ne se recycle pas.", style = MaterialTheme.typography.bodyLarge, color = Signal.TexteDoux)
             } else {
-                objet.recyclage.forEach {
-                    Text("${it.quantite} × ${vm.catalogue.nomObjet(it.id)}", style = MaterialTheme.typography.bodyLarge)
-                }
+                objet.recyclage.forEach { LigneQuantite(vm, it.id, it.quantite) }
             }
         }
         if (objet.lieux.isNotEmpty()) {
@@ -211,5 +207,14 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
                 )
             }
         }
+    }
+}
+
+/** « 3 × Pièces métalliques » avec l'icône de l'objet. */
+@Composable
+fun LigneQuantite(vm: CarnetViewModel, objetId: String, quantite: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        IconeObjet(objetId, vm.catalogue.objet(objetId)?.rarete, 32.dp)
+        Text("$quantite × ${vm.catalogue.nomObjet(objetId)}", style = MaterialTheme.typography.bodyLarge)
     }
 }

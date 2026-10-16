@@ -12,7 +12,9 @@ n'invente ni ne traduit rien :
   - chaque exclusion est listée dans docs/NOMS-A-VERIFIER.md.
 
 Usage : python3 scripts/importer_donnees_jeu.py <dossier public/data/game>
-Écrit core/src/main/resources/donnees-jeu.json et docs/NOMS-A-VERIFIER.md.
+Écrit core/src/main/resources/donnees-jeu.json et docs/NOMS-A-VERIFIER.md, et les icônes officielles
+des objets (fichiers du jeu, dossier « public/images/items » voisin) réduites pour l'appli dans
+app/src/main/assets/objets/<identifiant>.webp. Demande Pillow (pip install pillow).
 """
 import json
 import pathlib
@@ -22,6 +24,10 @@ import sys
 RACINE = pathlib.Path(__file__).resolve().parent.parent
 SORTIE = RACINE / "core/src/main/resources/donnees-jeu.json"
 RAPPORT = RACINE / "docs/NOMS-A-VERIFIER.md"
+ICONES = RACINE / "app/src/main/assets/objets"
+# Icônes réduites : nettes jusqu'à ~100 dp sur un écran courant, environ 4 Mo pour tout le catalogue.
+TAILLE_ICONE = 160
+QUALITE_ICONE = 82
 LISTE_BLANCHE = RACINE / "scripts/noms-identiques-verifies.txt"
 
 # Familles d'objets importées (les meubles de l'Avant-poste et les apparences viendront plus tard).
@@ -86,6 +92,38 @@ def objets_de_quete(noeud, total):
 
 def quantites(liste):
     return [{"id": e["itemId"], "quantite": e["quantity"]} for e in liste or []]
+
+
+def convertir_icone(travail):
+    source, destination = travail
+    from PIL import Image
+    with Image.open(source) as image:
+        image = image.convert("RGBA")
+        image.thumbnail((TAILLE_ICONE, TAILLE_ICONE), Image.LANCZOS)
+        image.save(destination, "WEBP", quality=QUALITE_ICONE, method=4)
+
+
+def importer_icones(dossier_images, objets, items):
+    """Icônes des objets gardés ; les anciennes icônes sont supprimées. Renvoie (écrites, manquantes)."""
+    try:
+        import PIL  # noqa: F401
+    except ImportError:
+        sys.exit("Pillow est nécessaire pour les icônes : pip install pillow")
+    import concurrent.futures
+    ICONES.mkdir(parents=True, exist_ok=True)
+    for ancien in ICONES.glob("*.webp"):
+        ancien.unlink()
+    travaux, manquantes = [], []
+    for o in objets:
+        icone = (items[o["id"]].get("icon") or "").removeprefix("/images/")
+        source = dossier_images / icone if icone else None
+        if source is None or not source.is_file():
+            manquantes.append(o["id"])
+            continue
+        travaux.append((source, ICONES / f"{o['id']}.webp"))
+    with concurrent.futures.ProcessPoolExecutor() as executeur:
+        list(executeur.map(convertir_icone, travaux, chunksize=16))
+    return len(travaux), manquantes
 
 
 def main():
@@ -213,6 +251,10 @@ def main():
     lignes += [f"| {d} | `{i}` | {en} | {r} |" for d, i, en, r in filtre.exclus]
     RAPPORT.parent.mkdir(parents=True, exist_ok=True)
     RAPPORT.write_text("\n".join(lignes) + "\n", encoding="utf-8")
+
+    ecrites, manquantes = importer_icones(src.parent.parent / "images", objets, items["items"])
+    taille = sum(f.stat().st_size for f in ICONES.glob("*.webp"))
+    print(f"Icônes : {ecrites} objets ({taille / 1e6:.1f} Mo), {len(manquantes)} sans icône dans les données.")
 
     print(f"Données {version} : {len(objets)} objets, {len(etablis)} établis, {len(quetes)} quêtes, "
           f"{len(cartes)} cartes, {len(conditions)} conditions ; {len(filtre.exclus)} noms exclus, "
