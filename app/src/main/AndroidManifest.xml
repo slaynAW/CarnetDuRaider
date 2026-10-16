@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- L'appli fonctionne hors connexion avec les données du jeu embarquées. Seules les mises à jour
-         intégrées contactent Internet (versions officielles publiées sur GitHub, docs/MISES-A-JOUR.md). -->
+    <!-- L'appli fonctionne hors connexion avec les données du jeu embarquées. Internet ne sert qu'aux
+         mises à jour intégrées (versions officielles publiées sur GitHub, docs/MISES-A-JOUR.md) et au
+         calendrier officiel des conditions de la carte (arcraiders.com, gardé ensuite sur le téléphone). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Mises à jour intégrées : installation de la nouvelle version (confirmée par l'utilisateur). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />

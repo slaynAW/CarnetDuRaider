@@ -44,11 +44,22 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
 - `app/` : interface Jetpack Compose, style « Signal » (`ui/theme/Theme.kt`) : fond sombre, et une
   couleur par domaine — or pour les objets, cyan pour les cartes, vert pour la progression, rouge pour
   les ARC. Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
-- La réserve et les objectifs du joueur sont saisis à la main (`Memoire`) : l'appli ne se connecte
+- La réserve et la progression du joueur sont saisies dans l'appli (`Memoire`) : l'appli ne se connecte
   jamais au compte Embark et ne touche jamais au jeu (pas de lecture de mémoire, de trafic ou de jeton).
-- Mises à jour intégrées (`core/…/miseajour`, `app/…/miseajour`) : seule connexion de l'appli, vers
-  les Releases GitHub du dépôt. Le manifeste `update.json` est signé par la CI avec la clé de l'APK et
-  vérifié avec le certificat de l'appli installée ; l'APK doit avoir la taille et l'empreinte annoncées.
+- Progression automatique (`core/Progression.kt`) : le joueur indique le niveau de ses établis et ses
+  quêtes en cours ; l'appli en déduit les objectifs (prochain niveau, quêtes disponibles d'après
+  l'enchaînement `requiert` des données du jeu) et retire de la réserve ce que le jeu a consommé.
+- Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
+  officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
+  affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).
+  Un nom inconnu s'affiche « Nom à vérifier en jeu ». Le workflow « Calendrier officiel » vérifie
+  chaque jour que la page est toujours lisible.
+- Connexions de l'appli : uniquement GitHub (mises à jour) et arcraiders.com (calendrier). Jamais le
+  compte Embark ni les serveurs du jeu, jamais de jeton de connexion du joueur.
+- Mises à jour intégrées (`core/…/miseajour`, `app/…/miseajour`) : vers les Releases GitHub du dépôt,
+  qui doit être **public** (sinon l'appli ne peut pas lire les fichiers publiés). Le manifeste
+  `update.json` est signé par la CI avec la clé de l'APK et vérifié avec le certificat de l'appli
+  installée ; l'APK doit avoir la taille et l'empreinte annoncées.
   Ne jamais affaiblir ces contrôles ni ajouter d'autre source de mise à jour (docs/MISES-A-JOUR.md).
 
 ## Publication et clé de signature

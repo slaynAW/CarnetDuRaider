@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -45,13 +46,19 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
     var ajoutObjectif by rememberSaveable { mutableStateOf(false) }
     var recherche by rememberSaveable { mutableStateOf("") }
     var reglages by rememberSaveable { mutableStateOf(false) }
+    var choixQuetes by rememberSaveable { mutableStateOf(false) }
+    val calendrier by vm.calendrier.etat.collectAsStateWithLifecycle()
+    val calendrierOfficiel = remember(calendrier.donnees) { calendrier.donnees?.let(vm::calendrierOfficiel) }
+    val t = maintenant()
     val miseAJour by vm.miseAJour.etat.collectAsStateWithLifecycle()
     var dialogueMiseAJour by rememberSaveable { mutableStateOf(false) }
     var versionProposee by rememberSaveable { mutableStateOf("") }
 
-    // À chaque retour dans l'appli : recherche d'une mise à jour, au plus toutes les 12 h.
+    // À chaque retour dans l'appli : recherche d'une mise à jour (au plus toutes les 12 h) et
+    // relecture du calendrier officiel des conditions de la carte (au plus toutes les heures).
     LifecycleStartEffect(Unit) {
         vm.miseAJour.rechercherSiNecessaire()
+        vm.calendrier.actualiserSiNecessaire()
         onStopOrDispose { }
     }
 
@@ -68,14 +75,16 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
         objetOuvert = null
         ajoutObjectif = false
         reglages = false
+        choixQuetes = false
         onglet = cible
     }
 
     // Retour : d'abord l'écran ouvert par-dessus l'onglet, puis l'accueil.
-    BackHandler(enabled = objetOuvert != null || ajoutObjectif || reglages || onglet != Onglet.ACCUEIL) {
+    BackHandler(enabled = objetOuvert != null || ajoutObjectif || choixQuetes || reglages || onglet != Onglet.ACCUEIL) {
         when {
             objetOuvert != null -> objetOuvert = null
             ajoutObjectif -> ajoutObjectif = false
+            choixQuetes -> choixQuetes = false
             reglages -> reglages = false
             else -> onglet = Onglet.ACCUEIL
         }
@@ -108,6 +117,7 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
             when {
                 id != null -> EcranFiche(vm, id, onRetour = { objetOuvert = null })
                 ajoutObjectif -> EcranAjoutObjectif(vm, onRetour = { ajoutObjectif = false })
+                choixQuetes -> EcranQuetesEnCours(vm, onRetour = { choixQuetes = false })
                 reglages -> EcranReglages(
                     vm.miseAJour,
                     miseAJour,
@@ -119,6 +129,7 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
                         vm,
                         aller = ::aller,
                         nouvelleVersion = miseAJour.nouvelle?.version,
+                        conditionsEnCours = calendrierOfficiel?.enCours(vm.region, t)?.size,
                         ouvrirReglages = { reglages = true },
                         afficherMiseAJour = { dialogueMiseAJour = true },
                     )
@@ -127,6 +138,7 @@ fun CarnetApp(vm: CarnetViewModel = viewModel()) {
                     Onglet.PROGRESSION -> EcranProgression(
                         vm,
                         ajouterObjectif = { ajoutObjectif = true },
+                        choisirQuetes = { choixQuetes = true },
                         ouvrir = { objetOuvert = it },
                     )
                 }

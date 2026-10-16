@@ -52,7 +52,7 @@ data class EtatMiseAJour(
  * authentifié avec le certificat de signature de l'appli installée, l'APK téléchargé doit avoir la
  * taille et l'empreinte annoncées, puis il est installé par l'installateur d'Android, qui vérifie de
  * nouveau que la signature est la même. Une mise à jour conserve la réserve et les objectifs.
- * Seule la recherche de mises à jour contacte Internet (GitHub, en HTTPS) ; elle ne transmet rien.
+ * La recherche contacte GitHub (en HTTPS) et ne transmet rien.
  */
 class GestionnaireMiseAJour(context: Context, private val portee: CoroutineScope) {
     private val app = context.applicationContext

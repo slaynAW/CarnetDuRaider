@@ -7,11 +7,15 @@ class Catalogue(val donnees: DonneesJeu) {
     private val objetsParId = donnees.objets.associateBy { it.id }
     private val etablisParId = donnees.etablis.associateBy { it.id }
     private val quetesParId = donnees.quetes.associateBy { it.id }
+    private val cartesParId = donnees.cartes.associateBy { it.id }
+    private val conditionsParId = donnees.conditions.associateBy { it.id }
     private val index = donnees.objets.map { it to normaliser(it.nom) }
 
     fun objet(id: String): Objet? = objetsParId[id]
     fun etabli(id: String): Etabli? = etablisParId[id]
     fun quete(id: String): Quete? = quetesParId[id]
+    fun carte(id: String): Carte? = cartesParId[id]
+    fun condition(id: String): Condition? = conditionsParId[id]
 
     /**
      * Nom à afficher pour un objet. Un objet absent des données (nom français officiel non vérifié)

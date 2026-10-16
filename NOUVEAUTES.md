@@ -5,6 +5,12 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.2.0
+
+- **Progression automatique** : indique une fois le niveau de tes établis et tes quêtes en cours, l'appli suit d'elle-même la suite. Coche une amélioration ou une quête terminée : la suite apparaît et ce que le jeu a pris peut être retiré de ta réserve.
+- **Conditions de la carte** : le calendrier officiel d'Embark dans l'appli, avec les noms français du jeu. Ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois de chaque condition, pour ta région. Il reste lisible sans connexion.
+- La liste de courses additionne maintenant tout ce qu'il faut pour ta progression ; tu peux toujours y ajouter un objectif plus lointain.
+
 ## 0.1.0
 
 Première version du Carnet du Raider.

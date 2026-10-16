@@ -31,7 +31,11 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Vérification du calendrier officiel (workflow « Calendrier officiel ») : résumé affiché.
+    val pageConditions = providers.environmentVariable("CDR_PAGE_CONDITIONS")
+    environment("CDR_PAGE_CONDITIONS", pageConditions.getOrElse(""))
     testLogging {
+        showStandardStreams = pageConditions.isPresent
         events("failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }

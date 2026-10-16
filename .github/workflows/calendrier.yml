@@ -1,0 +1,48 @@
+# Vérifie chaque jour que l'appli sait toujours lire le calendrier officiel des conditions de la carte
+# (https://arcraiders.com/map-conditions) : si Embark change le format de sa page, ou ajoute une carte
+# ou une condition dont le nom français n'est pas encore dans les données du jeu, ce workflow le
+# signale (onglet « Actions »). Il ne publie rien et n'a besoin d'aucun secret.
+name: Calendrier officiel
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "core/src/main/kotlin/**/calendrier/**"
+      - "core/src/test/kotlin/**/calendrier/**"
+      - "core/src/main/resources/donnees-jeu.json"
+      - ".github/workflows/calendrier.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lecture:
+    name: Lecture de la page d'Embark
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+
+      - name: Page officielle
+        run: |
+          curl -sSfL --retry 3 -A "CarnetDuRaider" -o "$RUNNER_TEMP/map-conditions.html" https://arcraiders.com/map-conditions
+          ls -l "$RUNNER_TEMP/map-conditions.html"
+
+      - name: Lecture par l'appli
+        env:
+          CDR_PAGE_CONDITIONS: ${{ runner.temp }}/map-conditions.html
+        run: ./gradlew --stacktrace :core:test --tests '*CalendrierEnDirectTest*' --rerun
