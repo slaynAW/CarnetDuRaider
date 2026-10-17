@@ -81,12 +81,22 @@ button.carte:hover { background: var(--releve); }
 .chip[aria-pressed="true"] { background: var(--c, var(--cyan)); color: var(--sur-couleur); border-color: transparent; }
 .retour { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; }
 .retour:hover { background: var(--surface); }
-.fond-dialogue { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.6); display: grid; place-items: center; padding: 24px; }
-.dialogue { background: var(--surface); border-radius: 26px; padding: 22px; width: min(400px, 100%); display: flex; flex-direction: column; gap: 10px; }
-.dialogue .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .case { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--texte-doux); flex: none; display: grid; place-items: center; }
 .case.coche { background: var(--vert); border-color: var(--vert); color: var(--sur-couleur); font-weight: 700; font-size: 14px; }
 .note-apercu { border: 1px dashed var(--trait); border-radius: 16px; padding: 10px 14px; }
+.valider { display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; padding: 9px 14px; font: 700 14px/1 var(--titre); background: var(--vert); color: var(--sur-couleur); align-self: flex-start; }
+.bandeau-validation { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 6; pointer-events: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.bandeau-validation > div { pointer-events: auto; max-width: 428px; margin: 0 auto; background: var(--releve); border-radius: 16px; padding: 8px 8px 8px 16px; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+.apercus { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.apercus button { flex: none; width: 132px; background: var(--surface); border-radius: 16px; overflow: hidden; text-align: left; }
+.apercus img { display: block; width: 132px; height: 96px; object-fit: cover; background: var(--releve); }
+.apercus span { display: block; padding: 8px 10px; font-size: 13px; font-weight: 600; }
+.plan-vue { position: relative; width: min(100%, 70vh); aspect-ratio: 1; margin: 0 auto; border-radius: 16px; overflow: hidden; background: var(--fond); touch-action: none; cursor: grab; user-select: none; }
+.plan-vue img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; pointer-events: none; }
+.plan-vue .etq { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; background: rgba(20,20,23,.72); border-radius: 6px; padding: 2px 6px; font-size: 12px; font-weight: 600; pointer-events: none; }
+.plan-vue .etq.grande { font: 700 14px var(--titre); }
+.plan-vue .sortie { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--cyan); border: 3px solid var(--fond); pointer-events: none; }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s; } }
 </style>
 
@@ -136,7 +146,9 @@ function rechercher(saisie, limite) {
 const valeurRecyclage = o => o.recyclage.reduce((s, q) => s + (objets.get(q.id)?.valeur ?? 0) * q.quantite, 0);
 
 // ---- Mémoire du joueur (comme Memoire.kt), gardée pour ce compte ----
-const M = { reserve: {}, niveaux: {}, terminees: [], ignores: [], manuels: [], quetesIndiquees: false, region: "EUROPE" };
+const M = { reserve: {}, niveaux: {}, terminees: [], ignores: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [] };
+const projets = new Map((D.projets || []).map(p => [p.id, p]));
+const cartes = new Map(D.cartes.map(c => [c.id, c]));
 
 // ---- Progression (core/Progression.kt) ----
 const histoire = D.quetes.filter(q => q.histoire);
@@ -154,11 +166,14 @@ function parcourir(depart, voisins) {
 }
 const precedentes = id => parcourir(id, x => quetes.get(x)?.requiert ?? []);
 const suivantes = id => parcourir(id, x => suites.get(x) ?? []);
-const cleObjectif = o => o.type === "etabli" ? `etabli:${o.id}:${o.niveau}` : `quete:${o.id}`;
+const cleObjectif = o => o.type === "etabli" ? `etabli:${o.id}:${o.niveau}` : o.type === "projet" ? `projet:${o.id}:${o.etape}` : `quete:${o.id}`;
+const prochaineEtape = p => { const n = M.etapesProjets[p.id] ?? 0; return n < p.etapes.length ? n : null; };
+const nomEtape = (p, i) => p?.etapes[i]?.nom ?? `étape ${i + 1}`;
 function objectifsAuto() {
   const liste = [];
   for (const e of D.etablis) { if (M.ignores.includes(e.id)) continue; const p = prochainNiveau(e); if (p) liste.push({ type: "etabli", id: e.id, niveau: p.niveau }); }
   for (const q of quetesEnCours()) if (q.objets.length) liste.push({ type: "quete", id: q.id });
+  for (const p of D.projets || []) { if (!(M.projetsSuivis || []).includes(p.id)) continue; const e = prochaineEtape(p); if (e != null) liste.push({ type: "projet", id: p.id, etape: e }); }
   return liste;
 }
 function objectifs() {
@@ -168,8 +183,11 @@ function objectifs() {
 }
 
 // ---- Liste de courses et verdict (core/ListeDeCourses.kt, core/Verdict.kt) ----
-const libelle = o => o.type === "etabli" ? `${etablis.get(o.id)?.nom ?? NOM_A_VERIFIER} · niveau ${o.niveau}` : `Quête «${NB}${quetes.get(o.id)?.nom ?? NOM_A_VERIFIER}${NB}»`;
-const besoins = o => o.type === "etabli" ? (etablis.get(o.id)?.niveaux.find(n => n.niveau === o.niveau)?.cout ?? []) : (quetes.get(o.id)?.objets ?? []);
+const libelle = o => o.type === "etabli" ? `${etablis.get(o.id)?.nom ?? NOM_A_VERIFIER} · niveau ${o.niveau}`
+  : o.type === "projet" ? `${projets.get(o.id)?.nom ?? NOM_A_VERIFIER} · ${nomEtape(projets.get(o.id), o.etape)}`
+  : `Quête «${NB}${quetes.get(o.id)?.nom ?? NOM_A_VERIFIER}${NB}»`;
+const besoins = o => o.type === "etabli" ? (etablis.get(o.id)?.niveaux.find(n => n.niveau === o.niveau)?.cout ?? [])
+  : o.type === "projet" ? (projets.get(o.id)?.etapes[o.etape]?.cout ?? []) : (quetes.get(o.id)?.objets ?? []);
 const besoinsPourObjet = (id, objs) => objs.map(o => ({ o, libelle: libelle(o), quantite: besoins(o).filter(q => q.id === id).reduce((s, q) => s + q.quantite, 0) })).filter(b => b.quantite > 0);
 const possede = id => M.reserve[id] ?? 0;
 function listeDeCourses() {
@@ -203,7 +221,7 @@ const ONGLETS = [
   ["CARTES", "Cartes", "--cyan", "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"],
   ["PROGRESSION", "Progression", "--vert", "M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42a.25.25 0 0 1-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"],
 ];
-const S = { onglet: "ACCUEIL", ecran: null, recherche: "", rechercheRaid: "", rechercheQuetes: "", choix: null, dialogue: null, raid: null };
+const S = { onglet: "ACCUEIL", ecran: null, recherche: "", rechercheRaid: "", rechercheQuetes: "", choix: null, validation: null, raid: null };
 
 // ---- Écrans ----
 const bandeau = (texte, c) => `<span class="bandeau" style="--c:var(${c})">${echap(texte)}</span>`;
@@ -221,7 +239,7 @@ function ecranAccueil() {
   <div class="tuiles">
     <button class="tuile" style="--c:var(--or)" data-action="onglet" data-onglet="PROGRESSION"><span>À trouver</span><div><strong>${l.manquants}</strong><br><small>${objs.length ? pluriel(l.lignes.filter(x => !x.complet).length, "objet différent", "objets différents") : "aucun objectif suivi"}</small></div></button>
     <button class="tuile" style="--c:var(--vert)" data-action="onglet" data-onglet="PROGRESSION"><span>Objectifs</span><div><strong>${objs.length}</strong><br><small>suivis</small></div></button>
-    <button class="tuile" style="--c:var(--cyan)" data-action="onglet" data-onglet="CARTES"><span>Conditions</span><div><strong>${D.cartes.length}</strong><br><small>cartes</small></div></button>
+    <button class="tuile" style="--c:var(--cyan)" data-action="onglet" data-onglet="CARTES"><span>Cartes</span><div><strong>${D.cartes.length}</strong><br><small>plans et conditions</small></div></button>
     <button class="tuile neutre" style="--c:var(--releve)" data-action="onglet" data-onglet="OBJETS"><span>Objets</span><div><strong>${D.objets.length}</strong><br><small>dans le catalogue</small></div></button>
   </div>
   <p class="petit discret">Données du jeu ${echap(D.versionJeu)}, noms français officiels uniquement.</p>`;
@@ -265,9 +283,66 @@ function ecranCartes() {
   <div class="chips">${regions.map(([k, n]) => `<button class="chip" aria-pressed="${M.region === k}" data-action="region" data-region="${k}">${n}</button>`).join("")}</div>
   <div class="note-apercu petit doux">Dans l'appli Android, cet onglet lit le calendrier officiel d'Embark (en cours, prochaines heures, prochaine fois, alertes). L'aperçu web ne peut pas joindre le site d'Embark${NB}: ouvre-le directement.</div>
   <a class="lien" style="--c:var(--cyan)" href="https://arcraiders.com/map-conditions" target="_blank" rel="noopener">Ouvrir le calendrier officiel</a>
-  <h4>Cartes</h4>${D.cartes.map(c => `<div class="carte nom">${echap(c.nom)}</div>`).join("")}
+  <h4>Plans des cartes</h4><div class="apercus">${D.cartes.map(c => `<button data-action="plan" data-id="${c.id}"><img src="cartes/${c.id}.webp" alt="" loading="lazy"><span>${echap(c.nom)}</span></button>`).join("")}</div>
   <h4>Conditions</h4>${[...D.conditions].sort((a, b) => b.majeure - a.majeure || a.nom.localeCompare(b.nom)).map(c => `<div class="carte ligne"><span class="puce" style="--r:var(${c.majeure ? "--rouge" : "--cyan"});background:none;padding:0"><i></i></span><span class="nom flex">${echap(c.nom)}</span></div>`).join("")}`;
 }
+
+// ---- Plan interactif d'une carte (EcranPlan.kt) ----
+const P = { id: null, e: 1, dx: 0, dy: 0, zones: true, sorties: true };
+function ecranPlan() {
+  const c = cartes.get(P.id);
+  return `${retour("Plan", "--cyan")}<h3>${echap(c.nom)}</h3>
+  <p class="petit doux" style="margin:0">Molette ou deux doigts pour zoomer, glisser pour déplacer, double-clic pour zoomer. Les petits lieux apparaissent en zoomant. Les conditions en cours et leur minuteur s'affichent ici dans l'appli Android.</p>
+  <div class="chips"><button class="chip" aria-pressed="${P.zones}" data-action="plan-zones">Zones</button>${c.plan.sorties.length ? `<button class="chip" aria-pressed="${P.sorties}" data-action="plan-sorties">Trappes de sortie</button>` : ""}${P.e > 1 ? `<button class="lien" style="--c:var(--cyan)" data-action="plan-entier">Vue entière</button>` : ""}</div>
+  <div class="plan-vue" id="plan-vue"><img id="plan-img" src="cartes/${c.id}.webp" alt="Plan en jeu${NB}: ${echap(c.nom)}" draggable="false"><div id="plan-calque"></div></div>`;
+}
+function placerPlan() {
+  const vue = document.getElementById("plan-vue"), img = document.getElementById("plan-img"), calque = document.getElementById("plan-calque");
+  if (!vue) return;
+  const c = cartes.get(P.id), w = vue.clientWidth, h = vue.clientHeight, cote = Math.min(w, h), ox = (w - cote) / 2, oy = (h - cote) / 2;
+  // Le plan couvre toujours le centre de la vue.
+  P.dx = Math.min(Math.max(P.dx, w / 2 - ox - cote * P.e), w / 2 - ox);
+  P.dy = Math.min(Math.max(P.dy, h / 2 - oy - cote * P.e), h / 2 - oy);
+  img.style.width = cote + "px";
+  img.style.transform = `translate(${ox + P.dx}px, ${oy + P.dy}px) scale(${P.e})`;
+  const ecran = (u, v) => [ox + P.dx + u * cote * P.e, oy + P.dy + v * cote * P.e];
+  let html = "";
+  if (P.sorties) for (const s of c.plan.sorties) { const [x, y] = ecran(s.x, s.y); html += `<i class="sortie" style="left:${x}px;top:${y}px"></i>`; if (P.e >= 3) html += `<span class="etq" style="left:${x}px;top:${y + 20}px;color:var(--cyan)">${echap(s.nom)}</span>`; }
+  if (P.zones) for (const z of c.plan.zones) if (z.detail === 0 || (z.detail === 1 && P.e >= 1.8) || P.e >= 3) { const [x, y] = ecran(z.x, z.y); html += `<span class="etq ${z.detail === 0 ? "grande" : ""}" style="left:${x}px;top:${y}px">${echap(z.nom)}</span>`; }
+  calque.innerHTML = html;
+}
+function zoomer(nouvelle, px, py) {
+  const vue = document.getElementById("plan-vue"), w = vue.clientWidth, h = vue.clientHeight, cote = Math.min(w, h), ox = (w - cote) / 2, oy = (h - cote) / 2;
+  nouvelle = Math.min(Math.max(nouvelle, 1), 6);
+  const u = (px - ox - P.dx) / P.e, v = (py - oy - P.dy) / P.e;
+  P.dx = px - ox - u * nouvelle; P.dy = py - oy - v * nouvelle; P.e = nouvelle;
+  if (P.e === 1) { P.dx = 0; P.dy = 0; }
+  placerPlan();
+}
+function brancherPlan() {
+  const vue = document.getElementById("plan-vue");
+  if (!vue) return;
+  const doigts = new Map(); let avant = null;
+  const local = ev => { const r = vue.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; };
+  vue.addEventListener("pointerdown", ev => { vue.setPointerCapture(ev.pointerId); doigts.set(ev.pointerId, local(ev)); avant = null; });
+  vue.addEventListener("pointermove", ev => {
+    if (!doigts.has(ev.pointerId)) return;
+    doigts.set(ev.pointerId, local(ev));
+    const pts = [...doigts.values()];
+    if (pts.length === 1) { const [x, y] = pts[0]; if (avant) { P.dx += x - avant.x; P.dy += y - avant.y; placerPlan(); } avant = { x, y }; }
+    else if (pts.length >= 2) {
+      const [a, b] = pts, mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      if (avant?.d) { P.dx += mx - avant.x; P.dy += my - avant.y; zoomer(P.e * d / avant.d, mx, my); }
+      avant = { x: mx, y: my, d };
+    }
+  });
+  const fin = ev => { doigts.delete(ev.pointerId); avant = null; };
+  vue.addEventListener("pointerup", fin); vue.addEventListener("pointercancel", fin);
+  vue.addEventListener("wheel", ev => { ev.preventDefault(); const [x, y] = local(ev); zoomer(P.e * (ev.deltaY < 0 ? 1.25 : 0.8), x, y); }, { passive: false });
+  vue.addEventListener("dblclick", ev => { const [x, y] = local(ev); zoomer(P.e >= 4.5 ? 1 : P.e * 2, x, y); });
+  placerPlan();
+}
+addEventListener("resize", () => { if (S.ecran === "plan") placerPlan(); });
 
 function ecranProgression() {
   const l = listeDeCourses(), enCours = quetesEnCours().sort((a, b) => (!a.objets.length) - (!b.objets.length) || a.nom.localeCompare(b.nom));
@@ -280,11 +355,18 @@ function ecranProgression() {
   ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveau(e), p = prochainNiveau(e), suivi = !M.ignores.includes(e.id); return `<div class="carte" style="display:flex;flex-direction:column;gap:4px">
     <div class="ligne"><div class="flex"><span class="nom">${echap(e.nom)}</span><br><span class="petit" style="color:var(${p ? "--texte-doux" : "--vert"});font-weight:600">Niveau ${n} sur ${niveauMax(e)}</span></div>
     <button class="rond" data-action="niveau-moins" data-id="${e.id}" ${n > niveauDepart(e) ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(e.nom)} un niveau plus bas">−</button>
-    <button class="rond plein" style="--c:var(--vert)" data-action="ameliorer" data-id="${e.id}" ${p ? "" : "disabled"} aria-label="Amélioration construite${NB}: ${echap(e.nom)}">+</button></div>
-    ${p ? `<span class="petit" style="color:var(${suivi ? "--texte-doux" : "--texte-discret"})">Niveau ${p.niveau}${NB}: ${detailCout(p.cout)}</span><button class="lien petit" style="align-self:flex-start;padding-left:0;--c:var(${suivi ? "--texte-discret" : "--vert"})" data-action="suivre" data-id="${e.id}">${suivi ? "Ne pas suivre cet établi" : "Suivre cet établi"}</button>` : `<span class="petit discret">Niveau maximum atteint.</span>`}</div>`; }).join("")}
+    <button class="rond" data-action="niveau-plus" data-id="${e.id}" ${p ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(e.nom)} un niveau plus haut, sans toucher à la réserve">+</button></div>
+    ${p ? `<span class="petit" style="color:var(${suivi ? "--texte-doux" : "--texte-discret"})">Niveau ${p.niveau}${NB}: ${detailCout(p.cout)}</span>
+    <div class="ligne"><button class="valider" data-action="valider-etabli" data-id="${e.id}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Niveau ${p.niveau} construit</button><span class="flex"></span><button class="lien petit" style="--c:var(${suivi ? "--texte-discret" : "--vert"})" data-action="suivre" data-id="${e.id}">${suivi ? "Ne pas suivre" : "Suivre"}</button></div>` : `<span class="petit discret">Niveau maximum atteint.</span>`}</div>`; }).join("")}
   <div class="ligne" style="margin-top:8px"><h4 class="flex" style="margin:0">Quêtes en cours</h4><button class="lien" style="--c:var(--vert)" data-action="quetes">Modifier</button></div>
-  ${enCours.length ? enCours.map(q => `<div class="carte ligne"><div class="flex"><span class="nom">${echap(q.nom)}</span>${q.commercant ? `<br><span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}${q.objets.length ? `<br><span class="petit" style="color:var(--or)">${detailCout(q.objets)}</span>` : ""}</div>
-    <button class="rond" style="color:var(--vert);background:var(--releve)" data-action="terminer" data-id="${q.id}" aria-label="Quête terminée${NB}: ${echap(q.nom)}">✓</button></div>`).join("") : `<p class="petit discret">Aucune quête en cours.</p>`}
+  ${enCours.length ? enCours.map(q => `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="nom">${echap(q.nom)}</span>${q.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}${q.objets.length ? `<span class="petit" style="color:var(--or)">${detailCout(q.objets)}</span>` : ""}
+    <button class="valider" data-action="valider-quete" data-id="${q.id}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Terminée</button></div>`).join("") : `<p class="petit discret">Aucune quête en cours.</p>`}
+  <h4>Projets</h4><p class="petit doux" style="margin:0">Expéditions et projets de saison${NB}: suis ceux que tu fais, leur prochaine étape s'ajoute à ta liste de courses.</p>
+  ${(D.projets || []).map(p => { const suivi = (M.projetsSuivis || []).includes(p.id), e = prochaineEtape(p), faites = M.etapesProjets[p.id] ?? 0, et = e != null ? p.etapes[e] : null; return `<div class="carte" style="display:flex;flex-direction:column;gap:6px">
+    <div class="ligne"><div class="flex"><span class="nom">${echap(p.nom)}</span><br><span class="petit" style="font-weight:600;color:var(${e == null ? "--vert" : "--texte-doux"})">${e == null ? "Projet terminé" : `Étape ${e + 1} sur ${p.etapes.length}${NB}: ${echap(nomEtape(p, e))}`}</span></div>
+    ${suivi ? `<button class="rond" data-action="etape-moins" data-id="${p.id}" ${faites ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(p.nom)} une étape en arrière">−</button>` : ""}</div>
+    ${suivi && et ? `${et.cout.length ? `<span class="petit" style="color:var(--or)">${detailCout(et.cout)}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}
+    <div class="ligne">${suivi && et ? `<button class="valider" data-action="valider-etape" data-id="${p.id}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Étape terminée</button>` : ""}<span class="flex"></span><button class="lien petit" style="--c:var(${suivi ? "--texte-discret" : "--vert"})" data-action="suivre-projet" data-id="${p.id}">${suivi ? "Ne pas suivre" : "Suivre"}</button></div></div>`; }).join("")}
   <h4>Autres objectifs</h4>
   ${autres.map(o => `<div class="carte ligne"><span class="nom flex">${echap(libelle(o))}</span><button class="retour" data-action="retirer-objectif" data-cle="${cleObjectif(o)}" aria-label="Ne plus suivre${NB}: ${echap(libelle(o))}">✕</button></div>`).join("")}
   <button class="lien" style="--c:var(--vert);align-self:flex-start" data-action="ajout">+ Ajouter un objectif plus lointain</button>
@@ -344,15 +426,20 @@ function ecranReglages() {
   <p class="petit discret" style="margin:0">Projet de fan, non officiel. ARC Raiders est une marque d'Embark Studios AB${NB}; cette appli n'est ni affiliée à Embark Studios ni approuvée par Embark Studios. Noms et icônes du jeu © Embark Studios AB.</p>`;
 }
 
-// ---- Dialogue « Tu viens de… ? » (retirer ce que le jeu a pris) ----
-function dialogue() {
-  const d = S.dialogue;
-  if (!d) return "";
-  return `<div class="fond-dialogue" data-action="dialogue-annuler"><div class="dialogue" role="dialog" aria-modal="true" aria-labelledby="titre-dialogue" data-stop>
-    <h3 id="titre-dialogue" style="font-size:22px">${echap(d.titre)}</h3><span>${d.question}</span>
-    <span class="petit doux">Retirer de ta réserve ce que le jeu a pris${NB}:</span>
-    ${d.cout.map(q => `<div class="ligne">${icone(q.id, 28)}<span>${q.quantite} × ${echap(nomObjet(q.id))}</span></div>`).join("")}
-    <div class="actions"><button class="lien" style="--c:var(--texte-doux)" data-action="dialogue-ok" data-retirer="0">Oui, sans retirer</button><button class="bouton" style="--c:var(--vert)" data-action="dialogue-ok" data-retirer="1">Oui, et retirer</button></div></div></div>`;
+// ---- Validation en une touche, annulable (BandeauValidation) ----
+function bandeauValidation() {
+  const v = S.validation;
+  if (!v) return "";
+  return `<div class="bandeau-validation" role="status"><div><div class="flex" style="min-width:0"><b style="font:600 14px var(--titre)">Validé${NB}: ${echap(v.titre)}</b><br><span class="petit doux">${v.retires ? `${pluriel(v.retires, "objet retiré", "objets retirés")} de ta réserve.` : "Réserve inchangée."}</span></div>
+  <button class="lien" data-action="annuler-validation">Annuler</button></div></div>`;
+}
+let minuterieValidation = null;
+function valider(titre, cout, avancer) {
+  const avant = JSON.stringify(M), retires = cout.reduce((s, q) => s + Math.min(possede(q.id), q.quantite), 0);
+  retirer(cout); avancer(); retirerAtteints();
+  S.validation = { titre, retires, avant };
+  clearTimeout(minuterieValidation);
+  minuterieValidation = setTimeout(() => { S.validation = null; rendre(); }, 8000);
 }
 
 // ---- Rendu ----
@@ -360,10 +447,11 @@ function rendre() {
   const champ = document.activeElement?.dataset?.champ, pos = document.activeElement?.selectionStart;
   const e = S.ecran;
   document.getElementById("contenu").innerHTML =
-    e?.type === "fiche" ? ecranFiche(e.id) : e === "quetes" ? ecranQuetes() : e === "ajout" ? ecranAjout() : e === "raid" ? ecranRaid() : e === "reglages" ? ecranReglages()
+    e?.type === "fiche" ? ecranFiche(e.id) : e === "plan" ? ecranPlan() : e === "quetes" ? ecranQuetes() : e === "ajout" ? ecranAjout() : e === "raid" ? ecranRaid() : e === "reglages" ? ecranReglages()
     : { ACCUEIL: ecranAccueil, OBJETS: ecranObjets, CARTES: ecranCartes, PROGRESSION: ecranProgression }[S.onglet]();
   document.getElementById("nav").innerHTML = ONGLETS.map(([k, t, c, d]) => `<button data-action="onglet" data-onglet="${k}" style="--c:var(${c})" ${S.onglet === k && !S.ecran ? 'aria-current="page"' : ""}><span class="pastille"><svg class="ic" viewBox="0 0 24 24"><path d="${d}"/></svg></span>${t}</button>`).join("");
-  document.getElementById("dialogue").innerHTML = dialogue();
+  document.getElementById("dialogue").innerHTML = bandeauValidation();
+  if (e === "plan") brancherPlan();
   document.getElementById("bouton-reglages").style.color = S.ecran === "reglages" ? "var(--or)" : "var(--texte-doux)";
   if (champ) { const el = document.querySelector(`[data-champ="${champ}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} } }
 }
@@ -377,7 +465,8 @@ function changerQte(id, d) {
 function retirer(cout) { for (const q of cout) changerQte(q.id, -q.quantite); }
 function retirerAtteints() {
   const t = new Set(M.terminees);
-  M.manuels = M.manuels.filter(o => o.type === "etabli" ? niveau(etablis.get(o.id)) < o.niveau : !t.has(o.id));
+  M.manuels = M.manuels.filter(o => o.type === "etabli" ? niveau(etablis.get(o.id)) < o.niveau
+    : o.type === "projet" ? (M.etapesProjets[o.id] ?? 0) <= o.etape : !t.has(o.id));
 }
 function terminerQuete(id) { M.terminees = [...new Set([...M.terminees, ...precedentes(id), id])]; retirerAtteints(); }
 function objectifDepuisCle(cle) { const [t, id, n] = cle.split(":"); return t === "etabli" ? { type: "etabli", id, niveau: +n } : { type: "quete", id }; }
@@ -385,7 +474,6 @@ function objectifDepuisCle(cle) { const [t, id, n] = cle.split(":"); return t ==
 document.addEventListener("click", ev => {
   const b = ev.target.closest("[data-action]");
   if (!b || b.disabled) return;
-  if (b.dataset.action === "dialogue-annuler" && ev.target.closest("[data-stop]")) return;
   const id = b.dataset.id;
   switch (b.dataset.action) {
     case "onglet": S.onglet = b.dataset.onglet; S.ecran = null; rendre(); window.scrollTo(0, 0); return;
@@ -403,15 +491,17 @@ document.addEventListener("click", ev => {
     case "annuler-raid": M.reserve = { ...S.raid.avant }; break;
     case "region": M.region = b.dataset.region; break;
     case "niveau-moins": { const e = etablis.get(id); M.niveaux[id] = Math.max(niveau(e) - 1, niveauDepart(e)); retirerAtteints(); break; }
-    case "ameliorer": { const e = etablis.get(id), p = prochainNiveau(e); S.dialogue = { type: "etabli", id, titre: `${e.nom} · niveau ${p.niveau}`, question: `Tu viens de construire cette amélioration${NB}?`, cout: p.cout }; rendre(); return; }
-    case "terminer": { const q = quetes.get(id); if (!q.objets.length) { terminerQuete(id); break; } S.dialogue = { type: "quete", id, titre: q.nom, question: `Tu viens de terminer cette quête${NB}?`, cout: q.objets }; rendre(); return; }
-    case "dialogue-annuler": S.dialogue = null; rendre(); return;
-    case "dialogue-ok": {
-      const d = S.dialogue; S.dialogue = null;
-      if (b.dataset.retirer === "1") retirer(d.cout);
-      if (d.type === "etabli") { M.niveaux[d.id] = prochainNiveau(etablis.get(d.id)).niveau; retirerAtteints(); } else terminerQuete(d.id);
-      break;
-    }
+    case "niveau-plus": { const e = etablis.get(id); M.niveaux[id] = Math.min(niveau(e) + 1, niveauMax(e)); retirerAtteints(); break; }
+    case "valider-etabli": { const e = etablis.get(id), p = prochainNiveau(e); valider(`${e.nom} · niveau ${p.niveau}`, p.cout, () => { M.niveaux[id] = p.niveau; }); break; }
+    case "valider-quete": { const q = quetes.get(id); valider(q.nom, q.objets, () => terminerQuete(id)); break; }
+    case "valider-etape": { const p = projets.get(id), e = prochaineEtape(p); valider(`${p.nom} · ${nomEtape(p, e)}`, p.etapes[e].cout, () => { M.etapesProjets[id] = e + 1; }); break; }
+    case "etape-moins": M.etapesProjets[id] = Math.max((M.etapesProjets[id] ?? 0) - 1, 0); retirerAtteints(); break;
+    case "suivre-projet": M.projetsSuivis = (M.projetsSuivis || []).includes(id) ? M.projetsSuivis.filter(x => x !== id) : [...(M.projetsSuivis || []), id]; break;
+    case "annuler-validation": if (S.validation) { charger(S.validation.avant); S.validation = null; } break;
+    case "plan": Object.assign(P, { id, e: 1, dx: 0, dy: 0 }); return ouvrir("plan");
+    case "plan-zones": P.zones = !P.zones; rendre(); return;
+    case "plan-sorties": P.sorties = !P.sorties; rendre(); return;
+    case "plan-entier": Object.assign(P, { e: 1, dx: 0, dy: 0 }); rendre(); return;
     case "suivre": M.ignores = M.ignores.includes(id) ? M.ignores.filter(x => x !== id) : [...M.ignores, id]; break;
     case "cocher": S.choix.has(id) ? S.choix.delete(id) : S.choix.add(id); rendre(); return;
     case "valider-quetes": {
@@ -421,7 +511,7 @@ document.addEventListener("click", ev => {
     }
     case "ajouter-objectif": M.manuels.push(objectifDepuisCle(b.dataset.cle)); S.ecran = null; break;
     case "retirer-objectif": M.manuels = M.manuels.filter(o => cleObjectif(o) !== b.dataset.cle); break;
-    case "effacer": Object.assign(M, { reserve: {}, niveaux: {}, terminees: [], ignores: [], manuels: [], quetesIndiquees: false, region: "EUROPE" }); break;
+    case "effacer": Object.assign(M, { reserve: {}, niveaux: {}, terminees: [], ignores: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [] }); break;
     default: return;
   }
   enregistrer();
@@ -433,7 +523,7 @@ document.addEventListener("input", ev => {
   S[c] = ev.target.value;
   rendre();
 });
-document.addEventListener("keydown", ev => { if (ev.key === "Escape" && (S.dialogue || S.ecran)) { S.dialogue ? (S.dialogue = null) : (S.ecran = null); rendre(); } });
+document.addEventListener("keydown", ev => { if (ev.key === "Escape" && S.ecran) { S.ecran = null; rendre(); } });
 
 // ---- Sauvegarde : compte claude.ai (privé) si disponible, sinon ce navigateur ----
 let stockage = "navigateur", docCompte = null, minuterie = null, ecriture = Promise.resolve();

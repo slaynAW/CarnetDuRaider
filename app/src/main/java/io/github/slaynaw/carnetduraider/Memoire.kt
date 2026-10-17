@@ -37,6 +37,11 @@ class Memoire(context: Context) {
         }.toMap(),
         quetesTerminees = lignes(QUETES_TERMINEES).toSet(),
         etablisIgnores = lignes(ETABLIS_IGNORES).toSet(),
+        etapesProjets = lignes(ETAPES_PROJETS).mapNotNull { ligne ->
+            val (id, n) = ligne.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
+            n.toIntOrNull()?.let { id to it }
+        }.toMap(),
+        projetsSuivis = lignes(PROJETS_SUIVIS).toSet(),
     )
 
     fun ecrireProgression(p: Progression) {
@@ -44,6 +49,8 @@ class Memoire(context: Context) {
             .putString(NIVEAUX, p.niveauxEtablis.entries.joinToString("\n") { "${it.key}=${it.value}" })
             .putString(QUETES_TERMINEES, p.quetesTerminees.sorted().joinToString("\n"))
             .putString(ETABLIS_IGNORES, p.etablisIgnores.sorted().joinToString("\n"))
+            .putString(ETAPES_PROJETS, p.etapesProjets.entries.joinToString("\n") { "${it.key}=${it.value}" })
+            .putString(PROJETS_SUIVIS, p.projetsSuivis.sorted().joinToString("\n"))
             .apply()
     }
 
@@ -61,6 +68,7 @@ class Memoire(context: Context) {
     private fun encoder(o: Objectif): String = when (o) {
         is Objectif.NiveauDEtabli -> "etabli:${o.etabliId}:${o.niveau}"
         is Objectif.QueteATerminer -> "quete:${o.queteId}"
+        is Objectif.EtapeDeProjet -> "projet:${o.projetId}:${o.etape}"
     }
 
     private fun decoder(ligne: String): Objectif? {
@@ -69,6 +77,8 @@ class Memoire(context: Context) {
             parties.size == 3 && parties[0] == "etabli" ->
                 parties[2].toIntOrNull()?.let { Objectif.NiveauDEtabli(parties[1], it) }
             parties.size == 2 && parties[0] == "quete" -> Objectif.QueteATerminer(parties[1])
+            parties.size == 3 && parties[0] == "projet" ->
+                parties[2].toIntOrNull()?.let { Objectif.EtapeDeProjet(parties[1], it) }
             else -> null
         }
     }
@@ -79,6 +89,8 @@ class Memoire(context: Context) {
         const val NIVEAUX = "niveauxEtablis"
         const val QUETES_TERMINEES = "quetesTerminees"
         const val ETABLIS_IGNORES = "etablisIgnores"
+        const val ETAPES_PROJETS = "etapesProjets"
+        const val PROJETS_SUIVIS = "projetsSuivis"
         const val QUETES_INDIQUEES = "quetesIndiquees"
         const val REGION = "region"
     }

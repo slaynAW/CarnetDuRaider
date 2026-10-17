@@ -12,8 +12,9 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
   s'il est inutile, s'il vaut mieux le vendre ou le recycler (comparaison en pièces).
 - **Progression automatique.** Tu indiques une fois le niveau de tes établis et tes quêtes en cours :
   l'appli suit d'elle-même le prochain niveau de chaque établi et les quêtes disponibles (d'après
-  l'enchaînement des quêtes du jeu). Quand tu coches une amélioration ou une quête terminée, la suite
-  apparaît et ce que le jeu a pris est retiré de ta réserve.
+  l'enchaînement des quêtes du jeu), ainsi que les projets que tu suis (Expéditions…). Un seul bouton
+  valide un niveau construit, une quête terminée ou une étape de projet : la suite apparaît et ce que
+  le jeu a pris est retiré de ta réserve, sans rien saisir (« Annuler » pour revenir en arrière).
 - **Retour de raid.** Après un raid, un écran pour ajouter vite ce que tu rapportes (« +1 », « +5 »),
   en commençant par les objets encore à trouver.
 - **Liste de courses.** Les objets à trouver pour tout ça, avec ta réserve mise à jour en une touche
@@ -21,9 +22,11 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
 - **Conditions de la carte.** Le calendrier officiel d'Embark
   ([arcraiders.com/map-conditions](https://arcraiders.com/map-conditions)) dans l'appli, avec les noms
   français officiels : ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois
-  de chaque condition, à l'heure de ton téléphone, pour ta région. Gardé sur le téléphone, il reste
+  de chaque condition, à l'heure de ton téléphone, pour ta région, avec un minuteur à la seconde. Gardé sur le téléphone, il reste
   lisible sans connexion. **Alertes** : une notification quelques minutes avant les conditions que tu
   suis, même appli fermée.
+- **Plans des cartes.** Le plan en jeu de chaque carte, qu'on agrandit avec deux doigts, avec le nom
+  officiel des lieux et les trappes de sortie, et les conditions en cours sur cette carte.
 - **Sans compte.** Les données du jeu sont embarquées dans l'appli ; elle ne se connecte jamais à ton
   compte Embark ni aux serveurs du jeu, et ne touche jamais au jeu.
 - **Mises à jour sécurisées depuis GitHub.** L'appli propose elle-même les nouvelles versions

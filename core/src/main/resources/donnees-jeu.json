@@ -84,7 +84,7 @@
    "pile": 1,
    "recyclage": [
     {
-     "id": "frozen_trail_tech_2",
+     "id": "calculator",
      "quantite": 1
     }
    ],
@@ -263,8 +263,8 @@
    "lieux": []
   },
   {
-   "id": "amplification_material_anvil_canto_osprey_rascal_renegade",
-   "nom": "Module d'amplification III",
+   "id": "amplification_module_mk_i",
+   "nom": "Module d'amplification I",
    "rarete": null,
    "categorie": "Matériau de la Surface",
    "valeur": 7000,
@@ -281,43 +281,7 @@
    ]
   },
   {
-   "id": "amplification_material_aphelion_equalizer_jupiter",
-   "nom": "Module d'amplification V",
-   "rarete": null,
-   "categorie": "Matériau de la Surface",
-   "valeur": 7000,
-   "pile": 1,
-   "recyclage": [
-    {
-     "id": "amplified_fragments",
-     "quantite": 7
-    }
-   ],
-   "recuperation": [],
-   "lieux": [
-    "ARC"
-   ]
-  },
-  {
-   "id": "amplification_material_bettina_hullcracker",
-   "nom": "Module d'amplification IV",
-   "rarete": null,
-   "categorie": "Matériau de la Surface",
-   "valeur": 7000,
-   "pile": 1,
-   "recyclage": [
-    {
-     "id": "amplified_fragments",
-     "quantite": 7
-    }
-   ],
-   "recuperation": [],
-   "lieux": [
-    "ARC"
-   ]
-  },
-  {
-   "id": "amplification_material_burletta_il_toro",
+   "id": "amplification_module_mk_ii",
    "nom": "Module d'amplification II",
    "rarete": null,
    "categorie": "Matériau de la Surface",
@@ -335,8 +299,44 @@
    ]
   },
   {
-   "id": "amplification_material_hairpin_kettle_rattler",
-   "nom": "Module d'amplification I",
+   "id": "amplification_module_mk_iii",
+   "nom": "Module d'amplification III",
+   "rarete": null,
+   "categorie": "Matériau de la Surface",
+   "valeur": 7000,
+   "pile": 1,
+   "recyclage": [
+    {
+     "id": "amplified_fragments",
+     "quantite": 7
+    }
+   ],
+   "recuperation": [],
+   "lieux": [
+    "ARC"
+   ]
+  },
+  {
+   "id": "amplification_module_mk_iv",
+   "nom": "Module d'amplification IV",
+   "rarete": null,
+   "categorie": "Matériau de la Surface",
+   "valeur": 7000,
+   "pile": 1,
+   "recyclage": [
+    {
+     "id": "amplified_fragments",
+     "quantite": 7
+    }
+   ],
+   "recuperation": [],
+   "lieux": [
+    "ARC"
+   ]
+  },
+  {
+   "id": "amplification_module_mk_v",
+   "nom": "Module d'amplification V",
    "rarete": null,
    "categorie": "Matériau de la Surface",
    "valeur": 7000,
@@ -753,6 +753,19 @@
    ]
   },
   {
+   "id": "arc_data_module",
+   "nom": "Module de données ARC",
+   "rarete": "EPIQUE",
+   "categorie": "Objet de recherche",
+   "valeur": 2000,
+   "pile": 3,
+   "recyclage": [],
+   "recuperation": [],
+   "lieux": [
+    "ARC"
+   ]
+  },
+  {
    "id": "arc_flex_rubber",
    "nom": "Caoutchouc flexible ARC",
    "rarete": "RARE",
@@ -1118,17 +1131,17 @@
    "nom": "Banjo",
    "rarete": "RARE",
    "categorie": "Gadgets",
-   "valeur": 2000,
+   "valeur": 1000,
    "pile": 1,
    "recyclage": [
     {
      "id": "steel_cable",
-     "quantite": 3
+     "quantite": 1
     }
    ],
    "recuperation": [
     {
-     "id": "planks",
+     "id": "plastic_parts",
      "quantite": 6
     }
    ],
@@ -2397,6 +2410,30 @@
    "lieux": []
   },
   {
+   "id": "cable_stripper",
+   "nom": "Dénudeur de câbles",
+   "rarete": "INHABITUEL",
+   "categorie": "Matériau de la Surface",
+   "valeur": 270,
+   "pile": 15,
+   "recyclage": [
+    {
+     "id": "metal_parts",
+     "quantite": 2
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "metal_parts",
+     "quantite": 1
+    }
+   ],
+   "lieux": [
+    "Mécanique",
+    "Industriel"
+   ]
+  },
+  {
    "id": "cafeteria_table_design",
    "nom": "Design de table de la cafétéria",
    "rarete": "COMMUN",
@@ -2406,6 +2443,34 @@
    "recyclage": [],
    "recuperation": [],
    "lieux": []
+  },
+  {
+   "id": "calculator",
+   "nom": "Calculatrice",
+   "rarete": "RARE",
+   "categorie": "Matériau de la Surface",
+   "valeur": 640,
+   "pile": 3,
+   "recyclage": [
+    {
+     "id": "wires",
+     "quantite": 1
+    },
+    {
+     "id": "plastic_parts",
+     "quantite": 2
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "rubber_parts",
+     "quantite": 2
+    }
+   ],
+   "lieux": [
+    "Technologique",
+    "Électrique"
+   ]
   },
   {
    "id": "camera_lens",
@@ -2733,24 +2798,6 @@
    "recuperation": [],
    "lieux": [
     "Résidentiel"
-   ]
-  },
-  {
-   "id": "collector_material_1",
-   "nom": "Modulateur d'Empereur",
-   "rarete": "LEGENDAIRE",
-   "categorie": "Matériau de la Surface",
-   "valeur": 7000,
-   "pile": 1,
-   "recyclage": [],
-   "recuperation": [
-    {
-     "id": "arc_motion_core",
-     "quantite": 2
-    }
-   ],
-   "lieux": [
-    "ARC"
    ]
   },
   {
@@ -3694,6 +3741,34 @@
    ]
   },
   {
+   "id": "differential_microphone",
+   "nom": "Microphone différentiel",
+   "rarete": "RARE",
+   "categorie": "Recyclable",
+   "valeur": 1000,
+   "pile": 3,
+   "recyclage": [
+    {
+     "id": "speaker_component",
+     "quantite": 1
+    },
+    {
+     "id": "wires",
+     "quantite": 2
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "wires",
+     "quantite": 1
+    }
+   ],
+   "lieux": [
+    "Technologique",
+    "Électrique"
+   ]
+  },
+  {
    "id": "diner_ceiling_lamp_design",
    "nom": "Design du Plafonnier du diner",
    "rarete": "RARE",
@@ -4148,6 +4223,24 @@
    "lieux": []
   },
   {
+   "id": "emperor_modulator",
+   "nom": "Modulateur d'Empereur",
+   "rarete": "LEGENDAIRE",
+   "categorie": "Matériau de la Surface",
+   "valeur": 7000,
+   "pile": 1,
+   "recyclage": [],
+   "recuperation": [
+    {
+     "id": "arc_motion_core",
+     "quantite": 2
+    }
+   ],
+   "lieux": [
+    "ARC"
+   ]
+  },
+  {
    "id": "empty_wine_bottle",
    "nom": "Bouteille de vin vide",
    "rarete": "COMMUN",
@@ -4181,6 +4274,27 @@
    "pile": 5,
    "recyclage": [],
    "recuperation": [],
+   "lieux": []
+  },
+  {
+   "id": "epoxy_bucket",
+   "nom": "Seau d'époxy",
+   "rarete": "RARE",
+   "categorie": "Recyclable",
+   "valeur": 1000,
+   "pile": 5,
+   "recyclage": [
+    {
+     "id": "chemicals",
+     "quantite": 8
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "chemicals",
+     "quantite": 4
+    }
+   ],
    "lieux": []
   },
   {
@@ -4275,6 +4389,19 @@
      "quantite": 2
     }
    ],
+   "lieux": [
+    "Exode"
+   ]
+  },
+  {
+   "id": "exodus_technical_handbook",
+   "nom": "Manuel technique de l'Exode",
+   "rarete": "RARE",
+   "categorie": "Objet de recherche",
+   "valeur": 1000,
+   "pile": 5,
+   "recyclage": [],
+   "recuperation": [],
    "lieux": [
     "Exode"
    ]
@@ -5331,7 +5458,20 @@
    ]
   },
   {
-   "id": "frigate_material_1",
+   "id": "frigate_diagnostic_node",
+   "nom": "Nœud de diagnostic de Frégate",
+   "rarete": "LEGENDAIRE",
+   "categorie": "Objet de recherche",
+   "valeur": 3000,
+   "pile": 1,
+   "recyclage": [],
+   "recuperation": [],
+   "lieux": [
+    "ARC"
+   ]
+  },
+  {
+   "id": "frigate_inductor",
    "nom": "Inducteur de Frégate",
    "rarete": "LEGENDAIRE",
    "categorie": "Matériau de la Surface",
@@ -5367,260 +5507,6 @@
    "recyclage": [],
    "recuperation": [],
    "lieux": []
-  },
-  {
-   "id": "frozen_trail_material_2",
-   "nom": "Seau d'époxy",
-   "rarete": "RARE",
-   "categorie": "Recyclable",
-   "valeur": 1000,
-   "pile": 5,
-   "recyclage": [
-    {
-     "id": "chemicals",
-     "quantite": 8
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "chemicals",
-     "quantite": 4
-    }
-   ],
-   "lieux": []
-  },
-  {
-   "id": "frozen_trail_material_3",
-   "nom": "Rouleau d'isolant",
-   "rarete": "EPIQUE",
-   "categorie": "Recyclable",
-   "valeur": 3000,
-   "pile": 3,
-   "recyclage": [
-    {
-     "id": "durable_cloth",
-     "quantite": 2
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "fabric",
-     "quantite": 6
-    }
-   ],
-   "lieux": []
-  },
-  {
-   "id": "frozen_trail_mechanical_1",
-   "nom": "Dénudeur de câbles",
-   "rarete": "INHABITUEL",
-   "categorie": "Matériau de la Surface",
-   "valeur": 270,
-   "pile": 15,
-   "recyclage": [
-    {
-     "id": "metal_parts",
-     "quantite": 2
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "metal_parts",
-     "quantite": 1
-    }
-   ],
-   "lieux": [
-    "Mécanique",
-    "Industriel"
-   ]
-  },
-  {
-   "id": "frozen_trail_mechanical_2",
-   "nom": "Perceuse à main",
-   "rarete": "RARE",
-   "categorie": "Matériau de la Surface",
-   "valeur": 640,
-   "pile": 3,
-   "recyclage": [
-    {
-     "id": "mechanical_components",
-     "quantite": 1
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "metal_parts",
-     "quantite": 2
-    }
-   ],
-   "lieux": [
-    "Mécanique",
-    "Industriel"
-   ]
-  },
-  {
-   "id": "frozen_trail_mechanical_3",
-   "nom": "Niveau laser",
-   "rarete": "EPIQUE",
-   "categorie": "Matériau de la Surface",
-   "valeur": 2000,
-   "pile": 3,
-   "recyclage": [
-    {
-     "id": "mechanical_components",
-     "quantite": 2
-    },
-    {
-     "id": "steel_spring",
-     "quantite": 2
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "mechanical_components",
-     "quantite": 1
-    }
-   ],
-   "lieux": [
-    "Mécanique",
-    "Industriel"
-   ]
-  },
-  {
-   "id": "frozen_trail_mechanical_4",
-   "nom": "Presse radiale",
-   "rarete": "EPIQUE",
-   "categorie": "Matériau de la Surface",
-   "valeur": 3000,
-   "pile": 3,
-   "recyclage": [
-    {
-     "id": "advanced_mechanical_components",
-     "quantite": 1
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "mechanical_components",
-     "quantite": 1
-    }
-   ],
-   "lieux": [
-    "Mécanique",
-    "Industriel"
-   ]
-  },
-  {
-   "id": "frozen_trail_tech_1",
-   "nom": "Mini pompe",
-   "rarete": "INHABITUEL",
-   "categorie": "Recyclable",
-   "valeur": 640,
-   "pile": 5,
-   "recyclage": [
-    {
-     "id": "sensors",
-     "quantite": 1
-    },
-    {
-     "id": "plastic_parts",
-     "quantite": 2
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "plastic_parts",
-     "quantite": 2
-    }
-   ],
-   "lieux": [
-    "Technologique",
-    "Électrique"
-   ]
-  },
-  {
-   "id": "frozen_trail_tech_2",
-   "nom": "Calculatrice",
-   "rarete": "RARE",
-   "categorie": "Matériau de la Surface",
-   "valeur": 640,
-   "pile": 3,
-   "recyclage": [
-    {
-     "id": "wires",
-     "quantite": 1
-    },
-    {
-     "id": "plastic_parts",
-     "quantite": 2
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "rubber_parts",
-     "quantite": 2
-    }
-   ],
-   "lieux": [
-    "Technologique",
-    "Électrique"
-   ]
-  },
-  {
-   "id": "frozen_trail_tech_3",
-   "nom": "Microphone différentiel",
-   "rarete": "RARE",
-   "categorie": "Recyclable",
-   "valeur": 1000,
-   "pile": 3,
-   "recyclage": [
-    {
-     "id": "speaker_component",
-     "quantite": 1
-    },
-    {
-     "id": "wires",
-     "quantite": 2
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "wires",
-     "quantite": 1
-    }
-   ],
-   "lieux": [
-    "Technologique",
-    "Électrique"
-   ]
-  },
-  {
-   "id": "frozen_trail_tech_4",
-   "nom": "Agitateur thermique",
-   "rarete": "EPIQUE",
-   "categorie": "Recyclable",
-   "valeur": 3000,
-   "pile": 3,
-   "recyclage": [
-    {
-     "id": "electrical_components",
-     "quantite": 2
-    },
-    {
-     "id": "frozen_trail_tech_2",
-     "quantite": 2
-    }
-   ],
-   "recuperation": [
-    {
-     "id": "electrical_components",
-     "quantite": 1
-    }
-   ],
-   "lieux": [
-    "Technologique",
-    "Électrique"
-   ]
   },
   {
    "id": "fruit_mix",
@@ -5920,7 +5806,7 @@
    "lieux": []
   },
   {
-   "id": "grapple_hook",
+   "id": "grappling_hook",
    "nom": "Grappin",
    "rarete": "INHABITUEL",
    "categorie": "Gadgets",
@@ -5932,7 +5818,7 @@
      "quantite": 1
     },
     {
-     "id": "frozen_trail_mechanical_1",
+     "id": "cable_stripper",
      "quantite": 1
     }
    ],
@@ -5945,7 +5831,7 @@
    "lieux": []
   },
   {
-   "id": "grapple_hook_blueprint",
+   "id": "grappling_hook_blueprint",
    "nom": "Schéma de grappin",
    "rarete": null,
    "categorie": "Schéma",
@@ -6142,6 +6028,30 @@
     }
    ],
    "lieux": []
+  },
+  {
+   "id": "hand_drill",
+   "nom": "Perceuse à main",
+   "rarete": "RARE",
+   "categorie": "Matériau de la Surface",
+   "valeur": 640,
+   "pile": 3,
+   "recyclage": [
+    {
+     "id": "mechanical_components",
+     "quantite": 1
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "metal_parts",
+     "quantite": 2
+    }
+   ],
+   "lieux": [
+    "Mécanique",
+    "Industriel"
+   ]
   },
   {
    "id": "harmonica",
@@ -6811,6 +6721,27 @@
    ]
   },
   {
+   "id": "insulation_roll",
+   "nom": "Rouleau d'isolant",
+   "rarete": "EPIQUE",
+   "categorie": "Recyclable",
+   "valeur": 3000,
+   "pile": 3,
+   "recyclage": [
+    {
+     "id": "durable_cloth",
+     "quantite": 2
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "fabric",
+     "quantite": 6
+    }
+   ],
+   "lieux": []
+  },
+  {
    "id": "integrated_binoculars",
    "nom": "Jumelles intégrées",
    "rarete": "COMMUN",
@@ -7128,6 +7059,34 @@
    "lieux": [
     "Résidentiel",
     "Commercial"
+   ]
+  },
+  {
+   "id": "laser_level",
+   "nom": "Niveau laser",
+   "rarete": "EPIQUE",
+   "categorie": "Matériau de la Surface",
+   "valeur": 2000,
+   "pile": 3,
+   "recyclage": [
+    {
+     "id": "mechanical_components",
+     "quantite": 2
+    },
+    {
+     "id": "steel_spring",
+     "quantite": 2
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "mechanical_components",
+     "quantite": 1
+    }
+   ],
+   "lieux": [
+    "Mécanique",
+    "Industriel"
    ]
   },
   {
@@ -7928,6 +7887,34 @@
    ]
   },
   {
+   "id": "mini_pump",
+   "nom": "Mini pompe",
+   "rarete": "INHABITUEL",
+   "categorie": "Recyclable",
+   "valeur": 640,
+   "pile": 5,
+   "recyclage": [
+    {
+     "id": "sensors",
+     "quantite": 1
+    },
+    {
+     "id": "plastic_parts",
+     "quantite": 2
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "plastic_parts",
+     "quantite": 2
+    }
+   ],
+   "lieux": [
+    "Technologique",
+    "Électrique"
+   ]
+  },
+  {
    "id": "mod_components",
    "nom": "Composants de mods",
    "rarete": "RARE",
@@ -8014,6 +8001,17 @@
    "lieux": [
     "Mécanique"
    ]
+  },
+  {
+   "id": "mountaineers_detector",
+   "nom": "Détecteur d'alpiniste",
+   "rarete": "RARE",
+   "categorie": "Gadgets",
+   "valeur": 2000,
+   "pile": 1,
+   "recyclage": [],
+   "recuperation": [],
+   "lieux": []
   },
   {
    "id": "mri_duck",
@@ -9238,6 +9236,30 @@
    ]
   },
   {
+   "id": "radial_press",
+   "nom": "Presse radiale",
+   "rarete": "EPIQUE",
+   "categorie": "Matériau de la Surface",
+   "valeur": 3000,
+   "pile": 3,
+   "recyclage": [
+    {
+     "id": "advanced_mechanical_components",
+     "quantite": 1
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "mechanical_components",
+     "quantite": 1
+    }
+   ],
+   "lieux": [
+    "Mécanique",
+    "Industriel"
+   ]
+  },
+  {
    "id": "radio",
    "nom": "Radio",
    "rarete": "RARE",
@@ -9313,6 +9335,19 @@
    "recyclage": [],
    "recuperation": [],
    "lieux": []
+  },
+  {
+   "id": "raider_logbook",
+   "nom": "Journal de Raider",
+   "rarete": "INHABITUEL",
+   "categorie": "Objet de recherche",
+   "valeur": 640,
+   "pile": 5,
+   "recyclage": [],
+   "recuperation": [],
+   "lieux": [
+    "Raider"
+   ]
   },
   {
    "id": "raiders_refuge_security_code",
@@ -9801,58 +9836,6 @@
     }
    ],
    "lieux": []
-  },
-  {
-   "id": "research_item_02",
-   "nom": "Journal de Raider",
-   "rarete": "INHABITUEL",
-   "categorie": "Objet de recherche",
-   "valeur": 640,
-   "pile": 5,
-   "recyclage": [],
-   "recuperation": [],
-   "lieux": [
-    "Raider"
-   ]
-  },
-  {
-   "id": "research_item_03",
-   "nom": "Manuel technique de l'Exode",
-   "rarete": "RARE",
-   "categorie": "Objet de recherche",
-   "valeur": 1000,
-   "pile": 5,
-   "recyclage": [],
-   "recuperation": [],
-   "lieux": [
-    "Exode"
-   ]
-  },
-  {
-   "id": "research_item_04",
-   "nom": "Module de données ARC",
-   "rarete": "EPIQUE",
-   "categorie": "Objet de recherche",
-   "valeur": 2000,
-   "pile": 3,
-   "recyclage": [],
-   "recuperation": [],
-   "lieux": [
-    "ARC"
-   ]
-  },
-  {
-   "id": "research_item_05",
-   "nom": "Nœud de diagnostic de Frégate",
-   "rarete": "LEGENDAIRE",
-   "categorie": "Objet de recherche",
-   "valeur": 3000,
-   "pile": 1,
-   "recyclage": [],
-   "recuperation": [],
-   "lieux": [
-    "ARC"
-   ]
   },
   {
    "id": "resin",
@@ -11216,6 +11199,19 @@
    "lieux": []
   },
   {
+   "id": "skulker_driver",
+   "nom": "Pilote de Rôdeur",
+   "rarete": "RARE",
+   "categorie": "Recyclable",
+   "valeur": 1000,
+   "pile": 3,
+   "recyclage": [],
+   "recuperation": [],
+   "lieux": [
+    "ARC"
+   ]
+  },
+  {
    "id": "skulker_targeter",
    "nom": "Désignateur de Rôdeur",
    "rarete": "INHABITUEL",
@@ -11599,19 +11595,6 @@
    "lieux": [
     "Résidentiel",
     "Commercial"
-   ]
-  },
-  {
-   "id": "sprint_shooting_research_material",
-   "nom": "Pilote de Rôdeur",
-   "rarete": "RARE",
-   "categorie": "Recyclable",
-   "valeur": 1000,
-   "pile": 3,
-   "recyclage": [],
-   "recuperation": [],
-   "lieux": [
-    "ARC"
    ]
   },
   {
@@ -12083,7 +12066,7 @@
    "lieux": []
   },
   {
-   "id": "study_armchair_design_outpostfurniturerecipe_res_sofa_01_y150_a",
+   "id": "study_armchair_sofa_design",
    "nom": "Design de fauteuil d'étude",
    "rarete": "INHABITUEL",
    "categorie": "Design",
@@ -12844,7 +12827,7 @@
    "lieux": []
   },
   {
-   "id": "tether_gun",
+   "id": "tether_launcher",
    "nom": "Lanceur d'amarres",
    "rarete": "RARE",
    "categorie": "Gadgets",
@@ -12869,7 +12852,7 @@
    "lieux": []
   },
   {
-   "id": "tether_gun_blueprint",
+   "id": "tether_launcher_blueprint",
    "nom": "Schéma de lanceur d'amarres",
    "rarete": null,
    "categorie": "Schéma",
@@ -12878,6 +12861,34 @@
    "recyclage": [],
    "recuperation": [],
    "lieux": []
+  },
+  {
+   "id": "thermal_shaker",
+   "nom": "Agitateur thermique",
+   "rarete": "EPIQUE",
+   "categorie": "Recyclable",
+   "valeur": 3000,
+   "pile": 3,
+   "recyclage": [
+    {
+     "id": "electrical_components",
+     "quantite": 2
+    },
+    {
+     "id": "calculator",
+     "quantite": 2
+    }
+   ],
+   "recuperation": [
+    {
+     "id": "electrical_components",
+     "quantite": 1
+    }
+   ],
+   "lieux": [
+    "Technologique",
+    "Électrique"
+   ]
   },
   {
    "id": "thermostat",
@@ -13334,17 +13345,6 @@
    "lieux": [
     "Sécurité"
    ]
-  },
-  {
-   "id": "upgraded_detector",
-   "nom": "Détecteur d'alpiniste",
-   "rarete": "RARE",
-   "categorie": "Gadgets",
-   "valeur": 2000,
-   "pile": 1,
-   "recyclage": [],
-   "recuperation": [],
-   "lieux": []
   },
   {
    "id": "vaporizer_regulator",
@@ -14472,7 +14472,7 @@
        "quantite": 5
       },
       {
-       "id": "frozen_trail_tech_1",
+       "id": "mini_pump",
        "quantite": 3
       }
      ]
@@ -14481,11 +14481,11 @@
      "niveau": 2,
      "cout": [
       {
-       "id": "frozen_trail_tech_2",
+       "id": "calculator",
        "quantite": 3
       },
       {
-       "id": "research_item_02",
+       "id": "raider_logbook",
        "quantite": 3
       },
       {
@@ -14498,11 +14498,11 @@
      "niveau": 3,
      "cout": [
       {
-       "id": "frozen_trail_tech_3",
+       "id": "differential_microphone",
        "quantite": 3
       },
       {
-       "id": "research_item_03",
+       "id": "exodus_technical_handbook",
        "quantite": 3
       },
       {
@@ -14515,15 +14515,15 @@
      "niveau": 4,
      "cout": [
       {
-       "id": "frozen_trail_tech_4",
+       "id": "thermal_shaker",
        "quantite": 3
       },
       {
-       "id": "research_item_04",
+       "id": "arc_data_module",
        "quantite": 3
       },
       {
-       "id": "frigate_material_1",
+       "id": "frigate_inductor",
        "quantite": 1
       }
      ]
@@ -14700,7 +14700,7 @@
      "niveau": 4,
      "cout": [
       {
-       "id": "frozen_trail_mechanical_4",
+       "id": "radial_press",
        "quantite": 3
       },
       {
@@ -14708,7 +14708,7 @@
        "quantite": 3
       },
       {
-       "id": "collector_material_1",
+       "id": "emperor_modulator",
        "quantite": 1
       }
      ]
@@ -14768,6 +14768,7 @@
    "commercant": "Apollo",
    "histoire": true,
    "requiert": [
+    "blue_gate_content_unlock",
     "off_the_radar"
    ],
    "objets": []
@@ -14805,7 +14806,7 @@
   {
    "id": "a_path_not_yours",
    "nom": "Un chemin qui n'est pas le vôtre",
-   "commercant": "Juanito",
+   "commercant": null,
    "histoire": true,
    "requiert": [
     "taking_stock"
@@ -14924,6 +14925,7 @@
    "commercant": "Tian Wen",
    "histoire": true,
    "requiert": [
+    "blue_gate_content_unlock",
     "celestes_journals",
     "eyes_in_the_sky",
     "the_majors_footlocker"
@@ -14976,7 +14978,7 @@
    ],
    "objets": [
     {
-     "id": "collector_material_1",
+     "id": "emperor_modulator",
      "quantite": 1
     },
     {
@@ -15102,6 +15104,7 @@
    "commercant": "Shani",
    "histoire": true,
    "requiert": [
+    "blue_gate_content_unlock",
     "dormant_barons"
    ],
    "objets": []
@@ -15109,7 +15112,7 @@
   {
    "id": "clean_hands",
    "nom": "Mains propres",
-   "commercant": "Juanito",
+   "commercant": null,
    "histoire": true,
    "requiert": [
     "off_the_radar"
@@ -15219,6 +15222,17 @@
    "histoire": true,
    "requiert": [
     "boarding_the_frigate"
+   ],
+   "objets": []
+  },
+  {
+   "id": "divided",
+   "nom": "Division",
+   "commercant": null,
+   "histoire": true,
+   "requiert": [
+    "a_path_not_yours",
+    "ruins_and_reverberations"
    ],
    "objets": []
   },
@@ -15928,7 +15942,7 @@
   {
    "id": "taking_stock",
    "nom": "Faire le point",
-   "commercant": "Juanito",
+   "commercant": null,
    "histoire": true,
    "requiert": [
     "clean_hands"
@@ -16265,36 +16279,1882 @@
    "objets": []
   }
  ],
+ "projets": [
+  {
+   "id": "ascending_the_mountain_project",
+   "nom": "Grimper la montagne",
+   "etapes": [
+    {
+     "nom": "Étudier les mécanismes de haute altitude",
+     "cout": [
+      {
+       "id": "mechanical_components",
+       "quantite": 10
+      },
+      {
+       "id": "pop_trigger",
+       "quantite": 6
+      },
+      {
+       "id": "explosive_compound",
+       "quantite": 10
+      },
+      {
+       "id": "headphones",
+       "quantite": 2
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Commencer les tests d'ignition",
+     "cout": [
+      {
+       "id": "wires",
+       "quantite": 20
+      },
+      {
+       "id": "voltage_converter",
+       "quantite": 8
+      },
+      {
+       "id": "sentinel_firing_core",
+       "quantite": 2
+      },
+      {
+       "id": "rocket_thruster",
+       "quantite": 1
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Mettre en œuvre les capacités d'atterrissage",
+     "cout": [
+      {
+       "id": "ruined_parachute",
+       "quantite": 2
+      },
+      {
+       "id": "crash_mat",
+       "quantite": 10
+      },
+      {
+       "id": "shredder_gyro",
+       "quantite": 5
+      },
+      {
+       "id": "breathtaking_snow_globe",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Dernières retouches",
+     "cout": [
+      {
+       "id": "sensors",
+       "quantite": 30
+      },
+      {
+       "id": "broken_guidance_system",
+       "quantite": 3
+      },
+      {
+       "id": "advanced_electrical_components",
+       "quantite": 15
+      },
+      {
+       "id": "vaporizer_regulator",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    }
+   ]
+  },
+  {
+   "id": "expedition_project",
+   "nom": "Expédition 2",
+   "etapes": [
+    {
+     "nom": "Base",
+     "cout": [
+      {
+       "id": "metal_parts",
+       "quantite": 150
+      },
+      {
+       "id": "plastic_parts",
+       "quantite": 200
+      },
+      {
+       "id": "arc_alloy",
+       "quantite": 80
+      },
+      {
+       "id": "steel_spring",
+       "quantite": 15
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Systèmes centraux",
+     "cout": [
+      {
+       "id": "durable_cloth",
+       "quantite": 35
+      },
+      {
+       "id": "wires",
+       "quantite": 25
+      },
+      {
+       "id": "electrical_components",
+       "quantite": 20
+      },
+      {
+       "id": "cooling_coil",
+       "quantite": 4
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charpente",
+     "cout": [
+      {
+       "id": "light_bulb",
+       "quantite": 4
+      },
+      {
+       "id": "battery",
+       "quantite": 30
+      },
+      {
+       "id": "shredder_gyro",
+       "quantite": 10
+      },
+      {
+       "id": "exodus_modules",
+       "quantite": 1
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Équipement",
+     "cout": [
+      {
+       "id": "frequency_modulation_box",
+       "quantite": 5
+      },
+      {
+       "id": "advanced_electrical_components",
+       "quantite": 5
+      },
+      {
+       "id": "ion_sputter",
+       "quantite": 3
+      },
+      {
+       "id": "leaper_pulse_unit",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charger le niveau",
+     "cout": [],
+     "autresObjectifs": 4
+    },
+    {
+     "nom": "Départ",
+     "cout": [],
+     "autresObjectifs": 1
+    }
+   ]
+  },
+  {
+   "id": "expedition_project_s1",
+   "nom": "Expédition 1",
+   "etapes": [
+    {
+     "nom": "Base",
+     "cout": [
+      {
+       "id": "metal_parts",
+       "quantite": 150
+      },
+      {
+       "id": "rubber_parts",
+       "quantite": 200
+      },
+      {
+       "id": "arc_alloy",
+       "quantite": 80
+      },
+      {
+       "id": "steel_spring",
+       "quantite": 15
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Systèmes centraux",
+     "cout": [
+      {
+       "id": "durable_cloth",
+       "quantite": 35
+      },
+      {
+       "id": "wires",
+       "quantite": 30
+      },
+      {
+       "id": "electrical_components",
+       "quantite": 30
+      },
+      {
+       "id": "cooling_fan",
+       "quantite": 5
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charpente",
+     "cout": [
+      {
+       "id": "light_bulb",
+       "quantite": 5
+      },
+      {
+       "id": "battery",
+       "quantite": 30
+      },
+      {
+       "id": "sensors",
+       "quantite": 20
+      },
+      {
+       "id": "exodus_modules",
+       "quantite": 1
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Équipement",
+     "cout": [
+      {
+       "id": "humidifier",
+       "quantite": 5
+      },
+      {
+       "id": "advanced_electrical_components",
+       "quantite": 5
+      },
+      {
+       "id": "magnetic_accelerator",
+       "quantite": 3
+      },
+      {
+       "id": "leaper_pulse_unit",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charger le niveau",
+     "cout": [],
+     "autresObjectifs": 4
+    },
+    {
+     "nom": "Départ",
+     "cout": [],
+     "autresObjectifs": 1
+    }
+   ]
+  },
+  {
+   "id": "expedition_project_s3",
+   "nom": "Expédition 3",
+   "etapes": [
+    {
+     "nom": "Base",
+     "cout": [
+      {
+       "id": "metal_parts",
+       "quantite": 150
+      },
+      {
+       "id": "chemicals",
+       "quantite": 100
+      },
+      {
+       "id": "arc_alloy",
+       "quantite": 80
+      },
+      {
+       "id": "steel_spring",
+       "quantite": 15
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Systèmes centraux",
+     "cout": [
+      {
+       "id": "durable_cloth",
+       "quantite": 30
+      },
+      {
+       "id": "wires",
+       "quantite": 25
+      },
+      {
+       "id": "electrical_components",
+       "quantite": 20
+      },
+      {
+       "id": "industrial_charger",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charpente",
+     "cout": [
+      {
+       "id": "coffee_pot",
+       "quantite": 1
+      },
+      {
+       "id": "battery",
+       "quantite": 25
+      },
+      {
+       "id": "firefly_burner",
+       "quantite": 5
+      },
+      {
+       "id": "exodus_modules",
+       "quantite": 1
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Équipement",
+     "cout": [
+      {
+       "id": "broken_guidance_system",
+       "quantite": 1
+      },
+      {
+       "id": "advanced_electrical_components",
+       "quantite": 5
+      },
+      {
+       "id": "breathtaking_snow_globe",
+       "quantite": 3
+      },
+      {
+       "id": "bombardier_cell",
+       "quantite": 2
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charger le niveau",
+     "cout": [],
+     "autresObjectifs": 4
+    },
+    {
+     "nom": "Départ",
+     "cout": [],
+     "autresObjectifs": 1
+    }
+   ]
+  },
+  {
+   "id": "expedition_project_s4",
+   "nom": "Expédition 4",
+   "etapes": [
+    {
+     "nom": "Base",
+     "cout": [
+      {
+       "id": "metal_parts",
+       "quantite": 150
+      },
+      {
+       "id": "chemicals",
+       "quantite": 100
+      },
+      {
+       "id": "arc_alloy",
+       "quantite": 80
+      },
+      {
+       "id": "canister",
+       "quantite": 15
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Systèmes centraux",
+     "cout": [
+      {
+       "id": "durable_cloth",
+       "quantite": 30
+      },
+      {
+       "id": "oil",
+       "quantite": 25
+      },
+      {
+       "id": "electrical_components",
+       "quantite": 20
+      },
+      {
+       "id": "industrial_charger",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charpente",
+     "cout": [
+      {
+       "id": "arc_motion_core",
+       "quantite": 20
+      },
+      {
+       "id": "speaker_component",
+       "quantite": 15
+      },
+      {
+       "id": "turbine_compressor",
+       "quantite": 5
+      },
+      {
+       "id": "exodus_modules",
+       "quantite": 2
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Équipement",
+     "cout": [
+      {
+       "id": "portable_tv",
+       "quantite": 1
+      },
+      {
+       "id": "advanced_electrical_components",
+       "quantite": 5
+      },
+      {
+       "id": "sirena_dorata_ship_model",
+       "quantite": 2
+      },
+      {
+       "id": "vaporizer_regulator",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charger le niveau",
+     "cout": [],
+     "autresObjectifs": 4
+    },
+    {
+     "nom": "Départ",
+     "cout": [],
+     "autresObjectifs": 1
+    }
+   ]
+  },
+  {
+   "id": "expedition_project_s5",
+   "nom": "Expédition 5",
+   "etapes": [
+    {
+     "nom": "Base",
+     "cout": [
+      {
+       "id": "metal_parts",
+       "quantite": 150
+      },
+      {
+       "id": "plastic_parts",
+       "quantite": 100
+      },
+      {
+       "id": "arc_alloy",
+       "quantite": 80
+      },
+      {
+       "id": "magnet",
+       "quantite": 15
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Systèmes centraux",
+     "cout": [
+      {
+       "id": "durable_cloth",
+       "quantite": 30
+      },
+      {
+       "id": "duct_tape",
+       "quantite": 25
+      },
+      {
+       "id": "mechanical_components",
+       "quantite": 20
+      },
+      {
+       "id": "voltage_converter",
+       "quantite": 10
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charpente",
+     "cout": [
+      {
+       "id": "arc_circuitry",
+       "quantite": 20
+      },
+      {
+       "id": "speaker_component",
+       "quantite": 15
+      },
+      {
+       "id": "bastion_cell",
+       "quantite": 5
+      },
+      {
+       "id": "magnetic_accelerator",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Équipement",
+     "cout": [
+      {
+       "id": "radio",
+       "quantite": 2
+      },
+      {
+       "id": "advanced_mechanical_components",
+       "quantite": 5
+      },
+      {
+       "id": "lances_mixtape_5th_edition",
+       "quantite": 2
+      },
+      {
+       "id": "rocketeer_driver",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Charger le niveau",
+     "cout": [],
+     "autresObjectifs": 4
+    },
+    {
+     "nom": "Départ",
+     "cout": [],
+     "autresObjectifs": 1
+    }
+   ]
+  },
+  {
+   "id": "sheltered_retreat_project",
+   "nom": "À l'abri",
+   "etapes": [
+    {
+     "nom": "Étudier les conditions de vie à la Surface",
+     "cout": [],
+     "autresObjectifs": 1
+    },
+    {
+     "nom": "Récupérer des matériaux de construction",
+     "cout": [
+      {
+       "id": "planks",
+       "quantite": 3
+      },
+      {
+       "id": "sheet_metal",
+       "quantite": 5
+      },
+      {
+       "id": "arc_alloy",
+       "quantite": 10
+      },
+      {
+       "id": "advanced_electrical_components",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Sécuriser le chantier",
+     "cout": [],
+     "autresObjectifs": 1
+    }
+   ]
+  },
+  {
+   "id": "trophy_display_project",
+   "nom": "Présentoir à trophées",
+   "etapes": [
+    {
+     "nom": "Menaces errantes",
+     "cout": [
+      {
+       "id": "rusted_bolts",
+       "quantite": 3
+      },
+      {
+       "id": "pop_trigger",
+       "quantite": 15
+      },
+      {
+       "id": "tick_pod",
+       "quantite": 15
+      },
+      {
+       "id": "surveyor_vault",
+       "quantite": 5
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Menaces aériennes",
+     "cout": [
+      {
+       "id": "spotter_relay",
+       "quantite": 10
+      },
+      {
+       "id": "expired_respirator",
+       "quantite": 3
+      },
+      {
+       "id": "wasp_driver",
+       "quantite": 20
+      },
+      {
+       "id": "hornet_driver",
+       "quantite": 15
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Ennemis féroces",
+     "cout": [
+      {
+       "id": "arc_performance_steel",
+       "quantite": 10
+      },
+      {
+       "id": "shredder_gyro",
+       "quantite": 5
+      },
+      {
+       "id": "leaper_pulse_unit",
+       "quantite": 10
+      },
+      {
+       "id": "bastion_cell",
+       "quantite": 5
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Dangers écrasants",
+     "cout": [
+      {
+       "id": "arc_synthetic_resin",
+       "quantite": 10
+      },
+      {
+       "id": "magnetic_accelerator",
+       "quantite": 10
+      },
+      {
+       "id": "rocketeer_driver",
+       "quantite": 8
+      },
+      {
+       "id": "queen_reactor",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    },
+    {
+     "nom": "Colosses imposants",
+     "cout": [
+      {
+       "id": "exodus_modules",
+       "quantite": 5
+      },
+      {
+       "id": "geiger_counter",
+       "quantite": 3
+      },
+      {
+       "id": "bombardier_cell",
+       "quantite": 8
+      },
+      {
+       "id": "matriarch_reactor",
+       "quantite": 3
+      }
+     ],
+     "autresObjectifs": 0
+    }
+   ]
+  }
+ ],
  "cartes": [
   {
    "id": "blue-gate",
    "nom": "Le Portail bleu",
-   "cleCalendrier": "The Blue Gate"
+   "cleCalendrier": "The Blue Gate",
+   "plan": {
+    "zones": [
+     {
+      "nom": "Abords du Portail",
+      "x": 0.4728,
+      "y": 0.5049,
+      "detail": 0
+     },
+     {
+      "nom": "Les montagnes",
+      "x": 0.619,
+      "y": 0.3841,
+      "detail": 0
+     },
+     {
+      "nom": "La forêt",
+      "x": 0.3318,
+      "y": 0.4064,
+      "detail": 0
+     },
+     {
+      "nom": "Crête",
+      "x": 0.6764,
+      "y": 0.543,
+      "detail": 2
+     },
+     {
+      "nom": "Point de contrôle",
+      "x": 0.4714,
+      "y": 0.5162,
+      "detail": 1
+     },
+     {
+      "nom": "Pic Pèlerin",
+      "x": 0.6973,
+      "y": 0.3586,
+      "detail": 1
+     },
+     {
+      "nom": "Portails extérieurs",
+      "x": 0.5153,
+      "y": 0.4693,
+      "detail": 2
+     },
+     {
+      "nom": "Maison mère",
+      "x": 0.5635,
+      "y": 0.405,
+      "detail": 2
+     },
+     {
+      "nom": "Terres arables",
+      "x": 0.5024,
+      "y": 0.6389,
+      "detail": 0
+     },
+     {
+      "nom": "Refuge de Raiders",
+      "x": 0.3438,
+      "y": 0.4105,
+      "detail": 1
+     },
+     {
+      "nom": "Village",
+      "x": 0.3961,
+      "y": 0.3431,
+      "detail": 1
+     },
+     {
+      "nom": "Réception fortifiée",
+      "x": 0.506,
+      "y": 0.3861,
+      "detail": 1
+     },
+     {
+      "nom": "Complexe d'entrepôts",
+      "x": 0.5946,
+      "y": 0.4695,
+      "detail": 1
+     },
+     {
+      "nom": "Clairière aride",
+      "x": 0.2652,
+      "y": 0.3864,
+      "detail": 2
+     },
+     {
+      "nom": "Épave décorée",
+      "x": 0.3085,
+      "y": 0.4948,
+      "detail": 1
+     },
+     {
+      "nom": "Décombres d'autoroute",
+      "x": 0.359,
+      "y": 0.6173,
+      "detail": 2
+     },
+     {
+      "nom": "Salle de données",
+      "x": 0.5961,
+      "y": 0.3626,
+      "detail": 2
+     },
+     {
+      "nom": "Bunker de maintenance",
+      "x": 0.5373,
+      "y": 0.5912,
+      "detail": 2
+     },
+     {
+      "nom": "Clairière du trappeur",
+      "x": 0.3358,
+      "y": 0.454,
+      "detail": 2
+     },
+     {
+      "nom": "Projet de logement abandonné",
+      "x": 0.7053,
+      "y": 0.4862,
+      "detail": 2
+     },
+     {
+      "nom": "Oliveraie",
+      "x": 0.4407,
+      "y": 0.6292,
+      "detail": 2
+     },
+     {
+      "nom": "Crevasses",
+      "x": 0.5592,
+      "y": 0.6206,
+      "detail": 2
+     },
+     {
+      "nom": "Propriété en ruines",
+      "x": 0.4755,
+      "y": 0.651,
+      "detail": 2
+     },
+     {
+      "nom": "Fort antique",
+      "x": 0.5253,
+      "y": 0.7035,
+      "detail": 1
+     },
+     {
+      "nom": "Salle de contrôle du Portail",
+      "x": 0.5656,
+      "y": 0.4871,
+      "detail": 2
+     }
+    ],
+    "sorties": [
+     {
+      "nom": "Trappe renforcée",
+      "x": 0.2949,
+      "y": 0.4684
+     },
+     {
+      "nom": "Trappe préfabriquée",
+      "x": 0.7223,
+      "y": 0.4597
+     },
+     {
+      "nom": "Trappe parfumée",
+      "x": 0.4267,
+      "y": 0.5961
+     },
+     {
+      "nom": "Trappe de la chance",
+      "x": 0.4595,
+      "y": 0.3536
+     },
+     {
+      "nom": "Conduit d'aération d'entrepôt",
+      "x": 0.6341,
+      "y": 0.4511
+     },
+     {
+      "nom": "Conduit d'aération de falaise",
+      "x": 0.4402,
+      "y": 0.4158
+     },
+     {
+      "nom": "Conduit d'aération forestier",
+      "x": 0.3268,
+      "y": 0.5625
+     },
+     {
+      "nom": "Conduit d'aération du point surélevé",
+      "x": 0.5619,
+      "y": 0.577
+     }
+    ]
+   }
   },
   {
    "id": "buried-city",
    "nom": "Ville enfouie",
-   "cleCalendrier": "Buried City"
+   "cleCalendrier": "Buried City",
+   "plan": {
+    "zones": [
+     {
+      "nom": "Nouveau district",
+      "x": 0.5556,
+      "y": 0.392,
+      "detail": 0
+     },
+     {
+      "nom": "Village ouest",
+      "x": 0.341,
+      "y": 0.5675,
+      "detail": 0
+     },
+     {
+      "nom": "Vieille ville",
+      "x": 0.5419,
+      "y": 0.7002,
+      "detail": 0
+     },
+     {
+      "nom": "Périphérie",
+      "x": 0.2934,
+      "y": 0.265,
+      "detail": 0
+     },
+     {
+      "nom": "Corso da Vinci",
+      "x": 0.4789,
+      "y": 0.6001,
+      "detail": 2
+     },
+     {
+      "nom": "Ruines du marché",
+      "x": 0.5609,
+      "y": 0.2614,
+      "detail": 2
+     },
+     {
+      "nom": "Piazza Roma",
+      "x": 0.3746,
+      "y": 0.4861,
+      "detail": 2
+     },
+     {
+      "nom": "Parc de stationnement",
+      "x": 0.5387,
+      "y": 0.3671,
+      "detail": 2
+     },
+     {
+      "nom": "Bureau des voyages spatiaux",
+      "x": 0.5809,
+      "y": 0.4113,
+      "detail": 1
+     },
+     {
+      "nom": "Ruines de l'église",
+      "x": 0.7417,
+      "y": 0.7943,
+      "detail": 2
+     },
+     {
+      "nom": "Appartements Grandioso",
+      "x": 0.289,
+      "y": 0.6549,
+      "detail": 1
+     },
+     {
+      "nom": "Gare de Marano",
+      "x": 0.308,
+      "y": 0.3629,
+      "detail": 2
+     },
+     {
+      "nom": "Plaza Rosa",
+      "x": 0.5096,
+      "y": 0.7389,
+      "detail": 1
+     },
+     {
+      "nom": "Tour rouge",
+      "x": 0.5917,
+      "y": 0.7157,
+      "detail": 2
+     },
+     {
+      "nom": "Piazza Arbusto",
+      "x": 0.6658,
+      "y": 0.587,
+      "detail": 1
+     },
+     {
+      "nom": "Hôpital",
+      "x": 0.5117,
+      "y": 0.2865,
+      "detail": 1
+     },
+     {
+      "nom": "Zone de recherche",
+      "x": 0.5583,
+      "y": 0.442,
+      "detail": 1
+     },
+     {
+      "nom": "Entrepôts Su Durante",
+      "x": 0.3652,
+      "y": 0.1857,
+      "detail": 2
+     },
+     {
+      "nom": "Propriétés enfouies",
+      "x": 0.7006,
+      "y": 0.501,
+      "detail": 2
+     },
+     {
+      "nom": "Galleria",
+      "x": 0.6245,
+      "y": 0.3606,
+      "detail": 2
+     },
+     {
+      "nom": "Station essence",
+      "x": 0.4791,
+      "y": 0.1505,
+      "detail": 2
+     },
+     {
+      "nom": "Rue principale",
+      "x": 0.4735,
+      "y": 0.7033,
+      "detail": 2
+     },
+     {
+      "nom": "Camp d'autoroute abandonné",
+      "x": 0.3143,
+      "y": 0.7173,
+      "detail": 2
+     },
+     {
+      "nom": "Parc Marano",
+      "x": 0.4833,
+      "y": 0.4545,
+      "detail": 2
+     },
+     {
+      "nom": "Bibliothèque",
+      "x": 0.4264,
+      "y": 0.3483,
+      "detail": 1
+     },
+     {
+      "nom": "Entrepôt",
+      "x": 0.1875,
+      "y": 0.4258,
+      "detail": 2
+     },
+     {
+      "nom": "Dune périphérique",
+      "x": 0.6483,
+      "y": 0.2816,
+      "detail": 2
+     },
+     {
+      "nom": "Entrepôt de maintenance",
+      "x": 0.1422,
+      "y": 0.6477,
+      "detail": 2
+     },
+     {
+      "nom": "Hôtel de ville",
+      "x": 0.5392,
+      "y": 0.5458,
+      "detail": 1
+     },
+     {
+      "nom": "Résidences Santa Maria",
+      "x": 0.4971,
+      "y": 0.6567,
+      "detail": 1
+     }
+    ],
+    "sorties": [
+     {
+      "nom": "Trappe de la gare",
+      "x": 0.3105,
+      "y": 0.381
+     },
+     {
+      "nom": "Trappe de la Vieille ville",
+      "x": 0.3694,
+      "y": 0.6896
+     },
+     {
+      "nom": "Trappe de la passerelle d'autoroute",
+      "x": 0.5776,
+      "y": 0.5491
+     },
+     {
+      "nom": "Trappe des ruines du supermarché",
+      "x": 0.5362,
+      "y": 0.224
+     }
+    ]
+   }
   },
   {
    "id": "dam-battleground",
    "nom": "Champ de bataille du Barrage",
-   "cleCalendrier": "Dam Battlegrounds"
+   "cleCalendrier": "Dam Battlegrounds",
+   "plan": {
+    "zones": [
+     {
+      "nom": "Le Barrage",
+      "x": 0.5496,
+      "y": 0.4461,
+      "detail": 0
+     },
+     {
+      "nom": "Marécage",
+      "x": 0.3438,
+      "y": 0.4819,
+      "detail": 0
+     },
+     {
+      "nom": "Crête de la victoire",
+      "x": 0.4502,
+      "y": 0.271,
+      "detail": 0
+     },
+     {
+      "nom": "Châteaux d'eau",
+      "x": 0.3458,
+      "y": 0.6297,
+      "detail": 2
+     },
+     {
+      "nom": "Sous-station électrique",
+      "x": 0.3965,
+      "y": 0.5962,
+      "detail": 2
+     },
+     {
+      "nom": "Lacs rouges",
+      "x": 0.6957,
+      "y": 0.4791,
+      "detail": 0
+     },
+     {
+      "nom": "Dépôt de ferraille",
+      "x": 0.493,
+      "y": 0.6688,
+      "detail": 2
+     },
+     {
+      "nom": "Collines de Formicai",
+      "x": 0.4216,
+      "y": 0.6994,
+      "detail": 0
+     },
+     {
+      "nom": "Avant-poste de Formicai",
+      "x": 0.4985,
+      "y": 0.7376,
+      "detail": 2
+     },
+     {
+      "nom": "Installation principale",
+      "x": 0.5018,
+      "y": 0.5128,
+      "detail": 2
+     },
+     {
+      "nom": "Toit de bronzage de Ben Welder",
+      "x": 0.3673,
+      "y": 0.3486,
+      "detail": 2
+     },
+     {
+      "nom": "Résidence Rubis",
+      "x": 0.3878,
+      "y": 0.2812,
+      "detail": 2
+     },
+     {
+      "nom": "Décombres",
+      "x": 0.5469,
+      "y": 0.6625,
+      "detail": 2
+     },
+     {
+      "nom": "Complexe de dômes hydroponiques",
+      "x": 0.478,
+      "y": 0.3723,
+      "detail": 1
+     },
+     {
+      "nom": "Appartements Pale",
+      "x": 0.3159,
+      "y": 0.3231,
+      "detail": 2
+     },
+     {
+      "nom": "Pont en ruines ouest",
+      "x": 0.5269,
+      "y": 0.2353,
+      "detail": 2
+     },
+     {
+      "nom": "Avant-poste de Raiders est",
+      "x": 0.7095,
+      "y": 0.3213,
+      "detail": 2
+     },
+     {
+      "nom": "Vannes",
+      "x": 0.5435,
+      "y": 0.4609,
+      "detail": 2
+     },
+     {
+      "nom": "Pont en ruines est",
+      "x": 0.7582,
+      "y": 0.3741,
+      "detail": 2
+     },
+     {
+      "nom": "Maison aux motifs",
+      "x": 0.596,
+      "y": 0.2564,
+      "detail": 2
+     },
+     {
+      "nom": "Ancien champ de bataille",
+      "x": 0.3091,
+      "y": 0.4261,
+      "detail": 2
+     },
+     {
+      "nom": "Petit ruisseau",
+      "x": 0.5152,
+      "y": 0.5995,
+      "detail": 2
+     },
+     {
+      "nom": "Avant-poste du marécage du sud",
+      "x": 0.3087,
+      "y": 0.5099,
+      "detail": 2
+     },
+     {
+      "nom": "Tour électrique",
+      "x": 0.6964,
+      "y": 0.6207,
+      "detail": 2
+     },
+     {
+      "nom": "Tour de contrôle",
+      "x": 0.5489,
+      "y": 0.5255,
+      "detail": 1
+     },
+     {
+      "nom": "Complexe de production électrique",
+      "x": 0.6404,
+      "y": 0.3342,
+      "detail": 1
+     },
+     {
+      "nom": "Annexe d'essai",
+      "x": 0.6267,
+      "y": 0.6257,
+      "detail": 1
+     },
+     {
+      "nom": "Zone à accès restreint",
+      "x": 0.5884,
+      "y": 0.3584,
+      "detail": 1
+     },
+     {
+      "nom": "Recherche et administration",
+      "x": 0.532,
+      "y": 0.5543,
+      "detail": 1
+     },
+     {
+      "nom": "Plateau des lacs rouges",
+      "x": 0.6065,
+      "y": 0.5745,
+      "detail": 2
+     },
+     {
+      "nom": "Tour du pipeline",
+      "x": 0.627,
+      "y": 0.3848,
+      "detail": 2
+     },
+     {
+      "nom": "La brèche",
+      "x": 0.5717,
+      "y": 0.4111,
+      "detail": 2
+     },
+     {
+      "nom": "Contrôle du traitement de l'eau",
+      "x": 0.4007,
+      "y": 0.5027,
+      "detail": 1
+     },
+     {
+      "nom": "Salle des générateurs",
+      "x": 0.5991,
+      "y": 0.3138,
+      "detail": 2
+     }
+    ],
+    "sorties": []
+   }
   },
   {
    "id": "pendola-pass",
    "nom": "Col de Pendola",
-   "cleCalendrier": "Pendola Pass"
+   "cleCalendrier": "Pendola Pass",
+   "plan": {
+    "zones": [
+     {
+      "nom": "Pistes du Nord",
+      "x": 0.5326,
+      "y": 0.3187,
+      "detail": 0
+     },
+     {
+      "nom": "Empereur à l'arrêt",
+      "x": 0.2731,
+      "y": 0.5097,
+      "detail": 1
+     },
+     {
+      "nom": "Col du Sud",
+      "x": 0.6665,
+      "y": 0.847,
+      "detail": 0
+     },
+     {
+      "nom": "Terminal de fret",
+      "x": 0.6134,
+      "y": 0.65,
+      "detail": 0
+     },
+     {
+      "nom": "Village d'Almatera",
+      "x": 0.3469,
+      "y": 0.5184,
+      "detail": 0
+     },
+     {
+      "nom": "Jonction ferroviaire",
+      "x": 0.5957,
+      "y": 0.4446,
+      "detail": 1
+     },
+     {
+      "nom": "Supermarché militaire",
+      "x": 0.5113,
+      "y": 0.5627,
+      "detail": 1
+     },
+     {
+      "nom": "Gare de triage",
+      "x": 0.6382,
+      "y": 0.6172,
+      "detail": 1
+     },
+     {
+      "nom": "Vieille ville",
+      "x": 0.3458,
+      "y": 0.6326,
+      "detail": 1
+     },
+     {
+      "nom": "Plateformes de chargement",
+      "x": 0.7032,
+      "y": 0.7218,
+      "detail": 1
+     },
+     {
+      "nom": "Sous-station électrique",
+      "x": 0.7328,
+      "y": 0.8465,
+      "detail": 2
+     },
+     {
+      "nom": "Station Almatera",
+      "x": 0.4485,
+      "y": 0.4373,
+      "detail": 1
+     },
+     {
+      "nom": "Logements des chercheurs",
+      "x": 0.5107,
+      "y": 0.2127,
+      "detail": 2
+     },
+     {
+      "nom": "Relais routier",
+      "x": 0.5827,
+      "y": 0.8418,
+      "detail": 2
+     },
+     {
+      "nom": "Rivière gelée",
+      "x": 0.5379,
+      "y": 0.4128,
+      "detail": 2
+     },
+     {
+      "nom": "Tunnel de transit",
+      "x": 0.5151,
+      "y": 0.6549,
+      "detail": 2
+     },
+     {
+      "nom": "Tour de commandement",
+      "x": 0.4864,
+      "y": 0.337,
+      "detail": 2
+     },
+     {
+      "nom": "Station météo",
+      "x": 0.7177,
+      "y": 0.5014,
+      "detail": 2
+     },
+     {
+      "nom": "Observatoire Cielo Sereno",
+      "x": 0.7191,
+      "y": 0.3789,
+      "detail": 1
+     },
+     {
+      "nom": "Rivière gelée",
+      "x": 0.6228,
+      "y": 0.7639,
+      "detail": 2
+     },
+     {
+      "nom": "Vieille ville",
+      "x": 0.6601,
+      "y": 0.8706,
+      "detail": 1
+     },
+     {
+      "nom": "Télescope spatial",
+      "x": 0.7197,
+      "y": 0.3037,
+      "detail": 1
+     },
+     {
+      "nom": "Piazza della Rupe",
+      "x": 0.3771,
+      "y": 0.5236,
+      "detail": 2
+     },
+     {
+      "nom": "Porte de Bienvenue",
+      "x": 0.4037,
+      "y": 0.4106,
+      "detail": 2
+     },
+     {
+      "nom": "Installation de réception à accès contrôlé",
+      "x": 0.6595,
+      "y": 0.5752,
+      "detail": 2
+     }
+    ],
+    "sorties": []
+   }
   },
   {
    "id": "stella-montis",
    "nom": "Stella Montis",
-   "cleCalendrier": "Stella Montis"
+   "cleCalendrier": "Stella Montis",
+   "plan": {
+    "zones": [
+     {
+      "nom": "Bac à sable",
+      "x": 0.5154,
+      "y": 0.5345,
+      "detail": 0
+     },
+     {
+      "nom": "Tunnel ouest",
+      "x": 0.4114,
+      "y": 0.3428,
+      "detail": 1
+     },
+     {
+      "nom": "Tunnel est",
+      "x": 0.7725,
+      "y": 0.5695,
+      "detail": 1
+     },
+     {
+      "nom": "Coffre à graines",
+      "x": 0.7383,
+      "y": 0.7769,
+      "detail": 0
+     },
+     {
+      "nom": "Métro (hall)",
+      "x": 0.6046,
+      "y": 0.3271,
+      "detail": 1
+     },
+     {
+      "nom": "Administration de la logistique",
+      "x": 0.2795,
+      "y": 0.4973,
+      "detail": 2
+     },
+     {
+      "nom": "Bac à sable robotique B",
+      "x": 0.5105,
+      "y": 0.6676,
+      "detail": 2
+     },
+     {
+      "nom": "Bac à sable",
+      "x": 0.5154,
+      "y": 0.5345,
+      "detail": 1
+     },
+     {
+      "nom": "Métro (hall)",
+      "x": 0.6046,
+      "y": 0.3271,
+      "detail": 0
+     },
+     {
+      "nom": "Baie de chargement",
+      "x": 0.3662,
+      "y": 0.5095,
+      "detail": 0
+     },
+     {
+      "nom": "Tunnel effondré",
+      "x": 0.3978,
+      "y": 0.313,
+      "detail": 2
+     },
+     {
+      "nom": "Bac à sable robotique A",
+      "x": 0.5126,
+      "y": 0.4666,
+      "detail": 2
+     },
+     {
+      "nom": "Baie de chargement",
+      "x": 0.3662,
+      "y": 0.5095,
+      "detail": 1
+     },
+     {
+      "nom": "Salle de contrôle",
+      "x": 0.5037,
+      "y": 0.5905,
+      "detail": 2
+     },
+     {
+      "nom": "Coffre à graines",
+      "x": 0.7383,
+      "y": 0.7769,
+      "detail": 1
+     }
+    ],
+    "sorties": []
+   }
   },
   {
    "id": "the-spaceport",
    "nom": "Port spatial",
-   "cleCalendrier": "Spaceport"
+   "cleCalendrier": "Spaceport",
+   "plan": {
+    "zones": [
+     {
+      "nom": "Port spatial",
+      "x": 0.5063,
+      "y": 0.4147,
+      "detail": 0
+     },
+     {
+      "nom": "La Chiesa",
+      "x": 0.4667,
+      "y": 0.6584,
+      "detail": 0
+     },
+     {
+      "nom": "Plaines orientales",
+      "x": 0.6907,
+      "y": 0.5684,
+      "detail": 0
+     },
+     {
+      "nom": "Collines d'Alberi",
+      "x": 0.2303,
+      "y": 0.3538,
+      "detail": 0
+     },
+     {
+      "nom": "Stockage du carburant",
+      "x": 0.3491,
+      "y": 0.6772,
+      "detail": 2
+     },
+     {
+      "nom": "Bâtiments de service",
+      "x": 0.7154,
+      "y": 0.6875,
+      "detail": 2
+     },
+     {
+      "nom": "Entrepôts des plaines orientales",
+      "x": 0.7157,
+      "y": 0.4478,
+      "detail": 2
+     },
+     {
+      "nom": "Parking du personnel",
+      "x": 0.5603,
+      "y": 0.7024,
+      "detail": 2
+     },
+     {
+      "nom": "Traitement du carburant",
+      "x": 0.2749,
+      "y": 0.5102,
+      "detail": 2
+     },
+     {
+      "nom": "Tour de communication",
+      "x": 0.7165,
+      "y": 0.5894,
+      "detail": 2
+     },
+     {
+      "nom": "Entrepôt de carburant",
+      "x": 0.3104,
+      "y": 0.26,
+      "detail": 2
+     },
+     {
+      "nom": "Hangar de maintenance",
+      "x": 0.4651,
+      "y": 0.6733,
+      "detail": 2
+     },
+     {
+      "nom": "Point de contrôle de sécurité",
+      "x": 0.6237,
+      "y": 0.7338,
+      "detail": 2
+     },
+     {
+      "nom": "Entrepôt Jiangsu",
+      "x": 0.2686,
+      "y": 0.2923,
+      "detail": 2
+     },
+     {
+      "nom": "Châteaux d'eau",
+      "x": 0.2043,
+      "y": 0.3836,
+      "detail": 2
+     },
+     {
+      "nom": "Sous-station électrique",
+      "x": 0.5637,
+      "y": 0.7636,
+      "detail": 2
+     },
+     {
+      "nom": "Conduites de carburant",
+      "x": 0.3864,
+      "y": 0.5348,
+      "detail": 2
+     },
+     {
+      "nom": "Site d'assemblage des fusées",
+      "x": 0.6098,
+      "y": 0.4368,
+      "detail": 1
+     },
+     {
+      "nom": "La Tranchée",
+      "x": 0.5545,
+      "y": 0.3393,
+      "detail": 2
+     },
+     {
+      "nom": "Bâtiment d'arrivée",
+      "x": 0.3964,
+      "y": 0.3518,
+      "detail": 1
+     },
+     {
+      "nom": "Entrepôt d'expédition",
+      "x": 0.4478,
+      "y": 0.2961,
+      "detail": 1
+     },
+     {
+      "nom": "Bâtiment des départs",
+      "x": 0.3926,
+      "y": 0.4521,
+      "detail": 1
+     },
+     {
+      "nom": "Parking",
+      "x": 0.3739,
+      "y": 0.3326,
+      "detail": 2
+     },
+     {
+      "nom": "Régulation du carburant",
+      "x": 0.5849,
+      "y": 0.4001,
+      "detail": 1
+     },
+     {
+      "nom": "Entrepôt de conteneurs",
+      "x": 0.5822,
+      "y": 0.5553,
+      "detail": 1
+     },
+     {
+      "nom": "Cour à conteneurs est",
+      "x": 0.6499,
+      "y": 0.4192,
+      "detail": 2
+     },
+     {
+      "nom": "Cour à conteneurs ouest",
+      "x": 0.4775,
+      "y": 0.2786,
+      "detail": 2
+     },
+     {
+      "nom": "Petit hangar",
+      "x": 0.6569,
+      "y": 0.3559,
+      "detail": 2
+     },
+     {
+      "nom": "Hangar est",
+      "x": 0.5988,
+      "y": 0.2903,
+      "detail": 2
+     },
+     {
+      "nom": "Entretien de véhicules",
+      "x": 0.5135,
+      "y": 0.577,
+      "detail": 1
+     },
+     {
+      "nom": "Tours de lancement",
+      "x": 0.4836,
+      "y": 0.4217,
+      "detail": 1
+     },
+     {
+      "nom": "Tour de tranchée nord",
+      "x": 0.5459,
+      "y": 0.2984,
+      "detail": 2
+     },
+     {
+      "nom": "Tour de tranchée sud",
+      "x": 0.5303,
+      "y": 0.3171,
+      "detail": 2
+     },
+     {
+      "nom": "Hangar ouest",
+      "x": 0.5442,
+      "y": 0.2445,
+      "detail": 2
+     },
+     {
+      "nom": "Tour de contrôle A6",
+      "x": 0.5205,
+      "y": 0.5267,
+      "detail": 1
+     }
+    ],
+    "sorties": []
+   }
   }
  ],
  "conditions": [

@@ -47,3 +47,14 @@ Juanito
 Lance
 Shani
 Tian Wen
+
+# Lieux des cartes (plans interactifs) : noms propres italiens gardés tels quels dans la table de
+# traduction française du jeu (map-strings.fr), et « Village », qui s'écrit pareil en français.
+Village
+Corso da Vinci
+Galleria
+Piazza Arbusto
+Piazza Roma
+Plaza Rosa
+Piazza della Rupe
+La Chiesa

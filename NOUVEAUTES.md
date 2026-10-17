@@ -5,6 +5,14 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.5.0
+
+- **Minuteurs** : les conditions de la carte et les événements affichent un compte à rebours à la seconde, sur l'accueil, dans l'onglet Cartes et sur le plan de chaque carte (temps restant, ou temps avant le début).
+- **Valider en un geste** : un bouton « Niveau N construit » sur chaque établi, « Terminée » sur chaque quête et « Étape terminée » sur chaque projet. Ce que le jeu a pris est retiré de ta réserve, sans rien saisir ; « Annuler » remet tout comme avant.
+- **Projets** : les Expéditions et les autres projets du jeu. Suis ceux que tu fais, leur prochaine étape s'ajoute à ta liste de courses.
+- **Plans des cartes** : le plan en jeu de chaque carte, avec le nom des lieux et les trappes de sortie. Zoome avec deux doigts ou en touchant deux fois ; les petits lieux apparaissent en zoomant.
+- Données du jeu mises à jour.
+
 ## 0.4.0
 
 - **Alertes des conditions de la carte** : touche la cloche d'une condition (onglet Cartes) ou choisis-les dans les réglages, et le téléphone te prévient 5 à 30 minutes avant son début, même appli fermée et sans connexion.

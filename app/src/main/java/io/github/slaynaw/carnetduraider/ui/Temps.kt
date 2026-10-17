@@ -12,17 +12,28 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** Heure actuelle (millisecondes), rafraîchie toutes les 30 secondes pour les minuteurs. */
+/** Heure actuelle (millisecondes), rafraîchie toutes les [intervalle] millisecondes (minuteurs : 1 s). */
 @Composable
-fun maintenant(): Long {
+fun maintenant(intervalle: Long = 30_000): Long {
     var t by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(intervalle) {
         while (true) {
-            delay(30_000)
+            // Aligné sur la seconde (ou l'intervalle) : tous les minuteurs changent ensemble.
+            delay(intervalle - System.currentTimeMillis() % intervalle)
             t = System.currentTimeMillis()
         }
     }
     return t
+}
+
+/** Minuteur : « 4:05 », « 1:02:03 » (heures, minutes, secondes ; jamais négatif), « 2 j 5 h » au-delà d'un jour. */
+fun chrono(ms: Long): String {
+    val s = (ms.coerceAtLeast(0) + 999) / 1000
+    val h = s / 3600
+    if (h >= 24) return "${h / 24}\u00a0j ${h % 24}\u00a0h"
+    val m = (s % 3600) / 60
+    val sec = (s % 60).toString().padStart(2, '0')
+    return if (h > 0) "$h:${m.toString().padStart(2, '0')}:$sec" else "$m:$sec"
 }
 
 private val heure = DateTimeFormatter.ofPattern("HH:mm", Locale.FRENCH)

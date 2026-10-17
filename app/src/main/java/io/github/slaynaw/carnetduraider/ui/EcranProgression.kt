@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,7 +19,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -33,9 +33,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,16 +49,12 @@ import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.Etabli
 import io.github.slaynaw.carnetduraider.core.LigneDeCourses
 import io.github.slaynaw.carnetduraider.core.Objectif
+import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
 import io.github.slaynaw.carnetduraider.core.Quete
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import kotlin.math.roundToInt
-
-/** Ce que le joueur vient de faire en jeu, à confirmer (et à déduire, ou non, de sa réserve). */
-private sealed interface AConfirmer {
-    data class Amelioration(val etabli: Etabli) : AConfirmer
-    data class QueteTerminee(val quete: Quete) : AConfirmer
-}
+import kotlinx.coroutines.delay
 
 @Composable
 fun EcranProgression(
@@ -71,129 +67,109 @@ fun EcranProgression(
     val liste = vm.listeDeCourses()
     val enCours = vm.suivi.quetesEnCours(vm.progression)
     val autres = vm.objectifsManuels.filter { it !in vm.objectifsAutomatiques }
-    var aConfirmer by remember { mutableStateOf<AConfirmer?>(null) }
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Bandeau("Progression", Signal.Vert)
-                Text("Liste de courses", style = MaterialTheme.typography.headlineLarge)
-                Text(
-                    "${pluriel(liste.objetsManquants, "objet", "objets")} à trouver pour le prochain niveau de tes établis et tes quêtes en cours. " +
-                        "Quand tu améliores un établi ou termines une quête en jeu, coche-le ici\u00a0: la suite se met à jour toute seule.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Signal.TexteDoux,
-                )
-            }
-        }
-
-        if (liste.lignes.isNotEmpty()) {
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("${(liste.progression * 100).roundToInt()}\u00a0%", style = MaterialTheme.typography.headlineMedium, color = Signal.Or)
-                        Text("des objets rassemblés", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux, modifier = Modifier.padding(bottom = 4.dp))
-                    }
-                    Barre(liste.progression.toFloat(), Signal.Or, epaisseur = 8.dp)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Bandeau("Progression", Signal.Vert)
+                    Text("Liste de courses", style = MaterialTheme.typography.headlineLarge)
+                    Text(
+                        "${pluriel(liste.objetsManquants, "objet", "objets")} à trouver pour le prochain niveau de tes établis et tes quêtes en cours. " +
+                            "Quand tu améliores un établi ou termines une quête en jeu, coche-le ici\u00a0: la suite se met à jour toute seule.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Signal.TexteDoux,
+                    )
                 }
             }
-        }
 
-        if (!vm.quetesIndiquees) {
-            item {
-                Surface(color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Où en es-tu dans les quêtes\u00a0?", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Coche une seule fois les quêtes affichées en cours dans ton jeu\u00a0: l'appli en déduit toutes celles que tu as déjà terminées.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Signal.TexteDoux,
-                        )
-                        Button(onClick = choisirQuetes, colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur)) {
-                            Text("Choisir mes quêtes en cours")
+            if (liste.lignes.isNotEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("${(liste.progression * 100).roundToInt()}\u00a0%", style = MaterialTheme.typography.headlineMedium, color = Signal.Or)
+                            Text("des objets rassemblés", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux, modifier = Modifier.padding(bottom = 4.dp))
+                        }
+                        Barre(liste.progression.toFloat(), Signal.Or, epaisseur = 8.dp)
+                    }
+                }
+            }
+
+            if (!vm.quetesIndiquees) {
+                item {
+                    Surface(color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Où en es-tu dans les quêtes\u00a0?", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "Coche une seule fois les quêtes affichées en cours dans ton jeu\u00a0: l'appli en déduit toutes celles que tu as déjà terminées.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Signal.TexteDoux,
+                            )
+                            Button(onClick = choisirQuetes, colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur)) {
+                                Text("Choisir mes quêtes en cours")
+                            }
                         }
                     }
                 }
             }
-        }
 
-        item { SousTitre("Atelier") }
-        items(vm.catalogue.donnees.etablis.sortedBy { it.nom }, key = { "etabli-${it.id}" }) { etabli ->
-            CarteEtabli(vm, etabli, ameliorer = { aConfirmer = AConfirmer.Amelioration(etabli) })
-        }
-
-        item {
-            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Quêtes en cours", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                TextButton(onClick = choisirQuetes) { Text("Modifier", color = Signal.Vert) }
+            item { SousTitre("Atelier") }
+            items(vm.catalogue.donnees.etablis.sortedBy { it.nom }, key = { "etabli-${it.id}" }) { etabli ->
+                CarteEtabli(vm, etabli)
             }
-        }
-        if (enCours.isEmpty()) {
-            item { Text("Aucune quête en cours.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret) }
-        }
-        items(enCours.sortedWith(compareBy({ it.objets.isEmpty() }, { it.nom })), key = { "quete-${it.id}" }) { quete ->
-            CarteQuete(vm, quete, terminer = {
-                if (quete.objets.isEmpty()) vm.terminerQuete(quete.id, retirerObjets = false) else aConfirmer = AConfirmer.QueteTerminee(quete)
-            })
-        }
 
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                Text("Autres objectifs", style = MaterialTheme.typography.titleMedium)
-                autres.forEach { objectif -> LigneObjectif(vm, objectif) }
-                TextButton(onClick = ajouterObjectif) {
-                    Icon(Icons.Filled.Add, contentDescription = null, tint = Signal.Vert)
-                    Text("Ajouter un objectif plus lointain", color = Signal.Vert, modifier = Modifier.padding(start = 6.dp))
-                }
-            }
-        }
-
-        if (liste.lignes.isNotEmpty()) {
             item {
                 Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Objets à trouver", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = retourDeRaid) { Text("Retour de raid", color = Signal.Or) }
+                    Text("Quêtes en cours", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = choisirQuetes) { Text("Modifier", color = Signal.Vert) }
                 }
             }
-        }
-        items(liste.lignes, key = { it.objetId }) { ligne ->
-            LigneCourses(vm, ligne, onClick = { ouvrir(ligne.objetId) })
-        }
-    }
+            if (enCours.isEmpty()) {
+                item { Text("Aucune quête en cours.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret) }
+            }
+            items(enCours.sortedWith(compareBy({ it.objets.isEmpty() }, { it.nom })), key = { "quete-${it.id}" }) { quete ->
+                CarteQuete(vm, quete)
+            }
 
-    when (val action = aConfirmer) {
-        is AConfirmer.Amelioration -> {
-            val niveau = vm.suivi.prochainNiveau(vm.progression, action.etabli)
-            if (niveau != null) {
-                DialogueConsommation(
-                    titre = "${action.etabli.nom} · niveau ${niveau.niveau}",
-                    question = "Tu viens de construire cette amélioration\u00a0?",
-                    cout = niveau.cout,
-                    catalogue = vm.catalogue,
-                    confirmer = { retirer ->
-                        vm.ameliorer(action.etabli, retirer)
-                        aConfirmer = null
-                    },
-                    annuler = { aConfirmer = null },
+            item { SousTitre("Projets") }
+            item {
+                Text(
+                    "Expéditions et projets de saison\u00a0: suis ceux que tu fais, leur prochaine étape s'ajoute à ta liste de courses.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Signal.TexteDoux,
                 )
             }
+            items(vm.catalogue.donnees.projets, key = { "projet-${it.id}" }) { projet -> CarteProjet(vm, projet) }
+
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                    Text("Autres objectifs", style = MaterialTheme.typography.titleMedium)
+                    autres.forEach { objectif -> LigneObjectif(vm, objectif) }
+                    TextButton(onClick = ajouterObjectif) {
+                        Icon(Icons.Filled.Add, contentDescription = null, tint = Signal.Vert)
+                        Text("Ajouter un objectif plus lointain", color = Signal.Vert, modifier = Modifier.padding(start = 6.dp))
+                    }
+                }
+            }
+
+            if (liste.lignes.isNotEmpty()) {
+                item {
+                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Objets à trouver", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        TextButton(onClick = retourDeRaid) { Text("Retour de raid", color = Signal.Or) }
+                    }
+                }
+            }
+            items(liste.lignes, key = { it.objetId }) { ligne ->
+                LigneCourses(vm, ligne, onClick = { ouvrir(ligne.objetId) })
+            }
         }
-        is AConfirmer.QueteTerminee -> DialogueConsommation(
-            titre = action.quete.nom,
-            question = "Tu viens de terminer cette quête\u00a0?",
-            cout = action.quete.objets,
-            catalogue = vm.catalogue,
-            confirmer = { retirer ->
-                vm.terminerQuete(action.quete.id, retirer)
-                aConfirmer = null
-            },
-            annuler = { aConfirmer = null },
-        )
-        null -> Unit
+
+        BandeauValidation(vm, Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -205,14 +181,28 @@ private fun SousTitre(texte: String) {
 private fun detailCout(cout: List<Quantite>, catalogue: Catalogue): String =
     cout.joinToString(" · ") { "${it.quantite} × ${catalogue.nomObjet(it.id)}" }
 
+/** Bouton « Valider » : l'action est faite en jeu, sans avoir à saisir d'abord les objets. */
 @Composable
-private fun CarteEtabli(vm: CarnetViewModel, etabli: Etabli, ameliorer: () -> Unit) {
+private fun BoutonValider(texte: String, description: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+        modifier = Modifier.semantics { contentDescription = description },
+    ) {
+        Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(texte, modifier = Modifier.padding(start = 6.dp))
+    }
+}
+
+@Composable
+private fun CarteEtabli(vm: CarnetViewModel, etabli: Etabli) {
     val niveau = vm.suivi.niveau(vm.progression, etabli)
     val max = vm.suivi.niveauMax(etabli)
     val prochain = vm.suivi.prochainNiveau(vm.progression, etabli)
     val suivi = etabli.id !in vm.progression.etablisIgnores
     Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(etabli.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
@@ -225,10 +215,11 @@ private fun CarteEtabli(vm: CarnetViewModel, etabli: Etabli, ameliorer: () -> Un
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Texte),
                 ) { Text("−", style = MaterialTheme.typography.titleLarge) }
                 FilledIconButton(
-                    onClick = ameliorer,
+                    onClick = { vm.changerNiveau(etabli, niveau + 1) },
                     enabled = prochain != null,
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-                ) { Icon(Icons.Filled.Add, contentDescription = "Amélioration construite\u00a0: ${etabli.nom}") }
+                    modifier = Modifier.semantics { contentDescription = "Corriger\u00a0: ${etabli.nom} un niveau plus haut, sans toucher à la réserve" },
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Texte),
+                ) { Text("+", style = MaterialTheme.typography.titleLarge) }
             }
             if (prochain != null) {
                 Text(
@@ -236,70 +227,105 @@ private fun CarteEtabli(vm: CarnetViewModel, etabli: Etabli, ameliorer: () -> Un
                     style = MaterialTheme.typography.bodySmall,
                     color = if (suivi) Signal.TexteDoux else Signal.TexteDiscret,
                 )
-                TextButton(onClick = { vm.suivreEtabli(etabli.id, !suivi) }) {
-                    Text(if (suivi) "Ne pas suivre cet établi" else "Suivre cet établi", color = if (suivi) Signal.TexteDiscret else Signal.Vert)
-                }
-            } else {
-                Text("Niveau maximum atteint.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret, modifier = Modifier.padding(bottom = 6.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun CarteQuete(vm: CarnetViewModel, quete: Quete, terminer: () -> Unit) {
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(quete.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                quete.commercant?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
-                if (quete.objets.isNotEmpty()) {
-                    Text(detailCout(quete.objets, vm.catalogue), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
-                }
-            }
-            FilledIconButton(
-                onClick = terminer,
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Vert),
-            ) { Icon(Icons.Filled.Check, contentDescription = "Quête terminée\u00a0: ${quete.nom}") }
-        }
-    }
-}
-
-/** Confirmation d'une action faite en jeu, avec ce qu'elle a consommé dans la réserve. */
-@Composable
-private fun DialogueConsommation(
-    titre: String,
-    question: String,
-    cout: List<Quantite>,
-    catalogue: Catalogue,
-    confirmer: (retirer: Boolean) -> Unit,
-    annuler: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = annuler,
-        containerColor = Signal.Surface,
-        title = { Text(titre, style = MaterialTheme.typography.titleLarge) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(question, style = MaterialTheme.typography.bodyMedium)
-                Text("Retirer de ta réserve ce que le jeu a pris\u00a0:", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
-                cout.forEach { q ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IconeObjet(q.id, catalogue.objet(q.id)?.rarete, 28.dp)
-                        Text("${q.quantite} × ${catalogue.nomObjet(q.id)}", style = MaterialTheme.typography.bodyMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BoutonValider("Niveau ${prochain.niveau} construit", "Valider\u00a0: ${etabli.nom} niveau ${prochain.niveau} construit") { vm.validerEtabli(etabli) }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { vm.suivreEtabli(etabli.id, !suivi) }) {
+                        Text(if (suivi) "Ne pas suivre" else "Suivre", color = if (suivi) Signal.TexteDiscret else Signal.Vert)
                     }
                 }
+            } else {
+                Text("Niveau maximum atteint.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret)
             }
-        },
-        confirmButton = {
-            Button(onClick = { confirmer(true) }, colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur)) {
-                Text("Oui, et retirer")
+        }
+    }
+}
+
+@Composable
+private fun CarteQuete(vm: CarnetViewModel, quete: Quete) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(quete.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            quete.commercant?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
+            if (quete.objets.isNotEmpty()) {
+                Text(detailCout(quete.objets, vm.catalogue), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
             }
-        },
-        dismissButton = {
-            TextButton(onClick = { confirmer(false) }) { Text("Oui, sans retirer", color = Signal.TexteDoux) }
-        },
-    )
+            BoutonValider("Terminée", "Valider\u00a0: quête ${quete.nom} terminée") { vm.validerQuete(quete.id) }
+        }
+    }
+}
+
+@Composable
+private fun CarteProjet(vm: CarnetViewModel, projet: Projet) {
+    val suivi = projet.id in vm.progression.projetsSuivis
+    val etape = vm.suivi.prochaineEtape(vm.progression, projet)
+    val faites = vm.progression.etapesProjets[projet.id] ?: 0
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(projet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (etape == null) "Projet terminé" else "Étape ${etape + 1} sur ${projet.etapes.size}\u00a0: ${vm.planificateur.nomEtape(projet, etape)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (etape == null) Signal.Vert else Signal.TexteDoux,
+                    )
+                }
+                if (suivi) {
+                    FilledIconButton(
+                        onClick = { vm.changerEtapes(projet, faites - 1) },
+                        enabled = faites > 0,
+                        modifier = Modifier.semantics { contentDescription = "Corriger\u00a0: ${projet.nom} une étape en arrière" },
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Texte),
+                    ) { Text("−", style = MaterialTheme.typography.titleLarge) }
+                }
+            }
+            if (suivi && etape != null) {
+                val e = projet.etapes[etape]
+                if (e.cout.isNotEmpty()) Text(detailCout(e.cout, vm.catalogue), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
+                if (e.autresObjectifs > 0) {
+                    Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (suivi && etape != null) {
+                    BoutonValider("Étape terminée", "Valider\u00a0: ${projet.nom}, ${vm.planificateur.nomEtape(projet, etape)} terminée") { vm.validerEtape(projet) }
+                }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { vm.suivreProjet(projet.id, !suivi) }) {
+                    Text(if (suivi) "Ne pas suivre" else "Suivre", color = if (suivi) Signal.TexteDiscret else Signal.Vert)
+                }
+            }
+        }
+    }
+}
+
+/** Après une validation : ce qui a été fait, avec « Annuler » pendant quelques secondes. */
+@Composable
+private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier) {
+    val validation = vm.derniereValidation ?: return
+    LaunchedEffect(validation) {
+        delay(8_000)
+        vm.oublierValidation()
+    }
+    Surface(
+        color = Signal.Releve,
+        shape = RoundedCornerShape(16.dp),
+        shadowElevation = 6.dp,
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Validé\u00a0: ${validation.titre}", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    if (validation.objetsRetires == 0) "Réserve inchangée." else "${pluriel(validation.objetsRetires, "objet retiré", "objets retirés")} de ta réserve.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Signal.TexteDoux,
+                )
+            }
+            TextButton(onClick = vm::annulerValidation) { Text("Annuler", color = Signal.Or) }
+        }
+    }
 }
 
 @Composable

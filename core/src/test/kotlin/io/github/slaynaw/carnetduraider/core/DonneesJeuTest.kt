@@ -61,4 +61,18 @@ class DonneesJeuTest {
         assertEquals("Alliage ARC", catalogue.rechercher("ALLIAGE").first().nom)
         assertTrue(catalogue.rechercher("  ").isEmpty())
     }
+
+    @Test
+    fun `plans des cartes`() {
+        val donnees = DonneesJeu.embarquees()
+        for (carte in donnees.cartes) {
+            assertTrue(carte.plan.zones.isNotEmpty(), "zones de ${carte.id}")
+            (carte.plan.zones.map { Triple(it.nom, it.x, it.y) } + carte.plan.sorties.map { Triple(it.nom, it.x, it.y) }).forEach { (nom, x, y) ->
+                assertTrue(nom.isNotBlank() && x in 0f..1f && y in 0f..1f, "$nom sur ${carte.id}")
+            }
+        }
+        val ville = donnees.cartes.first { it.id == "buried-city" }.plan
+        assertTrue(ville.zones.any { it.nom == "Vieille ville" })
+        assertTrue(ville.sorties.any { it.nom == "Trappe de la gare" })
+    }
 }

@@ -48,9 +48,9 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     var reglages by rememberSaveable { mutableStateOf(false) }
     var choixQuetes by rememberSaveable { mutableStateOf(false) }
     var retourRaid by rememberSaveable { mutableStateOf(false) }
+    var planOuvert by rememberSaveable { mutableStateOf<String?>(null) }
     val calendrier by vm.calendrier.etat.collectAsStateWithLifecycle()
     val calendrierOfficiel = remember(calendrier.donnees) { calendrier.donnees?.let(vm::calendrierOfficiel) }
-    val t = maintenant()
     val miseAJour by vm.miseAJour.etat.collectAsStateWithLifecycle()
     var dialogueMiseAJour by rememberSaveable { mutableStateOf(false) }
     var versionProposee by rememberSaveable { mutableStateOf("") }
@@ -78,6 +78,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
         reglages = false
         choixQuetes = false
         retourRaid = false
+        planOuvert = null
         onglet = cible
     }
 
@@ -90,9 +91,10 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     }
 
     // Retour : d'abord l'écran ouvert par-dessus l'onglet, puis l'accueil.
-    BackHandler(enabled = objetOuvert != null || ajoutObjectif || choixQuetes || retourRaid || reglages || onglet != Onglet.ACCUEIL) {
+    BackHandler(enabled = objetOuvert != null || ajoutObjectif || choixQuetes || retourRaid || planOuvert != null || reglages || onglet != Onglet.ACCUEIL) {
         when {
             objetOuvert != null -> objetOuvert = null
+            planOuvert != null -> planOuvert = null
             ajoutObjectif -> ajoutObjectif = false
             choixQuetes -> choixQuetes = false
             retourRaid -> retourRaid = false
@@ -109,6 +111,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                 ajoutObjectif = false
                 choixQuetes = false
                 retourRaid = false
+                planOuvert = null
                 reglages = true
             }
         },
@@ -139,6 +142,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                 ajoutObjectif -> EcranAjoutObjectif(vm, onRetour = { ajoutObjectif = false })
                 choixQuetes -> EcranQuetesEnCours(vm, onRetour = { choixQuetes = false })
                 retourRaid -> EcranRetourRaid(vm, onRetour = { retourRaid = false })
+                planOuvert != null -> EcranPlan(vm, planOuvert!!, onRetour = { planOuvert = null })
                 reglages -> EcranReglages(
                     vm,
                     vm.miseAJour,
@@ -151,12 +155,12 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                         vm,
                         aller = ::aller,
                         nouvelleVersion = miseAJour.nouvelle?.version,
-                        conditionsEnCours = calendrierOfficiel?.enCours(vm.region, t)?.size,
+                        calendrier = calendrierOfficiel,
                         retourDeRaid = { retourRaid = true },
                         afficherMiseAJour = { dialogueMiseAJour = true },
                     )
                     Onglet.OBJETS -> EcranObjets(vm, recherche, { recherche = it }, ouvrir = { objetOuvert = it })
-                    Onglet.CARTES -> EcranCartes(vm)
+                    Onglet.CARTES -> EcranCartes(vm, ouvrirPlan = { planOuvert = it })
                     Onglet.PROGRESSION -> EcranProgression(
                         vm,
                         ajouterObjectif = { ajoutObjectif = true },

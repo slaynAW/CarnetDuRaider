@@ -14,6 +14,9 @@ telle qu'elle apparaît dans le jeu.
   `scripts/importer_donnees_jeu.py` à partir des données du jeu. Ne pas modifier ce fichier à la main.
 - Les icônes des objets (`app/src/main/assets/objets/<identifiant>.webp`) sont les icônes officielles
   du jeu, réduites par le même script (Pillow). Ne jamais en dessiner ni en ajouter à la main.
+  De même pour les plans des cartes (`app/src/main/assets/cartes/<carte>.webp`, assemblés à partir des
+  tuiles du plan en jeu de `public/data/map-data`) et leurs lieux et trappes de sortie (`Carte.plan`,
+  noms français officiels de `map-strings.fr.json`).
 - Un nom sans traduction officielle vérifiée n'entre pas dans l'appli : le script l'exclut et le liste
   dans `docs/NOMS-A-VERIFIER.md`. Dans l'interface, un objet absent s'affiche « Nom à vérifier en jeu »
   (`Catalogue.NOM_A_VERIFIER`), jamais avec un nom inventé.
@@ -53,6 +56,8 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
 - Progression automatique (`core/Progression.kt`) : le joueur indique le niveau de ses établis et ses
   quêtes en cours ; l'appli en déduit les objectifs (prochain niveau, quêtes disponibles d'après
   l'enchaînement `requiert` des données du jeu) et retire de la réserve ce que le jeu a consommé.
+  Les projets suivis (Expéditions…) ajoutent leur prochaine étape. Un niveau, une quête ou une étape se
+  valide en un geste (`CarnetViewModel.valider…`), avec « Annuler » : jamais de saisie obligatoire.
 - Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
   officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).
@@ -75,7 +80,8 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
 JavaScript dans `apercu/modele.html`), publiée comme artifact claude.ai :
 https://claude.ai/artifact/5pwyAtzHArvPaTgxtnU3ek. **À chaque fonction ajoutée ou modifiée dans
 l'appli, reporter le changement dans `apercu/modele.html`**, puis `python3 apercu/construire.py`
-et republier `apercu/index.html` sur la même URL, avec `apercu/icones.json` en fichier joint. Ce qui
+et republier `apercu/index.html` sur la même URL, avec en fichiers joints `apercu/icones.json` et les
+plans `apercu/cartes/<carte>.webp`. Ce qui
 ne peut pas tourner dans une page web (calendrier en direct, alertes, mises à jour) y est signalé
 comme propre à l'appli Android.
 

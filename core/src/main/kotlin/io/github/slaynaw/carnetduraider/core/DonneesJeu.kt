@@ -16,6 +16,7 @@ data class DonneesJeu(
     val objets: List<Objet>,
     val etablis: List<Etabli>,
     val quetes: List<Quete>,
+    val projets: List<Projet> = emptyList(),
     val cartes: List<Carte>,
     val conditions: List<Condition>,
 ) {
@@ -87,7 +88,32 @@ data class Quete(
  * calendrier d'Embark (publié en anglais). Jamais affiché.
  */
 @Serializable
-data class Carte(val id: String, val nom: String, val cleCalendrier: String? = null)
+data class Carte(val id: String, val nom: String, val cleCalendrier: String? = null, val plan: Plan = Plan())
+
+/**
+ * Plan simplifié d'une carte (image `assets/cartes/<id>.webp`, le plan en jeu) : zones et trappes de
+ * sortie, avec leur nom français officiel et leur position (0 à 1 sur la largeur et la hauteur).
+ */
+@Serializable
+data class Plan(val zones: List<ZonePlan> = emptyList(), val sorties: List<PointPlan> = emptyList())
+
+/** [detail] : 0 pour les grandes zones, 1 et 2 pour les lieux qui n'apparaissent qu'en zoomant. */
+@Serializable
+data class ZonePlan(val nom: String, val x: Float, val y: Float, val detail: Int = 0)
+
+@Serializable
+data class PointPlan(val nom: String, val x: Float, val y: Float)
+
+/** Projet du jeu (Expédition, projet de saison…) : des étapes successives, chacune avec ses objets à livrer. */
+@Serializable
+data class Projet(val id: String, val nom: String, val etapes: List<EtapeProjet>)
+
+/**
+ * [nom] : nom officiel de l'étape, ou `null` s'il n'est pas vérifié. [autresObjectifs] : conditions qui
+ * ne sont pas des objets précis (valeur à atteindre, quêtes), à remplir en jeu.
+ */
+@Serializable
+data class EtapeProjet(val nom: String? = null, val cout: List<Quantite> = emptyList(), val autresObjectifs: Int = 0)
 
 @Serializable
 data class Condition(val id: String, val nom: String, val majeure: Boolean = false, val cleCalendrier: String? = null)

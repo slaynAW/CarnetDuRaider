@@ -12,6 +12,7 @@ n'invente ni ne traduit rien :
   - chaque exclusion est listée dans docs/NOMS-A-VERIFIER.md.
 
 Usage : python3 scripts/importer_donnees_jeu.py <dossier public/data/game>
+Lit aussi le dossier voisin « public/data/map-data » (plans en jeu des cartes, zones, sorties).
 Écrit core/src/main/resources/donnees-jeu.json et docs/NOMS-A-VERIFIER.md, et les icônes officielles
 des objets (fichiers du jeu, dossier « public/images/items » voisin) réduites pour l'appli dans
 app/src/main/assets/objets/<identifiant>.webp. Demande Pillow (pip install pillow).
@@ -25,6 +26,10 @@ RACINE = pathlib.Path(__file__).resolve().parent.parent
 SORTIE = RACINE / "core/src/main/resources/donnees-jeu.json"
 RAPPORT = RACINE / "docs/NOMS-A-VERIFIER.md"
 ICONES = RACINE / "app/src/main/assets/objets"
+PLANS = RACINE / "app/src/main/assets/cartes"
+# Plans des cartes : image du plan en jeu à 2048 px (niveau 2 de la pyramide de tuiles de raider-tools).
+NIVEAU_PLAN = 2
+QUALITE_PLAN = 72
 # Icônes réduites : nettes jusqu'à ~100 dp sur un écran courant, environ 4 Mo pour tout le catalogue.
 TAILLE_ICONE = 160
 QUALITE_ICONE = 82
@@ -126,6 +131,54 @@ def importer_icones(dossier_images, objets, items):
     return len(travaux), manquantes
 
 
+def importer_plans(dossier_cartes, cartes, filtre):
+    """Plan simplifié de chaque carte : image du plan en jeu, zones et trappes de sortie (noms officiels)."""
+    from PIL import Image
+    index = json.loads((dossier_cartes / "index.json").read_text(encoding="utf-8"))
+    textes = json.loads((dossier_cartes / "map-strings.fr.json").read_text(encoding="utf-8"))
+    PLANS.mkdir(parents=True, exist_ok=True)
+    for ancien in PLANS.glob("*.webp"):
+        ancien.unlink()
+    par_id = {c["id"]: c for c in cartes}
+    for entree in index["maps"]:
+        carte = par_id.get(entree.get("slug"))
+        if carte is None:
+            continue
+        donnees = json.loads((dossier_cartes / entree["file"]).read_text(encoding="utf-8"))
+        tuiles = dossier_cartes / entree["image"]["tiles"] / str(NIVEAU_PLAN)
+        cote = 512 * 2 ** NIVEAU_PLAN
+        plan = Image.new("RGB", (cote, cote), (20, 20, 23))
+        for x in range(2 ** NIVEAU_PLAN):
+            for y in range(2 ** NIVEAU_PLAN):
+                tuile = tuiles / f"{x}-{y}.webp"
+                if tuile.is_file():
+                    with Image.open(tuile) as t:
+                        plan.paste(t.convert("RGB"), (x * 512, y * 512))
+        plan.save(PLANS / f"{carte['id']}.webp", "WEBP", quality=QUALITE_PLAN, method=4)
+
+        def nom(cle, anglais, domaine, ident):
+            return filtre.nom(domaine, ident, textes.get(cle or ""), anglais)
+
+        zones = []
+        for z in donnees.get("areas", []):
+            if z.get("layer", 0) != 0:
+                continue  # autre étage (Stella Montis) : pas sur ce plan
+            n = nom(z.get("nameKey"), z.get("name"), "Zone de carte", z.get("nameKey"))
+            if n:
+                zones.append({"nom": n, "x": z["uv"][0], "y": z["uv"][1], "detail": z.get("zoom", 0)})
+        sorties = []
+        for p in donnees.get("pois", []):
+            cle = p.get("titleKey") or ""
+            if not cle.startswith("ST_ExtractionPoints/"):
+                continue
+            n = nom(cle, p.get("title"), "Sortie", cle)
+            points = [pt for anneau in p.get("outline", []) for pt in anneau]
+            if n and points:
+                sorties.append({"nom": n, "x": round(sum(pt[0] for pt in points) / len(points), 4),
+                                "y": round(sum(pt[1] for pt in points) / len(points), 4)})
+        carte["plan"] = {"zones": zones, "sorties": sorties}
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
@@ -201,6 +254,32 @@ def main():
     for q in quetes:
         q["requiert"] = [r for r in q["requiert"] if r in ids_quetes]
 
+    # Projets (Expéditions, projets de saison…) : étapes successives, chacune avec ses objets à livrer.
+    projets_src = charger(src, "projects.json")["projects"]
+    projets_fr, projets_en = charger(src, "projects.text.fr.json"), charger(src, "projects.text.en.json")
+    projets = []
+    for ident, pr in sorted(projets_src.items()):
+        nom = filtre.nom("Projet", ident, projets_fr.get(ident, {}).get("name"),
+                         projets_en.get(ident, {}).get("name") or pr.get("nameEn"))
+        if nom is None:
+            continue
+        etapes = []
+        for phase in pr.get("phases", []):
+            for etape in phase.get("steps", []):
+                cle_phase, cle_etape = etape["key"].split(".")[:2]
+                textes_fr = projets_fr.get(ident, {}).get("steps", {}).get(cle_phase, {}).get(cle_etape, {})
+                textes_en = projets_en.get(ident, {}).get("steps", {}).get(cle_phase, {}).get(cle_etape, {})
+                nom_etape = None
+                if textes_fr.get("name"):
+                    nom_etape = filtre.nom("Étape de projet", f"{ident}/{etape['key']}", textes_fr.get("name"), textes_en.get("name"))
+                # Seuls les objets précis comptent ; les objectifs « valeur » ou « quêtes » restent au joueur.
+                cout = [{"id": g["itemIds"][0], "quantite": g.get("amount", 1)} for g in etape.get("goals", [])
+                        if g.get("goalType") == "items" and len(g.get("itemIds", [])) == 1]
+                autres = sum(1 for g in etape.get("goals", []) if not (g.get("goalType") == "items" and len(g.get("itemIds", [])) == 1))
+                etapes.append({"nom": nom_etape, "cout": cout, "autresObjectifs": autres})
+        if etapes:
+            projets.append({"id": ident, "nom": nom, "etapes": etapes})
+
     cartes_src = charger(src, "maps.json")
     cartes_fr, cartes_en = charger(src, "maps.text.fr.json"), charger(src, "maps.text.en.json")
     cartes, conditions = [], []
@@ -216,6 +295,8 @@ def main():
             conditions.append({"id": ident, "nom": nom, "majeure": bool(e.get("major")),
                                "cleCalendrier": e.get("nameEn") or anglais})
 
+    importer_plans(src.parent / "map-data", cartes, filtre)
+
     donnees = {
         "versionJeu": version,
         "source": "Données du jeu ARC Raiders (textes officiels d'Embark Studios), via "
@@ -223,6 +304,7 @@ def main():
         "objets": objets,
         "etablis": etablis,
         "quetes": quetes,
+        "projets": projets,
         "cartes": cartes,
         "conditions": conditions,
     }
@@ -230,7 +312,8 @@ def main():
     # mieux vaut un trou visible qu'un nom inventé.
     orphelins = sorted({e["id"] for e in [x for o in objets for x in o["recyclage"] + o["recuperation"]]
                         + [x for b in etablis for n in b["niveaux"] for x in n["cout"]]
-                        + [x for q in quetes for x in q["objets"]]} - ids_objets)
+                        + [x for q in quetes for x in q["objets"]]
+                        + [x for p in projets for e in p["etapes"] for x in e["cout"]]} - ids_objets)
 
     SORTIE.parent.mkdir(parents=True, exist_ok=True)
     SORTIE.write_text(json.dumps(donnees, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
@@ -254,9 +337,11 @@ def main():
 
     ecrites, manquantes = importer_icones(src.parent.parent / "images", objets, items["items"])
     taille = sum(f.stat().st_size for f in ICONES.glob("*.webp"))
+    taille_plans = sum(f.stat().st_size for f in PLANS.glob("*.webp"))
+    print(f"Plans : {len(list(PLANS.glob('*.webp')))} cartes ({taille_plans / 1e6:.1f} Mo).")
     print(f"Icônes : {ecrites} objets ({taille / 1e6:.1f} Mo), {len(manquantes)} sans icône dans les données.")
 
-    print(f"Données {version} : {len(objets)} objets, {len(etablis)} établis, {len(quetes)} quêtes, "
+    print(f"Données {version} : {len(objets)} objets, {len(etablis)} établis, {len(quetes)} quêtes, {len(projets)} projets, "
           f"{len(cartes)} cartes, {len(conditions)} conditions ; {len(filtre.exclus)} noms exclus, "
           f"{len(orphelins)} références vers un objet exclu.")
 
