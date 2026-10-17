@@ -42,6 +42,16 @@ class Catalogue(val donnees: DonneesJeu) {
     /** Tout le catalogue, par ordre alphabétique (sans tenir compte des majuscules ni des accents). */
     val tous: List<Objet> = index.sortedWith(compareBy({ it.second }, { it.first.nom })).map { it.first }
 
+    /** Objets qui donnent [objetId] quand on les recycle, du plus généreux au moins généreux. */
+    fun sourcesRecyclage(objetId: String): List<Quantite> = sourcesParObjet[objetId].orEmpty()
+
+    private val sourcesParObjet: Map<String, List<Quantite>> by lazy {
+        donnees.objets
+            .flatMap { o -> o.recyclage.map { it.id to Quantite(o.id, it.quantite) } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, l) -> l.sortedWith(compareByDescending<Quantite> { it.quantite }.thenBy { normaliser(nomObjet(it.id)) }) }
+    }
+
     /** Ce que rapporte le recyclage d'une unité, en pièces (valeur des matériaux obtenus). */
     fun valeurRecyclage(objet: Objet): Int =
         objet.recyclage.sumOf { (objetsParId[it.id]?.valeur ?: 0) * it.quantite }
@@ -53,5 +63,8 @@ class Catalogue(val donnees: DonneesJeu) {
             Normalizer.normalize(texte.trim().lowercase(), Normalizer.Form.NFD)
                 .replace(Regex("\\p{Mn}+"), "")
                 .replace('’', '\'')
+                // Espaces insécables des noms officiels (« Butin 2 ») : une espace normale, comme au clavier.
+                .replace('\u00a0', ' ')
+                .replace('\u202f', ' ')
     }
 }

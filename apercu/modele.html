@@ -96,6 +96,12 @@ button.carte:hover { background: var(--releve); }
 .plan-vue img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; pointer-events: none; }
 .plan-vue .etq { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; background: rgba(20,20,23,.72); border-radius: 6px; padding: 2px 6px; font-size: 12px; font-weight: 600; pointer-events: none; }
 .plan-vue .etq.grande { font: 700 14px var(--titre); }
+h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
+.indice { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; padding: 4px 0; }
+.indice > i { display: block; height: 4px; border-radius: 2px; background: var(--releve); overflow: hidden; }
+.indice > i > i { display: block; height: 100%; background: var(--or); }
+.indice b { font-variant-numeric: tabular-nums; color: var(--or); margin-left: 8px; }
+.indice small { margin-left: 8px; }
 .plan-vue .arc { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--rouge); border: 2px solid var(--fond); pointer-events: none; }
 .plan-vue .sortie { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--cyan); border: 3px solid var(--fond); pointer-events: none; }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s; } }
@@ -128,7 +134,7 @@ const NOM_A_VERIFIER = "Nom à vérifier en jeu";
 const RARETES = { COMMUN: ["Commun", "--commun"], INHABITUEL: ["Inhabituel", "--vert"], RARE: ["Rare", "--rare"], EPIQUE: ["Épique", "--epique"], LEGENDAIRE: ["Légendaire", "--or"] };
 const echap = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pluriel = (n, s, p) => `${n} ${n > 1 ? p : s}`;
-const normaliser = t => t.trim().toLowerCase().normalize("NFD").replace(/\p{Mn}+/gu, "").replace(/’/g, "'");
+const normaliser = t => t.trim().toLowerCase().normalize("NFD").replace(/\p{Mn}+/gu, "").replace(/’/g, "'").replace(/[\u00a0\u202f]/g, " ");
 
 // ---- Catalogue (core/Catalogue.kt) ----
 const objets = new Map(D.objets.map(o => [o.id, o]));
@@ -275,7 +281,39 @@ function ecranFiche(id) {
     ${pour.length ? `<hr>${pour.map(b => `<div class="ligne"><b class="flex">${echap(b.libelle)}</b><b>× ${b.quantite}</b></div>`).join("")}` : ""}</div>
   <h4>Valeur</h4><p style="margin:0">${o.valeur} pièces l'unité</p>
   <h4>Recyclage en</h4>${o.recyclage.length ? o.recyclage.map(q => `<div class="ligne">${icone(q.id, 32)}<span>${q.quantite} × ${echap(nomObjet(q.id))}</span></div>`).join("") : `<p class="doux" style="margin:0">Ne se recycle pas.</p>`}
-  ${o.lieux.length ? `<h4>Où le trouver</h4><p style="margin:0">${echap(o.lieux.join(" · "))}</p>` : ""}`;
+  ${commentLObtenir(o)}`;
+}
+
+// Comment obtenir l'objet (CommentLObtenir, EcranObjets.kt) : butin, commerçants, fabrication, recyclage, récompenses.
+const sourcesRecyclage = (() => {
+  const m = new Map();
+  for (const o of D.objets) for (const q of o.recyclage) { if (!m.has(q.id)) m.set(q.id, []); m.get(q.id).push({ id: o.id, quantite: q.quantite }); }
+  for (const l of m.values()) l.sort((a, b) => b.quantite - a.quantite || normaliser(nomObjet(a.id)).localeCompare(normaliser(nomObjet(b.id))));
+  return id => m.get(id) || [];
+})();
+const ligneQte = q => `<div class="ligne">${icone(q.id, 32)}<span>${q.quantite} × ${echap(nomObjet(q.id))}</span></div>`;
+const ligneIndice = (nom, sous, indice, action) => `<${action ? `button ${action}` : "div"} class="indice"><span class="ligne"><span class="flex">${echap(nom)}${sous ? `<br><small class="doux">${echap(sous)}</small>` : ""}</span><b>${indice}</b>${action ? `<small style="color:var(--cyan)">Plan ›</small>` : ""}</span><i><i style="width:${indice}%"></i></i></${action ? "button" : "div"}>`;
+function commentLObtenir(o) {
+  const ob = o.obtention || {}, rec = sourcesRecyclage(o.id);
+  let h = "";
+  if (o.lieux.length || ob.cartes?.length || ob.zones?.length) {
+    h += `<h4>Où le trouver</h4>`;
+    if (o.lieux.length) h += `<p style="margin:0">Dans les zones${NB}: ${echap(o.lieux.join(" · "))}</p>`;
+    if (ob.cartes?.length) h += `<h5>Meilleures cartes</h5>${ob.cartes.map(c => ligneIndice(cartes.get(c.carte)?.nom ?? NOM_A_VERIFIER, null, c.indice)).join("")}`;
+    if (ob.zones?.length) h += `<h5>Meilleures zones</h5>${ob.zones.map(z => ligneIndice(z.zone, cartes.get(z.carte)?.nom, z.indice, `data-action="plan-zone" data-id="${z.carte}" data-zone="${echap(z.zone)}"`)).join("")}
+      <p class="petit doux" style="margin:0">Classement d'après les tables de butin du jeu (condition normale), 100 pour le meilleur endroit. Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs.</p>`;
+  }
+  if (ob.achats?.length) h += `<h4>Chez les commerçants</h4>${ob.achats.map(a => {
+    const prix = [a.pieces ? `${a.pieces} pièces` : "", a.valeurObjets ? `des objets valant ${a.valeurObjets} pièces` : ""].filter(Boolean).join(" + ");
+    return `<div style="display:flex;flex-direction:column;gap:2px"><span>${echap(a.commercant)}${prix ? `${NB}: ${a.quantite > 1 ? `${a.quantite} pour ` : ""}${prix}` : ""}</span>${(a.objets || []).map(ligneQte).join("")}${a.limite ? `<small class="doux">${a.parJour ? `${a.limite} par jour au plus` : pluriel(a.limite, "achat possible", "achats possibles")}</small>` : ""}</div>`;
+  }).join("")}`;
+  if (ob.fabrications?.length) h += `<h4>Fabrication</h4>${ob.fabrications.map(f => {
+    const ou = f.etabli ? (f.niveau ? `${f.etabli} · niveau ${f.niveau}` : f.etabli) : "Pendant un raid";
+    return `<div style="display:flex;flex-direction:column;gap:2px"><span>${echap(f.quantite > 1 ? `${ou} (en donne ${f.quantite})` : ou)}</span>${f.plan ? `<small class="doux">Plan à débloquer${NB}: ${echap(f.plan)}</small>` : ""}${f.ingredients.map(ligneQte).join("")}</div>`;
+  }).join("")}`;
+  if (rec.length) h += `<h4>En recyclant</h4>${rec.slice(0, 6).map(q => `<button class="ligne" data-action="fiche" data-id="${q.id}" style="text-align:left">${icone(q.id, 32)}<span class="flex">${echap(nomObjet(q.id))}</span><small class="doux">en donne ${q.quantite}</small></button>`).join("")}${rec.length > 6 ? `<p class="petit doux" style="margin:0">Et ${pluriel(rec.length - 6, "autre objet", "autres objets")}.</p>` : ""}`;
+  if (ob.recompenses?.length) h += `<h4>En récompense</h4>${ob.recompenses.map(r => `<p style="margin:0">${echap(r)}</p>`).join("")}`;
+  return h;
 }
 
 function ecranCartes() {
@@ -341,7 +379,7 @@ function placerPlan() {
   const ecran = (u, v) => [ox + P.dx + u * cote * P.e, oy + P.dy + v * cote * P.e];
   // Sans recherche : zones (les petites en zoomant) et sorties selon les interrupteurs ; avec : ce qui est trouvé.
   const r = chercherPlan(c.plan, S.recherchePlan);
-  const zones = r ? r.zones : P.zones ? c.plan.zones.filter(z => z.detail === 0 || (z.detail === 1 && P.e >= 1.8) || P.e >= 3) : [];
+  const zones = r ? r.zones : P.zones ? c.plan.zones.filter(z => z.detail === 0 || (z.detail === 1 && P.e >= 1.8) || (z.detail === 2 && P.e >= 3)) : [];
   const sorties = r ? r.sorties : P.sorties ? c.plan.sorties : [];
   let html = "";
   if (r) for (const a of r.arcs) for (const [u, v] of a.points) { const [x, y] = ecran(u, v); html += `<i class="arc" style="left:${x}px;top:${y}px"></i>`; }
@@ -516,7 +554,7 @@ document.addEventListener("click", ev => {
   switch (b.dataset.action) {
     case "onglet": S.onglet = b.dataset.onglet; S.ecran = null; rendre(); window.scrollTo(0, 0); return;
     case "fiche": return ouvrir({ type: "fiche", id });
-    case "fermer": S.ecran = null; S.raid = null; rendre(); return;
+    case "fermer": S.ecran = S.ecran === "plan" && P.depuis ? P.depuis : null; P.depuis = null; S.raid = null; rendre(); return;
     case "reglages": return ouvrir("reglages");
     case "quetes": S.choix = null; S.rechercheQuetes = ""; return ouvrir("quetes");
     case "ajout": return ouvrir("ajout");
@@ -536,8 +574,9 @@ document.addEventListener("click", ev => {
     case "etape-moins": M.etapesProjets[id] = Math.max((M.etapesProjets[id] ?? 0) - 1, 0); retirerAtteints(); break;
     case "suivre-projet": M.projetsSuivis = (M.projetsSuivis || []).includes(id) ? M.projetsSuivis.filter(x => x !== id) : [...(M.projetsSuivis || []), id]; break;
     case "annuler-validation": if (S.validation) { charger(S.validation.avant); S.validation = null; } break;
-    case "plan": Object.assign(P, { id, e: 1, dx: 0, dy: 0 }); S.recherchePlan = ""; return ouvrir("plan");
+    case "plan": Object.assign(P, { id, e: 1, dx: 0, dy: 0, depuis: null }); S.recherchePlan = ""; return ouvrir("plan");
     case "plan-chercher": S.recherchePlan = id; rendre(); return;
+    case "plan-zone": Object.assign(P, { id, e: 1, dx: 0, dy: 0, depuis: S.ecran }); S.recherchePlan = b.dataset.zone; return ouvrir("plan");
     case "plan-zones": P.zones = !P.zones; rendre(); return;
     case "plan-sorties": P.sorties = !P.sorties; rendre(); return;
     case "plan-entier": Object.assign(P, { e: 1, dx: 0, dy: 0 }); rendre(); return;

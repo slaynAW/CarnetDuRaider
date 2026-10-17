@@ -10,6 +10,9 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
 - **Garder, recycler ou vendre ?** Recherche d'un objet parmi tout le catalogue du jeu (sans tenir
   compte des accents), puis une fiche avec un verdict selon *tes* objectifs : ce qu'il t'en manque, ou,
   s'il est inutile, s'il vaut mieux le vendre ou le recycler (comparaison en pièces).
+- **Comment l'obtenir.** Sur chaque fiche : les meilleures cartes et zones où le trouver (d'après les
+  tables de butin du jeu, avec un lien vers le plan), les commerçants et leurs prix, la fabrication, les
+  objets qui le donnent au recyclage et les récompenses de quêtes et de projets.
 - **Progression automatique.** Tu indiques une fois le niveau de tes établis et tes quêtes en cours :
   l'appli suit d'elle-même le prochain niveau de chaque établi et les quêtes disponibles (d'après
   l'enchaînement des quêtes du jeu), ainsi que les projets que tu suis (Expéditions…). Un seul bouton

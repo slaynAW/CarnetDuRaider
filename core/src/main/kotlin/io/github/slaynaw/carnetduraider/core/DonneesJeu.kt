@@ -53,6 +53,53 @@ data class Objet(
     val recuperation: List<Quantite> = emptyList(),
     /** Types de lieux où on le trouve (« Mécanique », « ARC »…). */
     val lieux: List<String> = emptyList(),
+    val obtention: Obtention = Obtention(),
+)
+
+/**
+ * Comment obtenir un objet, d'après les fichiers du jeu. [cartes] et [zones] : où il y en a le plus dans le
+ * butin (condition normale), avec un [ZoneButin.indice] de 1 à 100 relatif au meilleur endroit. Ce n'est pas
+ * un taux de drop : le jeu tire le butin sur ses serveurs.
+ */
+@Serializable
+data class Obtention(
+    val cartes: List<CarteButin> = emptyList(),
+    val zones: List<ZoneButin> = emptyList(),
+    val achats: List<Achat> = emptyList(),
+    val fabrications: List<Fabrication> = emptyList(),
+    /** Quêtes et projets qui le donnent en récompense (noms officiels). */
+    val recompenses: List<String> = emptyList(),
+)
+
+@Serializable
+data class CarteButin(val carte: String, val indice: Int)
+
+@Serializable
+data class ZoneButin(val carte: String, val zone: String, val indice: Int)
+
+/**
+ * Offre d'un commerçant : [quantite] objets contre [pieces], des [objets] précis, ou des objets d'une valeur
+ * totale de [valeurObjets] pièces. [limite] : nombre d'achats possibles (par jour si [parJour]).
+ */
+@Serializable
+data class Achat(
+    val commercant: String,
+    val quantite: Int = 1,
+    val pieces: Int = 0,
+    val objets: List<Quantite> = emptyList(),
+    val valeurObjets: Int = 0,
+    val limite: Int? = null,
+    val parJour: Boolean = false,
+)
+
+/** Recette : à l'[etabli] (nom officiel, niveau [niveau]) ou, sans établi, pendant un raid. [plan] : plan à débloquer. */
+@Serializable
+data class Fabrication(
+    val ingredients: List<Quantite>,
+    val quantite: Int = 1,
+    val etabli: String? = null,
+    val niveau: Int? = null,
+    val plan: String? = null,
 )
 
 /** Raretés, avec leur libellé officiel dans la version française du jeu. */
@@ -102,7 +149,10 @@ data class Plan(
     val arcs: List<ArcPlan> = emptyList(),
 )
 
-/** [detail] : 0 pour les grandes zones, 1 et 2 pour les lieux qui n'apparaissent qu'en zoomant. */
+/**
+ * [detail] : 0 pour les grandes zones, 1 et 2 pour les lieux qui n'apparaissent qu'en zoomant, 3 pour les
+ * autres lieux nommés (zones de butin), affichés seulement quand on les cherche.
+ */
 @Serializable
 data class ZonePlan(val nom: String, val x: Float, val y: Float, val detail: Int = 0)
 

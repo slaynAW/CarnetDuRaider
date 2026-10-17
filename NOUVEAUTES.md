@@ -12,6 +12,8 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 - **Projets** : les Expéditions et les autres projets du jeu. Suis ceux que tu fais, leur prochaine étape s'ajoute à ta liste de courses.
 - **Plans des cartes** : le plan en jeu de chaque carte, avec le nom des lieux et les sorties (trappes, ascenseurs, métros, conduits d'aération). Zoome avec deux doigts ou en touchant deux fois ; les petits lieux apparaissent en zoomant.
 - **Recherche sur les plans** : tape « les trappes », « bondisseurs », « ascenseurs » ou le nom d'un lieu, et le plan ne montre que ça. Pour un ARC, tous les points où il peut apparaître sur la carte.
+- **Comment obtenir chaque objet** : sur sa fiche, les meilleures cartes et zones où le trouver (touche une zone pour la voir sur le plan), les commerçants qui le vendent et à quel prix, sa fabrication (établi, niveau, ingrédients, plan à débloquer), les objets qui le donnent au recyclage et les quêtes ou projets qui le donnent en récompense. Le classement vient des tables de butin du jeu ; les taux de drop exacts ne sont pas publiés.
+- La recherche d'objets trouve aussi les noms avec un chiffre, comme « Butin 2 ».
 - Données du jeu mises à jour.
 
 ## 0.4.0

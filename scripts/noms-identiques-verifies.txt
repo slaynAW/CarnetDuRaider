@@ -42,6 +42,7 @@ Fortuna
 # Lieux et personnages (noms propres).
 Stella Montis
 Apollo
+Cassio
 Celeste
 Juanito
 Lance
@@ -58,6 +59,24 @@ Piazza Roma
 Plaza Rosa
 Piazza della Rupe
 La Chiesa
+Alcantara
+Arbusto Farmacia
+Decimare
+Farmacia
+La Cartiera
+Piazza Mercato
+Trattoria Piccolo
+# Lieux des cartes (meilleures zones de butin) : mots qui s'écrivent pareil en français, tels quels
+# dans la table de traduction française du jeu (map-strings.fr).
+Atrium
+Auditorium
+Bunker
+Café
+Communications
+Garage
+Hangar
+Silos
+Tunnels
 
 # ARC (recherche sur les plans) : noms identiques dans la table de traduction française du jeu
 # (map-strings.fr, ST_Enemy) ; « Bastion » et « Bombardier » sont aussi des mots français.

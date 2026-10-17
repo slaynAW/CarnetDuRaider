@@ -19,6 +19,11 @@ telle qu'elle apparaît dans le jeu.
   (`Carte.plan`, noms français officiels de `map-strings.fr.json`). La recherche sur le plan
   (`RecherchePlan`) n'affiche que ces noms ; les mots de famille (« trappe », « ascenseur », « arc »…)
   servent seulement à chercher, jamais de nom affiché.
+- Comment obtenir un objet (`Objet.obtention`, produit par le script) : meilleures cartes et zones (portage
+  du calcul de raider-tools sur les tables de butin, condition normale, indice de 1 à 100), achats,
+  fabrications, récompenses ; les sources de recyclage sont calculées dans `Catalogue`. Les vrais taux de
+  drop ne sont pas dans les fichiers du jeu (tirage côté serveur) : ne jamais présenter l'indice comme un
+  pourcentage ni comme un taux de drop.
 - Un nom sans traduction officielle vérifiée n'entre pas dans l'appli : le script l'exclut et le liste
   dans `docs/NOMS-A-VERIFIER.md`. Dans l'interface, un objet absent s'affiche « Nom à vérifier en jeu »
   (`Catalogue.NOM_A_VERIFIER`), jamais avec un nom inventé.

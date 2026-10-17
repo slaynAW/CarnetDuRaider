@@ -15,7 +15,7 @@ Usage : python3 scripts/importer_donnees_jeu.py <dossier public/data/game>
 Lit aussi le dossier voisin « public/data/map-data » (plans en jeu des cartes, zones, sorties).
 Écrit core/src/main/resources/donnees-jeu.json et docs/NOMS-A-VERIFIER.md, et les icônes officielles
 des objets (fichiers du jeu, dossier « public/images/items » voisin) réduites pour l'appli dans
-app/src/main/assets/objets/<identifiant>.webp. Demande Pillow (pip install pillow).
+app/src/main/assets/objets/<identifiant>.webp. Demande Pillow et NumPy (pip install pillow numpy).
 """
 import json
 import pathlib
@@ -73,13 +73,17 @@ class Filtre:
     def nom(self, domaine, ident, fr, en):
         fr = (fr or "").strip()
         en = (en or "").strip()
+        raison = None
         if not fr:
-            self.exclus.append((domaine, ident, en, "pas de texte français"))
-            return None
-        if fr == en and not self._verifie(fr):
-            self.exclus.append((domaine, ident, en, "texte français identique à l'anglais"))
-            return None
-        return fr
+            raison = "pas de texte français"
+        elif fr == en and not self._verifie(fr):
+            raison = "texte français identique à l'anglais"
+        if raison is None:
+            return fr
+        exclusion = (domaine, ident, en, raison)
+        if exclusion not in self.exclus:  # un même nom peut être demandé plusieurs fois (objets, cartes…)
+            self.exclus.append(exclusion)
+        return None
 
     def _verifie(self, nom):
         if nom in self.exacts:
@@ -217,6 +221,19 @@ def importer_plans(dossier_cartes, cartes, filtre):
             n = nom(z.get("nameKey"), z.get("name"), "Zone de carte", z.get("nameKey"))
             if n:
                 zones.append({"nom": n, "x": z["uv"][0], "y": z["uv"][1], "detail": z.get("zoom", 0)})
+        # Autres lieux nommés (zones de butin) : détail 3, affichés seulement quand on les cherche.
+        noms_zones = {z["nom"] for z in zones}
+        for p in donnees.get("pois", []):
+            cle = p.get("titleKey")
+            points = [pt for anneau in p.get("outline", []) for pt in anneau]
+            if not cle or cle.startswith("ST_ExtractionPoints/") or not points:
+                continue
+            n = nom(cle, p.get("title"), "Zone de carte", cle)
+            if n and n not in noms_zones:
+                noms_zones.add(n)
+                zones.append({"nom": n, "x": round(sum(pt[0] for pt in points) / len(points), 4),
+                              "y": round(sum(pt[1] for pt in points) / len(points), 4), "detail": 3})
+
         # Sorties : points d'extraction du jeu, nommés par la zone (POI) qui les contient.
         classes = donnees.get("spawnerClasses", [])
         sorties = []
@@ -247,6 +264,195 @@ def importer_plans(dossier_cartes, cartes, filtre):
                         pts.append(pt)
         arcs = [{"nom": n, "points": pts} for n, pts in sorted(points_arc.items(), key=lambda e: normaliser(e[0]))]
         carte["plan"] = {"zones": zones, "sorties": sorties, "arcs": arcs}
+
+
+# ---- Comment obtenir chaque objet ----
+# Butin : portage du calcul de répartition de raider-tools (src/apps/maps/data/scoring.ts). Les tirages du
+# jeu se font sur ses serveurs : ce n'est pas un taux de drop, mais la part des tables de butin de chaque
+# zone qui peut donner l'objet (condition normale), pour classer les meilleures cartes et zones.
+ALIAS_THEMES = {"Tech": "Technological"}
+ALIAS_NATURE = {"cactus": "Prickly Pear", "seedbox_01": "Assorted Seeds", "seedvault": "Assorted Seeds"}
+ZONES_PAR_OBJET = 5
+
+
+def _lettres(x):
+    return re.sub(r"[^a-z]", "", x.lower())
+
+
+def _meme_nom(a, b):
+    a, b = _lettres(a), _lettres(b)
+    return len(a) >= 4 and len(b) >= 4 and (a.startswith(b) or b.startswith(a))
+
+
+def _conteneurs_dedies(objet, conteneurs):
+    """Plantes et nids : un conteneur « Nature » ne donne que son propre objet."""
+    tags = objet.get("tags") or []
+    if "Category.Area.Nature" not in tags:
+        return []
+    nom = objet.get("name") or ""
+    propres = [c for c in conteneurs if c.startswith("Nature.") and (
+        _meme_nom(c.split(".")[1], nom) or _meme_nom(ALIAS_NATURE.get(c.split(".")[1].lower(), ""), nom))]
+    if propres:
+        return propres
+    if any(t.endswith("Trinket.Birdnest") for t in tags):
+        return [c for c in conteneurs if c.startswith("Nature.BirdNest")]
+    return []
+
+
+def _conteneurs_possibles(numpy, carte, objet):
+    """Pour chaque conteneur de la carte (indice + 1 ; 0 = au sol) : peut-il donner l'objet ?"""
+    conteneurs = carte["containers"]
+    propres = _conteneurs_dedies(objet, conteneurs)
+    if propres:
+        return numpy.array([False] + [c in propres for c in conteneurs])
+    themes = [t.split(".")[2] for t in objet.get("tags") or [] if t.startswith("Category.Area.")]
+    nature = [c.startswith("Nature.") and not c.startswith("Nature.WaterTank") for c in conteneurs]
+    if not themes:
+        return numpy.array([True] + [not n for n in nature])
+    return numpy.array([True] + [not nature[i] and ALIAS_THEMES.get(c.split(".")[0], c.split(".")[0]) in themes
+                                 for i, c in enumerate(conteneurs)])
+
+
+def calculer_butin(dossier_cartes, ids_objets, cartes, filtre):
+    """{objet: {"cartes": [...], "zones": [...]}} : meilleures cartes et zones, indice 1 à 100."""
+    import numpy
+    index = json.loads((dossier_cartes / "index.json").read_text(encoding="utf-8"))
+    textes = json.loads((dossier_cartes / "map-strings.fr.json").read_text(encoding="utf-8"))
+    par_objet = {}
+    for i, it in enumerate(index["items"]):
+        if it["slug"] in ids_objets:
+            par_objet.setdefault(it["slug"], []).append(i)
+    parts = {}
+    for ident, indices in par_objet.items():
+        part = {}
+        for table, entrees in index["tables"].items():
+            p = sum(1 / len(entrees) / len(e["items"]) for e in entrees for i in indices if i in e["items"])
+            if p:
+                part[table] = p
+        parts[ident] = part
+    ids_cartes = {c["id"] for c in cartes}
+    totaux = {ident: {} for ident in par_objet}
+    zones = {ident: {} for ident in par_objet}
+    for entree in index["maps"]:
+        if entree.get("slug") not in ids_cartes:
+            continue
+        carte = json.loads((dossier_cartes / entree["file"]).read_text(encoding="utf-8"))
+        normale = next((i for i, c in enumerate(carte["conditions"]) if c.get("category") == "normal"), 0)
+        couches = set(carte["conditions"][normale]["layers"])
+        prises = numpy.array(carte["sockets"], dtype=float)
+        presente = (prises[:, 6] < 0) | numpy.isin(prises[:, 6], list(couches))
+        conteneur = prises[:, 3].astype(int) + 1
+        ensemble = prises[:, 4].astype(int)
+        poi = prises[:, 5].astype(int)
+        dans_zone = poi >= 0
+        noms_zones = [filtre.nom("Zone de carte", p.get("titleKey"), textes.get(p.get("titleKey") or ""), p.get("title"))
+                      if p.get("titleKey") else None for p in carte["pois"]]
+        for ident, indices in par_objet.items():
+            part = parts[ident]
+            if not part:
+                continue
+            valeurs = []
+            for h in carte["handlers"]:
+                v = sum(pool["value"] / len(pool["tables"]) * part[t["t"]] * (t.get("x") or 1)
+                        for pool in h["pools"] for t in pool["tables"] if t["t"] in part and normale in t["c"])
+                valeurs.append(v / h["sockets"] if h["sockets"] else 0)
+            par_ensemble = numpy.array([sum(valeurs[h] for h in e) for e in carte["handlerSets"]])
+            possibles = numpy.zeros(len(carte["containers"]) + 1, bool)
+            for i in indices:
+                possibles |= _conteneurs_possibles(numpy, carte, index["items"][i])
+            v = numpy.where(presente & possibles[conteneur], par_ensemble[ensemble], 0.0)
+            total = float(v.sum())
+            if total <= 0:
+                continue
+            totaux[ident][entree["slug"]] = total
+            par_zone = numpy.bincount(poi[dans_zone], weights=v[dans_zone], minlength=len(carte["pois"]))
+            for j, score in enumerate(par_zone):
+                if score > 0 and noms_zones[j]:
+                    cle = (entree["slug"], noms_zones[j])
+                    zones[ident][cle] = zones[ident].get(cle, 0) + float(score)
+    resultat = {}
+    for ident in par_objet:
+        if not totaux[ident]:
+            continue
+        meilleure = max(totaux[ident].values())
+        meilleures_zones = sorted(zones[ident].items(), key=lambda e: -e[1])[:ZONES_PAR_OBJET]
+        resultat[ident] = {
+            "cartes": [{"carte": c, "indice": max(1, round(100 * t / meilleure))}
+                       for c, t in sorted(totaux[ident].items(), key=lambda e: -e[1])],
+            "zones": [{"carte": c, "zone": z, "indice": max(1, round(100 * s / meilleures_zones[0][1]))}
+                      for (c, z), s in meilleures_zones],
+        }
+    return resultat
+
+
+def obtention_objet(ident, it, src_textes, trades, recettes, filtre, noms_projets):
+    """Achats, fabrication et récompenses d'un objet (noms officiels uniquement)."""
+    commercants, items_fr, items_en, benches_fr, benches_en, quests_fr, quests_en = src_textes
+    achats = []
+    for tid in it.get("soldBy", []):
+        t = trades["trades"].get(tid)
+        if not t or not t.get("visible", True):
+            continue
+        trader = t.get("traderId", "")
+        nom = filtre.nom("Commerçant", trader, commercants.get(trader, {}).get("name"),
+                         trades["traders"].get(trader, {}).get("nameEn"))
+        if nom is None:
+            continue
+        cout = t.get("cost", {})
+        achat = {"commercant": nom,
+                 "quantite": next((r["quantity"] for r in t.get("rewards", []) if r["itemId"] == ident), 1)}
+        pieces = sum(c["quantity"] for c in cout.get("items", []) if c["itemId"] == "coins")
+        if pieces:
+            achat["pieces"] = pieces
+        objets = [{"id": c["itemId"], "quantite": c["quantity"]} for c in cout.get("items", []) if c["itemId"] != "coins"]
+        if objets:
+            achat["objets"] = objets
+        if cout.get("scrapValue"):
+            achat["valeurObjets"] = cout["scrapValue"]
+        limite = t.get("limit") or {}
+        if limite.get("max"):
+            achat["limite"] = limite["max"]
+            if limite.get("refreshSeconds") == 86400:
+                achat["parJour"] = True
+        if achat not in achats:  # le même échange peut être proposé deux fois
+            achats.append(achat)
+    fabrications = []
+    for r in recettes:
+        if not any(x["itemId"] == ident for x in r.get("rewards", [])):
+            continue
+        fab = {"ingredients": quantites(r.get("cost", {}).get("items")),
+               "quantite": next(x["quantity"] for x in r["rewards"] if x["itemId"] == ident)}
+        if r.get("station") == "bench":
+            etabli = filtre.nom("Établi", r.get("benchId"), benches_fr.get(r.get("benchId"), {}).get("name"),
+                                benches_en.get(r.get("benchId"), {}).get("name"))
+            if etabli is None:
+                continue
+            fab["etabli"] = etabli
+            if r.get("benchLevel"):
+                fab["niveau"] = r["benchLevel"]
+        for req in r.get("requires", []):
+            if req.get("kind") == "unlock" and req.get("id") in items_fr:
+                plan = filtre.nom("Plan", req["id"], items_fr[req["id"]].get("name"), items_en.get(req["id"], {}).get("name"))
+                if plan:
+                    fab["plan"] = plan
+        if fab not in fabrications:
+            fabrications.append(fab)
+    recompenses = []
+    for q in it.get("rewardedBy", {}).get("quests", []):
+        n = filtre.nom("Quête", q, quests_fr.get(q, {}).get("name"), quests_en.get(q, {}).get("name"))
+        if n and n not in recompenses:
+            recompenses.append(n)
+    for pr in it.get("rewardedBy", {}).get("projects", []):
+        if pr in noms_projets and noms_projets[pr] not in recompenses:
+            recompenses.append(noms_projets[pr])
+    obtention = {}
+    if achats:
+        obtention["achats"] = achats
+    if fabrications:
+        obtention["fabrications"] = fabrications
+    if recompenses:
+        obtention["recompenses"] = recompenses
+    return obtention
 
 
 def main():
@@ -367,6 +573,18 @@ def main():
 
     importer_plans(src.parent / "map-data", cartes, filtre)
 
+    # Comment obtenir chaque objet : butin (meilleures cartes et zones), achats, fabrication, récompenses.
+    recettes = list(charger(src, "recipes.json")["recipes"].values())
+    textes_obtention = (commercants, items_fr, items_en, benches_fr, benches_en, quests_fr, quests_en)
+    noms_projets = {p["id"]: p["nom"] for p in projets}
+    butin = calculer_butin(src.parent / "map-data", ids_objets, cartes, filtre)
+    for o in objets:
+        obtention = obtention_objet(o["id"], items["items"][o["id"]], textes_obtention, trades, recettes, filtre, noms_projets)
+        if o["id"] in butin:
+            obtention = {**butin[o["id"]], **obtention}
+        if obtention:
+            o["obtention"] = obtention
+
     donnees = {
         "versionJeu": version,
         "source": "Données du jeu ARC Raiders (textes officiels d'Embark Studios), via "
@@ -383,7 +601,10 @@ def main():
     orphelins = sorted({e["id"] for e in [x for o in objets for x in o["recyclage"] + o["recuperation"]]
                         + [x for b in etablis for n in b["niveaux"] for x in n["cout"]]
                         + [x for q in quetes for x in q["objets"]]
-                        + [x for p in projets for e in p["etapes"] for x in e["cout"]]} - ids_objets)
+                        + [x for p in projets for e in p["etapes"] for x in e["cout"]]
+                        + [x for o in objets for a in o.get("obtention", {}).get("achats", []) for x in a.get("objets", [])]
+                        + [x for o in objets for f in o.get("obtention", {}).get("fabrications", []) for x in f["ingredients"]]}
+                       - ids_objets)
 
     SORTIE.parent.mkdir(parents=True, exist_ok=True)
     SORTIE.write_text(json.dumps(donnees, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

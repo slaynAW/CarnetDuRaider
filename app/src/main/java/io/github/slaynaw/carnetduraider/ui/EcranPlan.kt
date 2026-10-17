@@ -95,7 +95,7 @@ private suspend fun chargerPlan(context: Context, carteId: String, reduction: In
  * points d'apparition, un lieu). Deux doigts pour zoomer et déplacer, double-tap pour zoomer.
  */
 @Composable
-fun EcranPlan(vm: CarnetViewModel, carteId: String, onRetour: () -> Unit) {
+fun EcranPlan(vm: CarnetViewModel, carteId: String, rechercheInitiale: String = "", onRetour: () -> Unit) {
     val carte = vm.catalogue.carte(carteId) ?: return
     val context = LocalContext.current.applicationContext
     val image by produceState<ImageBitmap?>(null, carteId) { value = chargerPlan(context, carteId) }
@@ -103,7 +103,7 @@ fun EcranPlan(vm: CarnetViewModel, carteId: String, onRetour: () -> Unit) {
     var decalage by remember(carteId) { mutableStateOf(Offset.Zero) }
     var zones by rememberSaveable { mutableStateOf(true) }
     var sorties by rememberSaveable { mutableStateOf(true) }
-    var recherche by rememberSaveable(carteId) { mutableStateOf("") }
+    var recherche by rememberSaveable(carteId, rechercheInitiale) { mutableStateOf(rechercheInitiale) }
     val resultat = remember(carteId, recherche) { RecherchePlan.chercher(carte.plan, recherche) }
     val clavier = LocalSoftwareKeyboardController.current
 
@@ -172,7 +172,7 @@ fun EcranPlan(vm: CarnetViewModel, carteId: String, onRetour: () -> Unit) {
 
         // Sans recherche : zones (les petites en zoomant) et sorties selon les interrupteurs ; avec : ce qui est trouvé.
         val zonesVisibles = resultat?.zones
-            ?: if (zones) carte.plan.zones.filter { it.detail == 0 || (it.detail == 1 && echelle >= 1.8f) || echelle >= 3f } else emptyList()
+            ?: if (zones) carte.plan.zones.filter { it.detail == 0 || (it.detail == 1 && echelle >= 1.8f) || (it.detail == 2 && echelle >= 3f) } else emptyList()
         val sortiesVisibles = resultat?.sorties ?: if (sorties) carte.plan.sorties else emptyList()
 
         BoxWithConstraints(
