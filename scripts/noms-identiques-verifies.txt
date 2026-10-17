@@ -58,3 +58,9 @@ Piazza Roma
 Plaza Rosa
 Piazza della Rupe
 La Chiesa
+
+# ARC (recherche sur les plans) : noms identiques dans la table de traduction française du jeu
+# (map-strings.fr, ST_Enemy) ; « Bastion » et « Bombardier » sont aussi des mots français.
+Bastion
+Bombardier
+Pop

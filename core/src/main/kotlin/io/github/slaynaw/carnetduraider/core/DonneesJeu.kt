@@ -1,5 +1,6 @@
 package io.github.slaynaw.carnetduraider.core
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -91,18 +92,36 @@ data class Quete(
 data class Carte(val id: String, val nom: String, val cleCalendrier: String? = null, val plan: Plan = Plan())
 
 /**
- * Plan simplifié d'une carte (image `assets/cartes/<id>.webp`, le plan en jeu) : zones et trappes de
- * sortie, avec leur nom français officiel et leur position (0 à 1 sur la largeur et la hauteur).
+ * Plan simplifié d'une carte (image `assets/cartes/<id>.webp`, le plan en jeu) : zones, sorties et points
+ * d'apparition des ARC, avec leur nom français officiel et leur position (0 à 1 sur la largeur et la hauteur).
  */
 @Serializable
-data class Plan(val zones: List<ZonePlan> = emptyList(), val sorties: List<PointPlan> = emptyList())
+data class Plan(
+    val zones: List<ZonePlan> = emptyList(),
+    val sorties: List<SortiePlan> = emptyList(),
+    val arcs: List<ArcPlan> = emptyList(),
+)
 
 /** [detail] : 0 pour les grandes zones, 1 et 2 pour les lieux qui n'apparaissent qu'en zoomant. */
 @Serializable
 data class ZonePlan(val nom: String, val x: Float, val y: Float, val detail: Int = 0)
 
+/** Sortie (point d'extraction) : [nom] officiel, ou `null` si elle n'en a pas à elle (terminal du téléphérique). */
 @Serializable
-data class PointPlan(val nom: String, val x: Float, val y: Float)
+data class SortiePlan(val type: TypeSortie, val x: Float, val y: Float, val nom: String? = null)
+
+@Serializable
+enum class TypeSortie {
+    @SerialName("trappe") TRAPPE,
+    @SerialName("ascenseur") ASCENSEUR,
+    @SerialName("metro") METRO,
+    @SerialName("conduit") CONDUIT,
+    @SerialName("telepherique") TELEPHERIQUE,
+}
+
+/** Un ARC et les points où il peut apparaître sur la carte (`[x, y]`, toutes conditions confondues). */
+@Serializable
+data class ArcPlan(val nom: String, val points: List<List<Float>>)
 
 /** Projet du jeu (Expédition, projet de saison…) : des étapes successives, chacune avec ses objets à livrer. */
 @Serializable

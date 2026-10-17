@@ -10,7 +10,8 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 - **Minuteurs** : les conditions de la carte et les événements affichent un compte à rebours à la seconde, sur l'accueil, dans l'onglet Cartes et sur le plan de chaque carte (temps restant, ou temps avant le début).
 - **Valider en un geste** : un bouton « Niveau N construit » sur chaque établi, « Terminée » sur chaque quête et « Étape terminée » sur chaque projet. Ce que le jeu a pris est retiré de ta réserve, sans rien saisir ; « Annuler » remet tout comme avant.
 - **Projets** : les Expéditions et les autres projets du jeu. Suis ceux que tu fais, leur prochaine étape s'ajoute à ta liste de courses.
-- **Plans des cartes** : le plan en jeu de chaque carte, avec le nom des lieux et les trappes de sortie. Zoome avec deux doigts ou en touchant deux fois ; les petits lieux apparaissent en zoomant.
+- **Plans des cartes** : le plan en jeu de chaque carte, avec le nom des lieux et les sorties (trappes, ascenseurs, métros, conduits d'aération). Zoome avec deux doigts ou en touchant deux fois ; les petits lieux apparaissent en zoomant.
+- **Recherche sur les plans** : tape « les trappes », « bondisseurs », « ascenseurs » ou le nom d'un lieu, et le plan ne montre que ça. Pour un ARC, tous les points où il peut apparaître sur la carte.
 - Données du jeu mises à jour.
 
 ## 0.4.0

@@ -21,6 +21,7 @@ import json
 import pathlib
 import re
 import sys
+import unicodedata
 
 RACINE = pathlib.Path(__file__).resolve().parent.parent
 SORTIE = RACINE / "core/src/main/resources/donnees-jeu.json"
@@ -131,8 +132,56 @@ def importer_icones(dossier_images, objets, items):
     return len(travaux), manquantes
 
 
+# Sorties du jeu (classe du point d'extraction -> type, pour la recherche sur le plan).
+TYPES_SORTIE = [
+    (r"RaiderHatchMarker|SalvageExtractionPoint_Hatch", "trappe"),
+    (r"SalvageExtractionPoint_Elevator", "ascenseur"),
+    (r"SalvageExtractionPoint_Metro", "metro"),
+    (r"SalvageExtractionPoint_Fan", "conduit"),
+    (r"SalvageExtractionPoint_MultiProbe", "telepherique"),
+]
+
+
+def normaliser(texte):
+    """Minuscules sans accents (tri alphabétique)."""
+    return "".join(c for c in unicodedata.normalize("NFD", texte.lower()) if not unicodedata.combining(c))
+
+
+def dans_anneau(x, y, anneau):
+    dedans = False
+    for (x1, y1), (x2, y2) in zip(anneau, anneau[-1:] + anneau[:-1]):
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            dedans = not dedans
+    return dedans
+
+
+def poi_contenant(pois, x, y):
+    """Zone nommée (POI) qui contient le point, sinon la plus proche à moins de 1 % du plan."""
+    proche, distance = None, 0.01
+    for poi in pois:
+        anneaux = poi.get("outline", [])
+        if any(len(a) > 2 and dans_anneau(x, y, a) for a in anneaux):
+            return poi
+        for a in anneaux:
+            for px, py in a:
+                d = ((px - x) ** 2 + (py - y) ** 2) ** 0.5
+                if d < distance:
+                    proche, distance = poi, d
+    return proche
+
+
+def ennemis_de_table(index, table):
+    """Indices des ARC qu'une table d'apparition peut faire venir (index.json, enemyTables)."""
+    t = index.get("enemyTables", {}).get(table) if table else None
+    if not t:
+        return set()
+    groupes = [g for liste in t.get("lists", []) for g in liste]
+    groupes += [g for liste in t.get("byDifficulty", {}).values() for g in liste]
+    return {genre[0] for g in groupes for genre in g.get("kinds", [])}
+
+
 def importer_plans(dossier_cartes, cartes, filtre):
-    """Plan simplifié de chaque carte : image du plan en jeu, zones et trappes de sortie (noms officiels)."""
+    """Plan simplifié de chaque carte : image du plan en jeu, zones, sorties et apparitions des ARC (noms officiels)."""
     from PIL import Image
     index = json.loads((dossier_cartes / "index.json").read_text(encoding="utf-8"))
     textes = json.loads((dossier_cartes / "map-strings.fr.json").read_text(encoding="utf-8"))
@@ -140,6 +189,8 @@ def importer_plans(dossier_cartes, cartes, filtre):
     for ancien in PLANS.glob("*.webp"):
         ancien.unlink()
     par_id = {c["id"]: c for c in cartes}
+    noms_arc = [filtre.nom("ARC", e.get("nameKey"), textes.get(e.get("nameKey") or ""), e.get("name"))
+                for e in index.get("enemies", [])]
     for entree in index["maps"]:
         carte = par_id.get(entree.get("slug"))
         if carte is None:
@@ -166,17 +217,36 @@ def importer_plans(dossier_cartes, cartes, filtre):
             n = nom(z.get("nameKey"), z.get("name"), "Zone de carte", z.get("nameKey"))
             if n:
                 zones.append({"nom": n, "x": z["uv"][0], "y": z["uv"][1], "detail": z.get("zoom", 0)})
+        # Sorties : points d'extraction du jeu, nommés par la zone (POI) qui les contient.
+        classes = donnees.get("spawnerClasses", [])
         sorties = []
-        for p in donnees.get("pois", []):
-            cle = p.get("titleKey") or ""
-            if not cle.startswith("ST_ExtractionPoints/"):
+        for x, y, ensemble in donnees.get("spawners", []):
+            type_sortie = next((t for motif, t in TYPES_SORTIE if re.search(motif, classes[ensemble])), None)
+            if type_sortie is None:
                 continue
-            n = nom(cle, p.get("title"), "Sortie", cle)
-            points = [pt for anneau in p.get("outline", []) for pt in anneau]
-            if n and points:
-                sorties.append({"nom": n, "x": round(sum(pt[0] for pt in points) / len(points), 4),
-                                "y": round(sum(pt[1] for pt in points) / len(points), 4)})
-        carte["plan"] = {"zones": zones, "sorties": sorties}
+            # Le terminal du téléphérique (Col de Pendola) n'a pas de nom à lui : la zone serait la carte entière.
+            poi = poi_contenant(donnees.get("pois", []), x, y) if type_sortie != "telepherique" else None
+            n = nom(poi.get("titleKey"), poi.get("title"), "Sortie", poi.get("titleKey")) if poi else None
+            sortie = {"type": type_sortie, "x": round(x, 4), "y": round(y, 4)}
+            if n:
+                sortie["nom"] = n
+            sorties.append(sortie)
+
+        # ARC : points d'apparition de chaque ARC (tous étages, toutes conditions de la carte).
+        points_arc = {}
+        probabilites = donnees.get("enemyP", [])
+        for i, (x, y, _z, _classe, table, _profil, _chemins) in enumerate(donnees.get("enemySpawners", [])):
+            if not any(p[i] > 0 for p in probabilites if i < len(p)):
+                continue
+            for e in ennemis_de_table(index, table):
+                n = noms_arc[e]
+                if n:
+                    pts = points_arc.setdefault(n, [])
+                    pt = [round(x, 4), round(y, 4)]
+                    if pt not in pts:
+                        pts.append(pt)
+        arcs = [{"nom": n, "points": pts} for n, pts in sorted(points_arc.items(), key=lambda e: normaliser(e[0]))]
+        carte["plan"] = {"zones": zones, "sorties": sorties, "arcs": arcs}
 
 
 def main():

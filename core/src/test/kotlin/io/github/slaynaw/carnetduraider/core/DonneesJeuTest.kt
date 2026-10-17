@@ -67,12 +67,18 @@ class DonneesJeuTest {
         val donnees = DonneesJeu.embarquees()
         for (carte in donnees.cartes) {
             assertTrue(carte.plan.zones.isNotEmpty(), "zones de ${carte.id}")
-            (carte.plan.zones.map { Triple(it.nom, it.x, it.y) } + carte.plan.sorties.map { Triple(it.nom, it.x, it.y) }).forEach { (nom, x, y) ->
+            assertTrue(carte.plan.sorties.isNotEmpty(), "sorties de ${carte.id}")
+            assertTrue(carte.plan.arcs.isNotEmpty(), "ARC de ${carte.id}")
+            val points = carte.plan.zones.map { Triple(it.nom, it.x, it.y) } +
+                carte.plan.sorties.map { Triple(it.nom ?: it.type.name, it.x, it.y) } +
+                carte.plan.arcs.flatMap { a -> a.points.map { Triple(a.nom, it[0], it[1]) } }
+            points.forEach { (nom, x, y) ->
                 assertTrue(nom.isNotBlank() && x in 0f..1f && y in 0f..1f, "$nom sur ${carte.id}")
             }
         }
         val ville = donnees.cartes.first { it.id == "buried-city" }.plan
         assertTrue(ville.zones.any { it.nom == "Vieille ville" })
-        assertTrue(ville.sorties.any { it.nom == "Trappe de la gare" })
+        assertTrue(ville.sorties.any { it.nom == "Trappe de la gare" && it.type == TypeSortie.TRAPPE })
+        assertTrue(ville.arcs.any { it.nom == "Bondisseur" && it.points.isNotEmpty() })
     }
 }

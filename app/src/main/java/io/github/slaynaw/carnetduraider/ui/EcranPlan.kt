@@ -19,13 +19,21 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,17 +56,21 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.slaynaw.carnetduraider.CarnetViewModel
+import io.github.slaynaw.carnetduraider.core.RecherchePlan
+import io.github.slaynaw.carnetduraider.core.ResultatPlan
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.IOException
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Zoom maximal du plan (l'image fait 2048 px de côté). */
 private const val ZOOM_MAX = 6f
@@ -78,8 +90,9 @@ private suspend fun chargerPlan(context: Context, carteId: String, reduction: In
 
 /**
  * Plan interactif simplifié d'une carte : le plan en jeu, les zones (les plus petites apparaissent en
- * zoomant) et les trappes de sortie, avec leurs noms français officiels ; en tête, les conditions en
- * cours sur cette carte et leur minuteur. Deux doigts pour zoomer et déplacer, double-tap pour zoomer.
+ * zoomant) et les sorties, avec leurs noms français officiels ; en tête, les conditions en cours sur
+ * cette carte et leur minuteur. La recherche ne montre que ce qu'on cherche (« trappes », un ARC et ses
+ * points d'apparition, un lieu). Deux doigts pour zoomer et déplacer, double-tap pour zoomer.
  */
 @Composable
 fun EcranPlan(vm: CarnetViewModel, carteId: String, onRetour: () -> Unit) {
@@ -90,6 +103,9 @@ fun EcranPlan(vm: CarnetViewModel, carteId: String, onRetour: () -> Unit) {
     var decalage by remember(carteId) { mutableStateOf(Offset.Zero) }
     var zones by rememberSaveable { mutableStateOf(true) }
     var sorties by rememberSaveable { mutableStateOf(true) }
+    var recherche by rememberSaveable(carteId) { mutableStateOf("") }
+    val resultat = remember(carteId, recherche) { RecherchePlan.chercher(carte.plan, recherche) }
+    val clavier = LocalSoftwareKeyboardController.current
 
     val etat by vm.calendrier.etat.collectAsStateWithLifecycle()
     val calendrier = remember(etat.donnees) { etat.donnees?.let(vm::calendrierOfficiel) }
@@ -118,12 +134,46 @@ fun EcranPlan(vm: CarnetViewModel, carteId: String, onRetour: () -> Unit) {
                     color = Signal.TexteDoux,
                 )
             }
+            OutlinedTextField(
+                value = recherche,
+                onValueChange = { recherche = it },
+                placeholder = { Text("Trappes, bondisseurs, un lieu…") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Cyan) },
+                trailingIcon = {
+                    if (recherche.isNotEmpty()) {
+                        IconButton(onClick = { recherche = "" }) { Icon(Icons.Filled.Close, contentDescription = "Effacer la recherche") }
+                    }
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { clavier?.hide() }),
+                shape = RoundedCornerShape(26.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Signal.Cyan,
+                    unfocusedBorderColor = Signal.Trait,
+                    focusedContainerColor = Signal.Surface,
+                    unfocusedContainerColor = Signal.Surface,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Interrupteur("Zones", zones) { zones = !zones }
-                if (carte.plan.sorties.isNotEmpty()) Interrupteur("Trappes de sortie", sorties) { sorties = !sorties }
+                if (resultat == null) {
+                    Interrupteur("Zones", zones) { zones = !zones }
+                    if (carte.plan.sorties.isNotEmpty()) Interrupteur("Sorties", sorties) { sorties = !sorties }
+                    // Suggestions : un geste pour ne voir que les trappes ou un ARC.
+                    Suggestion("Trappes") { recherche = "trappes" }
+                    carte.plan.arcs.forEach { arc -> Suggestion(arc.nom) { recherche = arc.nom } }
+                } else {
+                    Text(resume(resultat), style = MaterialTheme.typography.bodyMedium, color = if (resultat.vide) Signal.TexteDoux else Signal.Texte)
+                }
                 if (echelle > 1f) TextButton(onClick = { echelle = 1f; decalage = Offset.Zero }) { Text("Vue entière", color = Signal.Cyan) }
             }
         }
+
+        // Sans recherche : zones (les petites en zoomant) et sorties selon les interrupteurs ; avec : ce qui est trouvé.
+        val zonesVisibles = resultat?.zones
+            ?: if (zones) carte.plan.zones.filter { it.detail == 0 || (it.detail == 1 && echelle >= 1.8f) || echelle >= 3f } else emptyList()
+        val sortiesVisibles = resultat?.sorties ?: if (sorties) carte.plan.sorties else emptyList()
 
         BoxWithConstraints(
             Modifier
@@ -174,26 +224,30 @@ fun EcranPlan(vm: CarnetViewModel, carteId: String, onRetour: () -> Unit) {
                             dstSize = IntSize((cote * echelle).roundToInt(), (cote * echelle).roundToInt()),
                         )
                     }
-                    if (sorties) {
-                        carte.plan.sorties.forEach { s ->
-                            val p = versEcran(s.x, s.y)
-                            drawCircle(Signal.Fond, radius = 9.dp.toPx(), center = p)
-                            drawCircle(Signal.Cyan, radius = 6.dp.toPx(), center = p)
+                    resultat?.arcs?.forEach { arc ->
+                        arc.points.forEach { (x, y) ->
+                            val p = versEcran(x, y)
+                            drawCircle(Signal.Fond, radius = 7.dp.toPx(), center = p)
+                            drawCircle(Signal.Rouge, radius = 4.5.dp.toPx(), center = p)
                         }
+                    }
+                    sortiesVisibles.forEach { s ->
+                        val p = versEcran(s.x, s.y)
+                        drawCircle(Signal.Fond, radius = 9.dp.toPx(), center = p)
+                        drawCircle(Signal.Cyan, radius = 6.dp.toPx(), center = p)
                     }
                 }
                 if (image == null) {
                     Text("Chargement du plan…", color = Signal.TexteDoux, modifier = Modifier.align(Alignment.Center))
                 }
                 // Noms : grandes zones toujours, les autres en zoomant.
-                if (zones) {
-                    carte.plan.zones.filter { it.detail == 0 || (it.detail == 1 && echelle >= 1.8f) || echelle >= 3f }.forEach { z ->
-                        Etiquette(z.nom, versEcran(z.x, z.y), principale = z.detail == 0)
-                    }
-                }
-                if (sorties && echelle >= 3f) {
+                zonesVisibles.forEach { z -> Etiquette(z.nom, versEcran(z.x, z.y), principale = z.detail == 0) }
+                // Noms des sorties : en zoomant, ou tout de suite quand on les a cherchées.
+                if (resultat != null || echelle >= 3f) {
                     val sousLePoint = with(LocalDensity.current) { 22.dp.toPx() }
-                    carte.plan.sorties.forEach { s -> Etiquette(s.nom, versEcran(s.x, s.y) + Offset(0f, sousLePoint), principale = false, couleur = Signal.Cyan) }
+                    sortiesVisibles.forEach { s ->
+                        s.nom?.let { Etiquette(it, versEcran(s.x, s.y) + Offset(0f, sousLePoint), principale = false, couleur = Signal.Cyan) }
+                    }
                 }
             }
         }
@@ -220,6 +274,29 @@ private fun Etiquette(texte: String, point: Offset, principale: Boolean, couleur
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
         )
     }
+}
+
+/** « Bondisseur · 12 points d'apparition », « 4 sorties »… */
+private fun resume(r: ResultatPlan): String {
+    if (r.vide) return "Rien de ce nom sur cette carte."
+    val parties = mutableListOf<String>()
+    if (r.sorties.isNotEmpty()) parties += pluriel(r.sorties.size, "sortie", "sorties")
+    if (r.zones.isNotEmpty()) parties += pluriel(r.zones.size, "lieu", "lieux")
+    when (r.arcs.size) {
+        0 -> {}
+        1 -> parties += "${r.arcs[0].nom} · ${pluriel(r.arcs[0].points.size, "point d'apparition", "points d'apparition")}"
+        else -> parties += "${r.arcs.size} ARC (${pluriel(r.arcs.sumOf { it.points.size }, "point", "points")})"
+    }
+    return parties.joinToString(" · ")
+}
+
+@Composable
+private fun Suggestion(texte: String, onClick: () -> Unit) {
+    AssistChip(
+        onClick = onClick,
+        label = { Text(texte) },
+        colors = AssistChipDefaults.assistChipColors(labelColor = Signal.Texte),
+    )
 }
 
 @Composable

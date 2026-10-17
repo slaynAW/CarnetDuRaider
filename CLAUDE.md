@@ -15,8 +15,10 @@ telle qu'elle apparaît dans le jeu.
 - Les icônes des objets (`app/src/main/assets/objets/<identifiant>.webp`) sont les icônes officielles
   du jeu, réduites par le même script (Pillow). Ne jamais en dessiner ni en ajouter à la main.
   De même pour les plans des cartes (`app/src/main/assets/cartes/<carte>.webp`, assemblés à partir des
-  tuiles du plan en jeu de `public/data/map-data`) et leurs lieux et trappes de sortie (`Carte.plan`,
-  noms français officiels de `map-strings.fr.json`).
+  tuiles du plan en jeu de `public/data/map-data`), leurs lieux, sorties et points d'apparition des ARC
+  (`Carte.plan`, noms français officiels de `map-strings.fr.json`). La recherche sur le plan
+  (`RecherchePlan`) n'affiche que ces noms ; les mots de famille (« trappe », « ascenseur », « arc »…)
+  servent seulement à chercher, jamais de nom affiché.
 - Un nom sans traduction officielle vérifiée n'entre pas dans l'appli : le script l'exclut et le liste
   dans `docs/NOMS-A-VERIFIER.md`. Dans l'interface, un objet absent s'affiche « Nom à vérifier en jeu »
   (`Catalogue.NOM_A_VERIFIER`), jamais avec un nom inventé.

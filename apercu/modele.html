@@ -96,6 +96,7 @@ button.carte:hover { background: var(--releve); }
 .plan-vue img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; pointer-events: none; }
 .plan-vue .etq { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; background: rgba(20,20,23,.72); border-radius: 6px; padding: 2px 6px; font-size: 12px; font-weight: 600; pointer-events: none; }
 .plan-vue .etq.grande { font: 700 14px var(--titre); }
+.plan-vue .arc { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--rouge); border: 2px solid var(--fond); pointer-events: none; }
 .plan-vue .sortie { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--cyan); border: 3px solid var(--fond); pointer-events: none; }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s; } }
 </style>
@@ -221,7 +222,7 @@ const ONGLETS = [
   ["CARTES", "Cartes", "--cyan", "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"],
   ["PROGRESSION", "Progression", "--vert", "M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42a.25.25 0 0 1-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"],
 ];
-const S = { onglet: "ACCUEIL", ecran: null, recherche: "", rechercheRaid: "", rechercheQuetes: "", choix: null, validation: null, raid: null };
+const S = { onglet: "ACCUEIL", ecran: null, recherche: "", rechercheRaid: "", rechercheQuetes: "", recherchePlan: "", choix: null, validation: null, raid: null };
 
 // ---- Écrans ----
 const bandeau = (texte, c) => `<span class="bandeau" style="--c:var(${c})">${echap(texte)}</span>`;
@@ -289,11 +290,43 @@ function ecranCartes() {
 
 // ---- Plan interactif d'une carte (EcranPlan.kt) ----
 const P = { id: null, e: 1, dx: 0, dy: 0, zones: true, sorties: true };
+
+// Recherche sur le plan (RecherchePlan.kt) : sans accents, articles ni pluriel ; mots du nom ou famille.
+const MOTS_VIDES = new Set(["le", "la", "les", "l", "de", "des", "du", "d", "un", "une", "a", "au", "aux", "et", "ou", "en", "sur"]);
+const FAMILLE_SORTIES = ["sortie", "extraction", "evacuation"];
+const FAMILLES_TYPE = { trappe: ["trappe"], ascenseur: ["ascenseur"], metro: ["metro", "station"], conduit: ["conduit", "aeration"], telepherique: ["telepherique", "gondole", "terminal"] };
+const FAMILLE_ARC = ["arc", "ennemi", "robot"], FAMILLE_ZONES = ["zone", "lieu"];
+const motsPlan = t => normaliser(t).split(/[^\p{L}\p{N}]+/u).filter(m => m && !MOTS_VIDES.has(m)).map(m => m.length > 3 && /[sx]$/.test(m) ? m.slice(0, -1) : m);
+function correspondPlan(cherches, nom, famille) {
+  const mn = nom ? motsPlan(nom) : [];
+  return cherches.every(m => famille.includes(m) || famille.some(f => m.length >= 3 && f.startsWith(m)) || mn.some(w => w.startsWith(m)));
+}
+function chercherPlan(plan, requete) {
+  const mots = motsPlan(requete);
+  if (!mots.length) return null;
+  return {
+    zones: plan.zones.filter(z => correspondPlan(mots, z.nom, FAMILLE_ZONES)),
+    sorties: plan.sorties.filter(s => correspondPlan(mots, s.nom, [...FAMILLE_SORTIES, ...FAMILLES_TYPE[s.type]])),
+    arcs: (plan.arcs || []).filter(a => correspondPlan(mots, a.nom, FAMILLE_ARC)),
+  };
+}
+function resumePlan(r) {
+  if (!r.zones.length && !r.sorties.length && !r.arcs.length) return "Rien de ce nom sur cette carte.";
+  const parties = [];
+  if (r.sorties.length) parties.push(pluriel(r.sorties.length, "sortie", "sorties"));
+  if (r.zones.length) parties.push(pluriel(r.zones.length, "lieu", "lieux"));
+  if (r.arcs.length === 1) parties.push(`${r.arcs[0].nom} · ${pluriel(r.arcs[0].points.length, "point d'apparition", "points d'apparition")}`);
+  else if (r.arcs.length > 1) parties.push(`${r.arcs.length} ARC (${pluriel(r.arcs.reduce((n, a) => n + a.points.length, 0), "point", "points")})`);
+  return parties.join(" · ");
+}
+
 function ecranPlan() {
-  const c = cartes.get(P.id);
+  const c = cartes.get(P.id), r = chercherPlan(c.plan, S.recherchePlan);
   return `${retour("Plan", "--cyan")}<h3>${echap(c.nom)}</h3>
   <p class="petit doux" style="margin:0">Molette ou deux doigts pour zoomer, glisser pour déplacer, double-clic pour zoomer. Les petits lieux apparaissent en zoomant. Les conditions en cours et leur minuteur s'affichent ici dans l'appli Android.</p>
-  <div class="chips"><button class="chip" aria-pressed="${P.zones}" data-action="plan-zones">Zones</button>${c.plan.sorties.length ? `<button class="chip" aria-pressed="${P.sorties}" data-action="plan-sorties">Trappes de sortie</button>` : ""}${P.e > 1 ? `<button class="lien" style="--c:var(--cyan)" data-action="plan-entier">Vue entière</button>` : ""}</div>
+  <label class="recherche"><svg class="ic" viewBox="0 0 24 24" style="color:var(--cyan)"><path d="${ONGLETS[1][3]}"/></svg><input id="recherche-plan" type="search" placeholder="Trappes, bondisseurs, un lieu…" value="${echap(S.recherchePlan)}" data-champ="recherchePlan" autocomplete="off"></label>
+  <div class="chips">${r ? `<span class="petit" style="align-self:center;${r.zones.length || r.sorties.length || r.arcs.length ? "" : "color:var(--texte-doux)"}">${echap(resumePlan(r))}</span>`
+    : `<button class="chip" aria-pressed="${P.zones}" data-action="plan-zones">Zones</button>${c.plan.sorties.length ? `<button class="chip" aria-pressed="${P.sorties}" data-action="plan-sorties">Sorties</button>` : ""}<button class="chip" data-action="plan-chercher" data-id="trappes">Trappes</button>${(c.plan.arcs || []).map(a => `<button class="chip" data-action="plan-chercher" data-id="${echap(a.nom)}">${echap(a.nom)}</button>`).join("")}`}${P.e > 1 ? `<button class="lien" style="--c:var(--cyan)" data-action="plan-entier">Vue entière</button>` : ""}</div>
   <div class="plan-vue" id="plan-vue"><img id="plan-img" src="cartes/${c.id}.webp" alt="Plan en jeu${NB}: ${echap(c.nom)}" draggable="false"><div id="plan-calque"></div></div>`;
 }
 function placerPlan() {
@@ -306,9 +339,14 @@ function placerPlan() {
   img.style.width = cote + "px";
   img.style.transform = `translate(${ox + P.dx}px, ${oy + P.dy}px) scale(${P.e})`;
   const ecran = (u, v) => [ox + P.dx + u * cote * P.e, oy + P.dy + v * cote * P.e];
+  // Sans recherche : zones (les petites en zoomant) et sorties selon les interrupteurs ; avec : ce qui est trouvé.
+  const r = chercherPlan(c.plan, S.recherchePlan);
+  const zones = r ? r.zones : P.zones ? c.plan.zones.filter(z => z.detail === 0 || (z.detail === 1 && P.e >= 1.8) || P.e >= 3) : [];
+  const sorties = r ? r.sorties : P.sorties ? c.plan.sorties : [];
   let html = "";
-  if (P.sorties) for (const s of c.plan.sorties) { const [x, y] = ecran(s.x, s.y); html += `<i class="sortie" style="left:${x}px;top:${y}px"></i>`; if (P.e >= 3) html += `<span class="etq" style="left:${x}px;top:${y + 20}px;color:var(--cyan)">${echap(s.nom)}</span>`; }
-  if (P.zones) for (const z of c.plan.zones) if (z.detail === 0 || (z.detail === 1 && P.e >= 1.8) || P.e >= 3) { const [x, y] = ecran(z.x, z.y); html += `<span class="etq ${z.detail === 0 ? "grande" : ""}" style="left:${x}px;top:${y}px">${echap(z.nom)}</span>`; }
+  if (r) for (const a of r.arcs) for (const [u, v] of a.points) { const [x, y] = ecran(u, v); html += `<i class="arc" style="left:${x}px;top:${y}px"></i>`; }
+  for (const s of sorties) { const [x, y] = ecran(s.x, s.y); html += `<i class="sortie" style="left:${x}px;top:${y}px"></i>`; if (s.nom && (r || P.e >= 3)) html += `<span class="etq" style="left:${x}px;top:${y + 20}px;color:var(--cyan)">${echap(s.nom)}</span>`; }
+  for (const z of zones) { const [x, y] = ecran(z.x, z.y); html += `<span class="etq ${z.detail === 0 ? "grande" : ""}" style="left:${x}px;top:${y}px">${echap(z.nom)}</span>`; }
   calque.innerHTML = html;
 }
 function zoomer(nouvelle, px, py) {
@@ -498,7 +536,8 @@ document.addEventListener("click", ev => {
     case "etape-moins": M.etapesProjets[id] = Math.max((M.etapesProjets[id] ?? 0) - 1, 0); retirerAtteints(); break;
     case "suivre-projet": M.projetsSuivis = (M.projetsSuivis || []).includes(id) ? M.projetsSuivis.filter(x => x !== id) : [...(M.projetsSuivis || []), id]; break;
     case "annuler-validation": if (S.validation) { charger(S.validation.avant); S.validation = null; } break;
-    case "plan": Object.assign(P, { id, e: 1, dx: 0, dy: 0 }); return ouvrir("plan");
+    case "plan": Object.assign(P, { id, e: 1, dx: 0, dy: 0 }); S.recherchePlan = ""; return ouvrir("plan");
+    case "plan-chercher": S.recherchePlan = id; rendre(); return;
     case "plan-zones": P.zones = !P.zones; rendre(); return;
     case "plan-sorties": P.sorties = !P.sorties; rendre(); return;
     case "plan-entier": Object.assign(P, { e: 1, dx: 0, dy: 0 }); rendre(); return;
