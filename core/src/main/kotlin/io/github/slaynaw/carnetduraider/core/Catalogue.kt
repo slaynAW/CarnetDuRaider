@@ -9,6 +9,7 @@ class Catalogue(val donnees: DonneesJeu) {
     private val quetesParId = donnees.quetes.associateBy { it.id }
     private val cartesParId = donnees.cartes.associateBy { it.id }
     private val conditionsParId = donnees.conditions.associateBy { it.id }
+    private val projetsParId = donnees.projets.associateBy { it.id }
     private val index = donnees.objets.map { it to normaliser(it.nom) }
 
     fun objet(id: String): Objet? = objetsParId[id]
@@ -16,6 +17,7 @@ class Catalogue(val donnees: DonneesJeu) {
     fun quete(id: String): Quete? = quetesParId[id]
     fun carte(id: String): Carte? = cartesParId[id]
     fun condition(id: String): Condition? = conditionsParId[id]
+    fun projet(id: String): Projet? = projetsParId[id]
 
     /**
      * Nom à afficher pour un objet. Un objet absent des données (nom français officiel non vérifié)
@@ -40,6 +42,16 @@ class Catalogue(val donnees: DonneesJeu) {
     /** Tout le catalogue, par ordre alphabétique (sans tenir compte des majuscules ni des accents). */
     val tous: List<Objet> = index.sortedWith(compareBy({ it.second }, { it.first.nom })).map { it.first }
 
+    /** Objets qui donnent [objetId] quand on les recycle, du plus généreux au moins généreux. */
+    fun sourcesRecyclage(objetId: String): List<Quantite> = sourcesParObjet[objetId].orEmpty()
+
+    private val sourcesParObjet: Map<String, List<Quantite>> by lazy {
+        donnees.objets
+            .flatMap { o -> o.recyclage.map { it.id to Quantite(o.id, it.quantite) } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, l) -> l.sortedWith(compareByDescending<Quantite> { it.quantite }.thenBy { normaliser(nomObjet(it.id)) }) }
+    }
+
     /** Ce que rapporte le recyclage d'une unité, en pièces (valeur des matériaux obtenus). */
     fun valeurRecyclage(objet: Objet): Int =
         objet.recyclage.sumOf { (objetsParId[it.id]?.valeur ?: 0) * it.quantite }
@@ -51,5 +63,8 @@ class Catalogue(val donnees: DonneesJeu) {
             Normalizer.normalize(texte.trim().lowercase(), Normalizer.Form.NFD)
                 .replace(Regex("\\p{Mn}+"), "")
                 .replace('’', '\'')
+                // Espaces insécables des noms officiels (« Butin 2 ») : une espace normale, comme au clavier.
+                .replace('\u00a0', ' ')
+                .replace('\u202f', ' ')
     }
 }

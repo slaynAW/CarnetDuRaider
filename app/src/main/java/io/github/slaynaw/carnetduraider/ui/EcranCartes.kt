@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -45,11 +47,11 @@ import kotlinx.coroutines.launch
 private const val HORIZON_MS = 6 * Calendrier.UNE_HEURE
 
 @Composable
-fun EcranCartes(vm: CarnetViewModel) {
+fun EcranCartes(vm: CarnetViewModel, ouvrirPlan: (String) -> Unit) {
     val etat by vm.calendrier.etat.collectAsStateWithLifecycle()
     val liens = LocalUriHandler.current
     val portee = rememberCoroutineScope()
-    val t = maintenant()
+    val t = maintenant(1_000)
     val calendrier = remember(etat.donnees) { etat.donnees?.let(vm::calendrierOfficiel) }
     val region = vm.region
 
@@ -97,13 +99,28 @@ fun EcranCartes(vm: CarnetViewModel) {
             }
         }
 
+        item { Titre("Plans des cartes") }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                vm.catalogue.donnees.cartes.forEach { c ->
+                    Surface(onClick = { ouvrirPlan(c.id) }, color = Signal.Surface, shape = RoundedCornerShape(16.dp)) {
+                        Column(Modifier.width(132.dp)) {
+                            ApercuPlan(c.id, Modifier.fillMaxWidth().height(96.dp))
+                            Text(c.nom, style = MaterialTheme.typography.labelMedium, maxLines = 2, modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp))
+                        }
+                    }
+                }
+            }
+        }
+
         if (calendrier != null) {
             val enCours = calendrier.enCours(region, t)
             item { Titre("En ce moment") }
             val cartes = vm.catalogue.donnees.cartes.map { it.nom } +
                 enCours.map { it.carte }.filter { nom -> vm.catalogue.donnees.cartes.none { it.nom == nom } }.distinct()
             items(cartes, key = { "maintenant-$it" }) { carte ->
-                CarteMaintenant(carte, enCours.filter { it.carte == carte }, t)
+                val id = vm.catalogue.donnees.cartes.firstOrNull { it.nom == carte }?.id
+                CarteMaintenant(carte, enCours.filter { it.carte == carte }, t, onClick = id?.let { { ouvrirPlan(it) } })
             }
 
             val aVenir = calendrier.aVenir(region, t, HORIZON_MS)
@@ -144,10 +161,13 @@ private fun Point(creneau: Creneau) {
 }
 
 @Composable
-private fun CarteMaintenant(carte: String, creneaux: List<Creneau>, t: Long) {
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+private fun CarteMaintenant(carte: String, creneaux: List<Creneau>, t: Long, onClick: (() -> Unit)?) {
+    Surface(onClick = { onClick?.invoke() }, enabled = onClick != null, color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(carte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(carte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (onClick != null) Text("Plan ›", style = MaterialTheme.typography.labelMedium, color = Signal.Cyan)
+            }
             if (creneaux.isEmpty()) {
                 Text("Aucune condition", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
@@ -155,7 +175,7 @@ private fun CarteMaintenant(carte: String, creneaux: List<Creneau>, t: Long) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Point(c)
                     Text(c.condition, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text("encore ${duree(c.fin - t)}", style = MaterialTheme.typography.labelMedium, color = Signal.Cyan)
+                    Text(chrono(c.fin - t), style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.Cyan)
                 }
             }
         }
@@ -168,7 +188,7 @@ private fun Horaire(debut: Long, creneaux: List<Creneau>, t: Long) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(heureLocale(debut, t), style = MaterialTheme.typography.titleMedium)
-                Text("dans ${duree(debut - t)}", style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                Text("dans ${chrono(debut - t)}", style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"), color = Signal.Or)
             }
             creneaux.forEach { c ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -193,10 +213,10 @@ private fun ProchaineFois(vm: CarnetViewModel, c: Creneau, t: Long) {
             Column(horizontalAlignment = Alignment.End) {
                 if (c.enCours(t)) {
                     Text("En cours", style = MaterialTheme.typography.titleSmall, color = Signal.Cyan)
-                    Text("encore ${duree(c.fin - t)}", style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                    Text("encore ${chrono(c.fin - t)}", style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"), color = Signal.TexteDoux)
                 } else {
                     Text(heureLocale(c.debut, t), style = MaterialTheme.typography.titleSmall)
-                    Text("dans ${duree(c.debut - t)}", style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                    Text("dans ${chrono(c.debut - t)}", style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"), color = Signal.TexteDoux)
                 }
             }
         }

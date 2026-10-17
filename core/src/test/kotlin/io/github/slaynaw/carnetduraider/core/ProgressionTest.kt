@@ -74,4 +74,28 @@ class ProgressionTest {
         val apres = suivi.retirer(reserve, listOf(Quantite("metal_parts", 25), Quantite("fabric", 9), Quantite("rubber_parts", 1)))
         assertEquals(mapOf("metal_parts" to 5), apres)
     }
+
+    @Test
+    fun `projets suivis et etapes`() {
+        val projet = catalogue.projet("trophy_display_project")!!
+        assertEquals("Présentoir à trophées", projet.nom)
+        assertFalse(suivi.objectifsAutomatiques(depart).any { it is Objectif.EtapeDeProjet }, "aucun projet suivi par défaut")
+
+        val suit = suivi.suivreProjet(depart, projet.id, true)
+        assertTrue(Objectif.EtapeDeProjet(projet.id, 0) in suivi.objectifsAutomatiques(suit))
+        assertEquals("Présentoir à trophées · Menaces errantes", Planificateur(catalogue).libelle(Objectif.EtapeDeProjet(projet.id, 0)))
+
+        var p = suit
+        repeat(projet.etapes.size) { p = suivi.terminerEtape(p, projet) }
+        assertNull(suivi.prochaineEtape(p, projet))
+        assertFalse(suivi.objectifsAutomatiques(p).any { it is Objectif.EtapeDeProjet })
+        assertEquals(projet.etapes.size, suivi.terminerEtape(p, projet).etapesProjets[projet.id], "jamais au-delà de la dernière étape")
+    }
+
+    @Test
+    fun `valider sans avoir saisi tous les objets`() {
+        // Seul ce qui est noté dans la réserve est retiré, sans jamais passer sous zéro.
+        val apres = suivi.retirer(mapOf("metal_parts" to 3), listOf(Quantite("metal_parts", 25), Quantite("fabric", 30)))
+        assertTrue(apres.isEmpty())
+    }
 }

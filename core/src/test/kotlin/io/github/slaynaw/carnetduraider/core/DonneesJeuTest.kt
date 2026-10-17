@@ -60,5 +60,52 @@ class DonneesJeuTest {
         assertTrue(resultats.any { it.nom == "Pilote de Guêpe endommagé" })
         assertEquals("Alliage ARC", catalogue.rechercher("ALLIAGE").first().nom)
         assertTrue(catalogue.rechercher("  ").isEmpty())
+        // Noms officiels avec une espace insécable : trouvés en tapant une espace normale.
+        assertEquals("Butin 2", catalogue.rechercher("butin 2").first().nom.replace('\u00a0', ' '))
+    }
+
+    @Test
+    fun `plans des cartes`() {
+        val donnees = DonneesJeu.embarquees()
+        for (carte in donnees.cartes) {
+            assertTrue(carte.plan.zones.isNotEmpty(), "zones de ${carte.id}")
+            assertTrue(carte.plan.sorties.isNotEmpty(), "sorties de ${carte.id}")
+            assertTrue(carte.plan.arcs.isNotEmpty(), "ARC de ${carte.id}")
+            val points = carte.plan.zones.map { Triple(it.nom, it.x, it.y) } +
+                carte.plan.sorties.map { Triple(it.nom ?: it.type.name, it.x, it.y) } +
+                carte.plan.arcs.flatMap { a -> a.points.map { Triple(a.nom, it[0], it[1]) } }
+            points.forEach { (nom, x, y) ->
+                assertTrue(nom.isNotBlank() && x in 0f..1f && y in 0f..1f, "$nom sur ${carte.id}")
+            }
+        }
+        val ville = donnees.cartes.first { it.id == "buried-city" }.plan
+        assertTrue(ville.zones.any { it.nom == "Vieille ville" })
+        assertTrue(ville.sorties.any { it.nom == "Trappe de la gare" && it.type == TypeSortie.TRAPPE })
+        assertTrue(ville.arcs.any { it.nom == "Bondisseur" && it.points.isNotEmpty() })
+    }
+
+    @Test
+    fun `comment obtenir un objet`() {
+        val catalogue = Catalogue(DonneesJeu.embarquees())
+        val ids = catalogue.donnees.cartes.map { it.id }.toSet()
+
+        val batterie = catalogue.objet("battery")!!.obtention
+        assertTrue(batterie.cartes.isNotEmpty() && batterie.zones.isNotEmpty())
+        assertEquals(100, batterie.cartes.first().indice)
+        assertEquals(100, batterie.zones.first().indice)
+        assertTrue((batterie.cartes.map { it.carte } + batterie.zones.map { it.carte }).all { it in ids })
+        assertTrue(batterie.zones.all { it.zone.isNotBlank() && it.indice in 1..100 })
+
+        val butin = catalogue.objet("looting_mk2")!!.obtention
+        assertTrue(butin.fabrications.any { it.etabli != null && it.niveau == 2 && it.ingredients.isNotEmpty() })
+        assertTrue(butin.achats.any { it.commercant == "Lance" && it.pieces > 0 })
+        assertTrue(butin.recompenses.isNotEmpty())
+
+        // Citron : uniquement sur ses arbres, surtout au Barrage.
+        assertEquals("dam-battleground", catalogue.objet("lemon")!!.obtention.cartes.first().carte)
+
+        val sources = catalogue.sourcesRecyclage("metal_parts")
+        assertTrue(sources.size > 10)
+        assertTrue(sources.zipWithNext().all { (a, b) -> a.quantite >= b.quantite })
     }
 }

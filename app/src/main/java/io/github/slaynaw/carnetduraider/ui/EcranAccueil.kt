@@ -22,8 +22,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
+import io.github.slaynaw.carnetduraider.core.calendrier.Calendrier
+import io.github.slaynaw.carnetduraider.core.calendrier.Creneau
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import java.time.LocalTime
 
@@ -32,8 +36,8 @@ fun EcranAccueil(
     vm: CarnetViewModel,
     aller: (Onglet) -> Unit,
     nouvelleVersion: String?,
-    /** Conditions de la carte en cours (calendrier officiel), ou `null` s'il n'a pas encore été lu. */
-    conditionsEnCours: Int?,
+    /** Calendrier officiel des conditions de la carte, ou `null` s'il n'a pas encore été lu. */
+    calendrier: Calendrier?,
     retourDeRaid: () -> Unit,
     afficherMiseAJour: () -> Unit,
 ) {
@@ -76,6 +80,8 @@ fun EcranAccueil(
             }
         }
 
+        if (calendrier != null) BlocConditions(vm, calendrier, onClick = { aller(Onglet.CARTES) })
+
         // Après chaque raid : saisie rapide de ce qu'on rapporte.
         Button(
             onClick = retourDeRaid,
@@ -106,9 +112,9 @@ fun EcranAccueil(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Tuile(
-                titre = "Conditions",
-                chiffre = conditionsEnCours?.toString() ?: donnees.cartes.size.toString(),
-                legende = if (conditionsEnCours != null) "en cours" else pluriel(donnees.cartes.size, "carte", "cartes"),
+                titre = "Cartes",
+                chiffre = donnees.cartes.size.toString(),
+                legende = "plans et conditions",
                 couleur = Signal.Cyan,
                 onClick = { aller(Onglet.CARTES) },
                 modifier = Modifier.weight(1f),
@@ -129,6 +135,35 @@ fun EcranAccueil(
             style = MaterialTheme.typography.bodySmall,
             color = Signal.TexteDiscret,
         )
+    }
+}
+
+/** Conditions de la carte en cours et à venir, avec leur minuteur à la seconde. */
+@Composable
+private fun BlocConditions(vm: CarnetViewModel, calendrier: Calendrier, onClick: () -> Unit) {
+    val t = maintenant(1_000)
+    val enCours = calendrier.enCours(vm.region, t)
+    val suivantes = calendrier.aVenir(vm.region, t, 6 * Calendrier.UNE_HEURE).take(3 - enCours.size.coerceAtMost(2))
+    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Conditions de la carte", style = MaterialTheme.typography.titleSmall, color = Signal.Cyan)
+            if (enCours.isEmpty() && suivantes.isEmpty()) {
+                Text("Rien d'annoncé dans les prochaines heures.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+            }
+            enCours.forEach { LigneMinuteur(it, "encore ${chrono(it.fin - t)}", Signal.Cyan) }
+            suivantes.forEach { LigneMinuteur(it, "dans ${chrono(it.debut - t)}", Signal.Or) }
+        }
+    }
+}
+
+@Composable
+private fun LigneMinuteur(c: Creneau, minuteur: String, couleur: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.weight(1f)) {
+            Text(c.condition, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = if (c.majeure) Signal.Rouge else Signal.Texte)
+            Text(c.carte, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+        }
+        Text(minuteur, style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = couleur)
     }
 }
 
