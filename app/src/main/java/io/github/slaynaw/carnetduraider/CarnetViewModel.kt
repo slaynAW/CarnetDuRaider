@@ -12,6 +12,8 @@ import io.github.slaynaw.carnetduraider.core.ListeDeCourses
 import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.Planificateur
 import io.github.slaynaw.carnetduraider.core.Progression
+import io.github.slaynaw.carnetduraider.core.Projet
+import io.github.slaynaw.carnetduraider.core.Quantite
 import io.github.slaynaw.carnetduraider.core.SuiviProgression
 import io.github.slaynaw.carnetduraider.core.Verdict
 import io.github.slaynaw.carnetduraider.core.calendrier.Calendrier
@@ -72,12 +74,19 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         memoire.ecrireObjectifs(objectifsManuels)
     }
 
-    /** Amélioration construite en jeu (avec [retirerCout], le coût est déduit de la réserve). */
-    fun ameliorer(etabli: Etabli, retirerCout: Boolean) {
+    /** Dernière validation, annulable quelques secondes (bandeau « Annuler »). */
+    var derniereValidation by mutableStateOf<Validation?>(null)
+        private set
+
+    /**
+     * Amélioration construite en jeu, validée en une touche : le niveau suivant devient l'objectif, et
+     * ce que le jeu a pris est retiré de la réserve (dans la limite de ce qui y est noté).
+     */
+    fun validerEtabli(etabli: Etabli) {
         val niveau = suivi.prochainNiveau(progression, etabli) ?: return
-        if (retirerCout) changerReserve(suivi.retirer(reserve, niveau.cout))
-        changerProgression(suivi.changerNiveau(progression, etabli, niveau.niveau))
-        retirerAtteints()
+        valider("${etabli.nom} · niveau ${niveau.niveau}", niveau.cout) {
+            changerProgression(suivi.changerNiveau(progression, etabli, niveau.niveau))
+        }
     }
 
     /** Correction du niveau, sans toucher à la réserve. */
@@ -88,11 +97,48 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
 
     fun suivreEtabli(etabliId: String, suivre: Boolean) = changerProgression(suivi.suivreEtabli(progression, etabliId, suivre))
 
-    /** Quête terminée en jeu (avec [retirerObjets], les objets demandés sont déduits de la réserve). */
-    fun terminerQuete(queteId: String, retirerObjets: Boolean) {
-        if (retirerObjets) changerReserve(suivi.retirer(reserve, catalogue.quete(queteId)?.objets.orEmpty()))
-        changerProgression(suivi.terminerQuete(progression, queteId))
+    /** Quête terminée en jeu, validée en une touche (objets demandés retirés de la réserve). */
+    fun validerQuete(queteId: String) {
+        val quete = catalogue.quete(queteId) ?: return
+        valider(quete.nom, quete.objets) { changerProgression(suivi.terminerQuete(progression, queteId)) }
+    }
+
+    /** Étape de projet terminée en jeu, validée en une touche. */
+    fun validerEtape(projet: Projet) {
+        val etape = suivi.prochaineEtape(progression, projet) ?: return
+        valider("${projet.nom} · ${planificateur.nomEtape(projet, etape)}", projet.etapes[etape].cout) {
+            changerProgression(suivi.terminerEtape(progression, projet))
+        }
+    }
+
+    fun changerEtapes(projet: Projet, faites: Int) {
+        changerProgression(suivi.changerEtapes(progression, projet, faites))
         retirerAtteints()
+    }
+
+    fun suivreProjet(projetId: String, suivre: Boolean) = changerProgression(suivi.suivreProjet(progression, projetId, suivre))
+
+    /** Annule la dernière validation : progression, réserve et objectifs reviennent comme avant. */
+    fun annulerValidation() {
+        val v = derniereValidation ?: return
+        changerReserve(v.reserve)
+        changerProgression(v.progression)
+        objectifsManuels = v.objectifsManuels
+        memoire.ecrireObjectifs(v.objectifsManuels)
+        derniereValidation = null
+    }
+
+    fun oublierValidation() {
+        derniereValidation = null
+    }
+
+    private fun valider(titre: String, cout: List<Quantite>, avancer: () -> Unit) {
+        val avant = Validation(titre, 0, reserve, progression, objectifsManuels)
+        val retires = cout.sumOf { minOf(possede(it.id), it.quantite) }
+        changerReserve(suivi.retirer(reserve, cout))
+        avancer()
+        retirerAtteints()
+        derniereValidation = avant.copy(objetsRetires = retires)
     }
 
     fun annulerQuete(queteId: String) = changerProgression(suivi.annulerQuete(progression, queteId))
@@ -136,6 +182,7 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
             when (o) {
                 is Objectif.NiveauDEtabli -> catalogue.etabli(o.etabliId)?.let { suivi.niveau(progression, it) >= o.niveau } ?: false
                 is Objectif.QueteATerminer -> o.queteId in progression.quetesTerminees
+                is Objectif.EtapeDeProjet -> (progression.etapesProjets[o.projetId] ?: 0) > o.etape
             }
         }
         if (restants != objectifsManuels) {
@@ -148,3 +195,12 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         const val MAX_QUANTITE = 9999
     }
 }
+
+/** Une validation (établi, quête, étape de projet), avec l'état d'avant pour pouvoir l'annuler. */
+data class Validation(
+    val titre: String,
+    val objetsRetires: Int,
+    val reserve: Map<String, Int>,
+    val progression: Progression,
+    val objectifsManuels: List<Objectif>,
+)

@@ -5,6 +5,17 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.5.0
+
+- **Minuteurs** : les conditions de la carte et les événements affichent un compte à rebours à la seconde, sur l'accueil, dans l'onglet Cartes et sur le plan de chaque carte (temps restant, ou temps avant le début).
+- **Valider en un geste** : un bouton « Niveau N construit » sur chaque établi, « Terminée » sur chaque quête et « Étape terminée » sur chaque projet. Ce que le jeu a pris est retiré de ta réserve, sans rien saisir ; « Annuler » remet tout comme avant.
+- **Projets** : les Expéditions et les autres projets du jeu. Suis ceux que tu fais, leur prochaine étape s'ajoute à ta liste de courses.
+- **Plans des cartes** : le plan en jeu de chaque carte, avec le nom des lieux et les sorties (trappes, ascenseurs, métros, conduits d'aération). Zoome avec deux doigts ou en touchant deux fois ; les petits lieux apparaissent en zoomant.
+- **Recherche sur les plans** : tape « les trappes », « bondisseurs », « ascenseurs » ou le nom d'un lieu, et le plan ne montre que ça. Pour un ARC, tous les points où il peut apparaître sur la carte.
+- **Comment obtenir chaque objet** : sur sa fiche, les meilleures cartes et zones où le trouver (touche une zone pour la voir sur le plan), les commerçants qui le vendent et à quel prix, sa fabrication (établi, niveau, ingrédients, plan à débloquer), les objets qui le donnent au recyclage et les quêtes ou projets qui le donnent en récompense. Le classement vient des tables de butin du jeu ; les taux de drop exacts ne sont pas publiés.
+- La recherche d'objets trouve aussi les noms avec un chiffre, comme « Butin 2 ».
+- Données du jeu mises à jour.
+
 ## 0.4.0
 
 - **Alertes des conditions de la carte** : touche la cloche d'une condition (onglet Cartes) ou choisis-les dans les réglages, et le téléphone te prévient 5 à 30 minutes avant son début, même appli fermée et sans connexion.

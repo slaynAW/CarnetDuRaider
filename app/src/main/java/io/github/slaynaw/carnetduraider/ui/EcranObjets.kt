@@ -1,6 +1,8 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -29,9 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
+import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.Objet
 import io.github.slaynaw.carnetduraider.core.Sortie
 import io.github.slaynaw.carnetduraider.core.Verdict
@@ -100,9 +104,18 @@ private fun LigneObjet(objet: Objet, possede: Int, onClick: () -> Unit) {
     }
 }
 
-/** Fiche d'un objet : réserve, verdict, valeur, recyclage et lieux. */
+/**
+ * Fiche d'un objet : réserve, verdict, valeur, recyclage, et comment l'obtenir (butin, commerçants,
+ * fabrication, recyclage d'autres objets, récompenses). [ouvrirZone] ouvre le plan sur une zone de butin.
+ */
 @Composable
-fun EcranFiche(vm: CarnetViewModel, objetId: String, onRetour: () -> Unit) {
+fun EcranFiche(
+    vm: CarnetViewModel,
+    objetId: String,
+    onRetour: () -> Unit,
+    ouvrir: (String) -> Unit = {},
+    ouvrirZone: (carteId: String, zone: String) -> Unit = { _, _ -> },
+) {
     val objet = vm.catalogue.objet(objetId)
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
@@ -147,12 +160,118 @@ fun EcranFiche(vm: CarnetViewModel, objetId: String, onRetour: () -> Unit) {
                 objet.recyclage.forEach { LigneQuantite(vm, it.id, it.quantite) }
             }
         }
-        if (objet.lieux.isNotEmpty()) {
-            Section("Où le trouver") {
-                Text(objet.lieux.joinToString(" · "), style = MaterialTheme.typography.bodyLarge)
+        CommentLObtenir(vm, objet, ouvrir, ouvrirZone)
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Tout ce que les données du jeu disent sur la façon d'obtenir l'objet, du butin aux récompenses. */
+@Composable
+private fun CommentLObtenir(vm: CarnetViewModel, objet: Objet, ouvrir: (String) -> Unit, ouvrirZone: (String, String) -> Unit) {
+    val o = objet.obtention
+    val recyclage = vm.catalogue.sourcesRecyclage(objet.id)
+    if (objet.lieux.isNotEmpty() || o.cartes.isNotEmpty() || o.zones.isNotEmpty()) {
+        Section("Où le trouver") {
+            if (objet.lieux.isNotEmpty()) {
+                Text("Dans les zones\u00a0: ${objet.lieux.joinToString(" · ")}", style = MaterialTheme.typography.bodyLarge)
+            }
+            if (o.cartes.isNotEmpty()) {
+                SousTitreFiche("Meilleures cartes")
+                o.cartes.forEach { c -> LigneIndice(vm.catalogue.carte(c.carte)?.nom ?: Catalogue.NOM_A_VERIFIER, null, c.indice) }
+            }
+            if (o.zones.isNotEmpty()) {
+                SousTitreFiche("Meilleures zones")
+                o.zones.forEach { z ->
+                    LigneIndice(z.zone, vm.catalogue.carte(z.carte)?.nom, z.indice, onClick = { ouvrirZone(z.carte, z.zone) })
+                }
+                Text(
+                    "Classement d'après les tables de butin du jeu (condition normale), 100 pour le meilleur endroit. " +
+                        "Les taux de drop exacts ne sont pas publiés\u00a0: le jeu tire le butin sur ses serveurs.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Signal.TexteDoux,
+                )
             }
         }
-        Spacer(Modifier.height(8.dp))
+    }
+    if (o.achats.isNotEmpty()) {
+        Section("Chez les commerçants") {
+            o.achats.forEach { a ->
+                Column(Modifier.padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    val prix = buildList {
+                        if (a.pieces > 0) add("${a.pieces} pièces")
+                        if (a.valeurObjets > 0) add("des objets valant ${a.valeurObjets} pièces")
+                    }.joinToString(" + ")
+                    val pour = if (a.quantite > 1) "${a.quantite} pour " else ""
+                    Text("${a.commercant}${if (prix.isNotEmpty()) "\u00a0: $pour$prix" else ""}", style = MaterialTheme.typography.bodyLarge)
+                    a.objets.forEach { LigneQuantite(vm, it.id, it.quantite) }
+                    a.limite?.let { n ->
+                        Text(
+                            if (a.parJour) "$n par jour au plus" else pluriel(n, "achat possible", "achats possibles"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Signal.TexteDoux,
+                        )
+                    }
+                }
+            }
+        }
+    }
+    if (o.fabrications.isNotEmpty()) {
+        Section("Fabrication") {
+            o.fabrications.forEach { f ->
+                Column(Modifier.padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    val ou = f.etabli?.let { e -> f.niveau?.let { "$e · niveau $it" } ?: e } ?: "Pendant un raid"
+                    Text(if (f.quantite > 1) "$ou (en donne ${f.quantite})" else ou, style = MaterialTheme.typography.bodyLarge)
+                    f.plan?.let { Text("Plan à débloquer\u00a0: $it", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux) }
+                    f.ingredients.forEach { LigneQuantite(vm, it.id, it.quantite) }
+                }
+            }
+        }
+    }
+    if (recyclage.isNotEmpty()) {
+        Section("En recyclant") {
+            recyclage.take(6).forEach { q ->
+                Surface(onClick = { ouvrir(q.id) }, color = Signal.Fond, shape = RoundedCornerShape(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        IconeObjet(q.id, vm.catalogue.objet(q.id)?.rarete, 32.dp)
+                        Text(vm.catalogue.nomObjet(q.id), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text("en donne ${q.quantite}", style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                    }
+                }
+            }
+            if (recyclage.size > 6) {
+                Text("Et ${pluriel(recyclage.size - 6, "autre objet", "autres objets")}.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+            }
+        }
+    }
+    if (o.recompenses.isNotEmpty()) {
+        Section("En récompense") {
+            o.recompenses.forEach { Text(it, style = MaterialTheme.typography.bodyLarge) }
+        }
+    }
+}
+
+@Composable
+private fun SousTitreFiche(texte: String) {
+    Text(texte, style = MaterialTheme.typography.titleSmall, color = Signal.Or, modifier = Modifier.padding(top = 6.dp))
+}
+
+/** Un endroit et son indice (1 à 100), avec une barre ; cliquable pour ouvrir le plan. */
+@Composable
+private fun LigneIndice(nom: String, sousTitre: String?, indice: Int, onClick: (() -> Unit)? = null) {
+    Surface(onClick = { onClick?.invoke() }, enabled = onClick != null, color = Signal.Fond, shape = RoundedCornerShape(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(nom, style = MaterialTheme.typography.bodyLarge)
+                    sousTitre?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux) }
+                }
+                Text("$indice", style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.Or)
+                if (onClick != null) Text("  Plan ›", style = MaterialTheme.typography.labelMedium, color = Signal.Cyan)
+            }
+            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Signal.Releve)) {
+                Box(Modifier.fillMaxWidth(indice / 100f).height(4.dp).background(Signal.Or))
+            }
+        }
     }
 }
 

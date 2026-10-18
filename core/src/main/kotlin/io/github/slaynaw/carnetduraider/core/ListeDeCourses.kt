@@ -4,6 +4,9 @@ package io.github.slaynaw.carnetduraider.core
 sealed interface Objectif {
     data class NiveauDEtabli(val etabliId: String, val niveau: Int) : Objectif
     data class QueteATerminer(val queteId: String) : Objectif
+
+    /** [etape] : rang de l'étape dans le projet, à partir de 0. */
+    data class EtapeDeProjet(val projetId: String, val etape: Int) : Objectif
 }
 
 /** Une ligne de la liste de courses : un objet, ce qu'il faut, ce qu'on a, et pour quels objectifs. */
@@ -41,12 +44,19 @@ class Planificateur(private val catalogue: Catalogue) {
             "${catalogue.etabli(objectif.etabliId)?.nom ?: Catalogue.NOM_A_VERIFIER} · niveau ${objectif.niveau}"
         is Objectif.QueteATerminer ->
             "Quête «\u00a0${catalogue.quete(objectif.queteId)?.nom ?: Catalogue.NOM_A_VERIFIER}\u00a0»"
+        is Objectif.EtapeDeProjet -> catalogue.projet(objectif.projetId).let { projet ->
+            "${projet?.nom ?: Catalogue.NOM_A_VERIFIER} · ${nomEtape(projet, objectif.etape)}"
+        }
     }
+
+    /** Nom officiel de l'étape, ou « étape 2 » (rang dans le projet) s'il n'est pas vérifié. */
+    fun nomEtape(projet: Projet?, etape: Int): String = projet?.etapes?.getOrNull(etape)?.nom ?: "étape ${etape + 1}"
 
     fun besoins(objectif: Objectif): List<Quantite> = when (objectif) {
         is Objectif.NiveauDEtabli -> catalogue.etabli(objectif.etabliId)
             ?.niveaux?.firstOrNull { it.niveau == objectif.niveau }?.cout.orEmpty()
         is Objectif.QueteATerminer -> catalogue.quete(objectif.queteId)?.objets.orEmpty()
+        is Objectif.EtapeDeProjet -> catalogue.projet(objectif.projetId)?.etapes?.getOrNull(objectif.etape)?.cout.orEmpty()
     }
 
     /** Pourquoi garder cet objet : chaque objectif qui en demande, avec la quantité. */

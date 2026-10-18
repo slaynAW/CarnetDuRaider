@@ -11,6 +11,10 @@ data class Progression(
     val quetesTerminees: Set<String> = emptySet(),
     /** Établis dont le joueur ne veut pas suivre l'amélioration. */
     val etablisIgnores: Set<String> = emptySet(),
+    /** Nombre d'étapes terminées de chaque projet. */
+    val etapesProjets: Map<String, Int> = emptyMap(),
+    /** Projets suivis (aucun par défaut : les Expéditions et projets de saison se choisissent). */
+    val projetsSuivis: Set<String> = emptySet(),
 )
 
 /** Règles de progression, d'après les données du jeu (enchaînement des quêtes, niveaux d'établis). */
@@ -39,14 +43,37 @@ class SuiviProgression(private val catalogue: Catalogue) {
         q.id !in progression.quetesTerminees && q.requiert.all { it in progression.quetesTerminees }
     }
 
-    /** Objectifs choisis par l'appli : prochain niveau de chaque établi suivi, quêtes en cours qui demandent des objets. */
+    /**
+     * Objectifs choisis par l'appli : prochain niveau de chaque établi suivi, quêtes en cours qui
+     * demandent des objets, prochaine étape des projets suivis.
+     */
     fun objectifsAutomatiques(progression: Progression): List<Objectif> {
         val etablis = catalogue.donnees.etablis
             .filter { it.id !in progression.etablisIgnores }
             .mapNotNull { e -> prochainNiveau(progression, e)?.let { Objectif.NiveauDEtabli(e.id, it.niveau) } }
         val quetes = quetesEnCours(progression).filter { it.objets.isNotEmpty() }.map { Objectif.QueteATerminer(it.id) }
-        return etablis + quetes
+        val projets = catalogue.donnees.projets
+            .filter { it.id in progression.projetsSuivis }
+            .mapNotNull { p -> prochaineEtape(progression, p)?.let { Objectif.EtapeDeProjet(p.id, it) } }
+        return etablis + quetes + projets
     }
+
+    /** Rang de la prochaine étape du projet, ou `null` s'il est terminé. */
+    fun prochaineEtape(progression: Progression, projet: Projet): Int? =
+        (progression.etapesProjets[projet.id] ?: 0).takeIf { it < projet.etapes.size }
+
+    /** Étape de projet terminée en jeu : la suivante devient l'objectif. */
+    fun terminerEtape(progression: Progression, projet: Projet): Progression {
+        val faites = ((progression.etapesProjets[projet.id] ?: 0) + 1).coerceAtMost(projet.etapes.size)
+        return progression.copy(etapesProjets = progression.etapesProjets + (projet.id to faites))
+    }
+
+    /** Correction : nombre d'étapes terminées. */
+    fun changerEtapes(progression: Progression, projet: Projet, faites: Int): Progression =
+        progression.copy(etapesProjets = progression.etapesProjets + (projet.id to faites.coerceIn(0, projet.etapes.size)))
+
+    fun suivreProjet(progression: Progression, projetId: String, suivi: Boolean): Progression =
+        progression.copy(projetsSuivis = if (suivi) progression.projetsSuivis + projetId else progression.projetsSuivis - projetId)
 
     /**
      * Mise en place rapide : le joueur indique les quêtes affichées en cours dans son jeu. Toutes celles
@@ -72,7 +99,10 @@ class SuiviProgression(private val catalogue: Catalogue) {
     fun suivreEtabli(progression: Progression, etabliId: String, suivi: Boolean): Progression =
         progression.copy(etablisIgnores = if (suivi) progression.etablisIgnores - etabliId else progression.etablisIgnores + etabliId)
 
-    /** Retire de la réserve ce que le jeu a consommé (amélioration construite, objets livrés). */
+    /**
+     * Retire de la réserve ce que le jeu a consommé (amélioration construite, objets livrés), dans la
+     * limite de ce qui y est noté : valider ne demande pas d'avoir d'abord saisi tous les objets.
+     */
     fun retirer(reserve: Map<String, Int>, cout: List<Quantite>): Map<String, Int> {
         val resultat = reserve.toMutableMap()
         for ((id, quantite) in cout) {
