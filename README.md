@@ -18,6 +18,9 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
   l'enchaînement des quêtes du jeu), ainsi que les projets que tu suis (Expéditions…). Un seul bouton
   valide un niveau construit, une quête terminée ou une étape de projet : la suite apparaît et ce que
   le jeu a pris est retiré de ta réserve, sans rien saisir (« Annuler » pour revenir en arrière).
+- **Préparer mon raid.** Ajoute ce que tu cherches (ta liste de courses en un geste, ou objet par
+  objet) : l'appli classe les cartes qui en donnent le plus, les zones où chercher sur chacune, et
+  les cartes à faire pour tout trouver (d'après les tables de butin du jeu).
 - **Retour de raid.** Après un raid, un écran pour ajouter vite ce que tu rapportes (« +1 », « +5 »),
   en commençant par les objets encore à trouver.
 - **Liste de courses.** Les objets à trouver pour tout ça, avec ta réserve mise à jour en une touche
@@ -65,6 +68,14 @@ pour la mise en place de la clé (une seule fois), [docs/SIGNATURE.md](docs/SIGN
 ./gradlew :core:test                 # tests de la logique (données, liste de courses, verdict, mises à jour)
 ./gradlew :app:assembleDebug          # APK de debug
 ```
+
+## Données du jeu
+
+Le workflow « Données du jeu » (`.github/workflows/donnees.yml`) relance chaque jour l'import
+(`scripts/importer_donnees_jeu.py`) sur les données publiées par raider-tools, puis les tests. Si
+quelque chose a changé, il enregistre les nouvelles données sur `main` (fichiers de données
+uniquement) et relance le build complet ; le résumé du workflow liste les nouveaux noms à vérifier en
+jeu. Publier ensuite une version pour les recevoir sur le téléphone.
 
 ## Sources et licences
 

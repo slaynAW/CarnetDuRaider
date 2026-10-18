@@ -62,6 +62,7 @@ fun EcranProgression(
     ajouterObjectif: () -> Unit,
     choisirQuetes: () -> Unit,
     retourDeRaid: () -> Unit,
+    preparerRaid: () -> Unit,
     ouvrir: (String) -> Unit,
 ) {
     val liste = vm.listeDeCourses()
@@ -158,9 +159,12 @@ fun EcranProgression(
 
             if (liste.lignes.isNotEmpty()) {
                 item {
-                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Objets à trouver", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        TextButton(onClick = retourDeRaid) { Text("Retour de raid", color = Signal.Or) }
+                    Column(Modifier.padding(top = 8.dp)) {
+                        Text("Objets à trouver", style = MaterialTheme.typography.titleMedium)
+                        Row {
+                            TextButton(onClick = preparerRaid) { Text("Préparer mon raid", color = Signal.Cyan) }
+                            TextButton(onClick = retourDeRaid) { Text("Retour de raid", color = Signal.Or) }
+                        }
                     }
                 }
             }

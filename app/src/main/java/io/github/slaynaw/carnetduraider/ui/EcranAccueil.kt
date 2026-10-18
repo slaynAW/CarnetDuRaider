@@ -39,6 +39,7 @@ fun EcranAccueil(
     /** Calendrier officiel des conditions de la carte, ou `null` s'il n'a pas encore été lu. */
     calendrier: Calendrier?,
     retourDeRaid: () -> Unit,
+    preparerRaid: () -> Unit,
     afficherMiseAJour: () -> Unit,
 ) {
     val donnees = vm.catalogue.donnees
@@ -81,6 +82,19 @@ fun EcranAccueil(
         }
 
         if (calendrier != null) BlocConditions(vm, calendrier, onClick = { aller(Onglet.CARTES) })
+
+        // Avant un raid : où aller pour trouver ce qu'on cherche.
+        Button(
+            onClick = preparerRaid,
+            colors = ButtonDefaults.buttonColors(containerColor = Signal.Cyan, contentColor = Signal.SurCouleur),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+        ) {
+            Text(
+                if (vm.listeRaid.isEmpty()) "Préparer mon raid" else "Préparer mon raid (${pluriel(vm.listeRaid.size, "objet", "objets")})",
+                style = MaterialTheme.typography.titleSmall,
+            )
+        }
 
         // Après chaque raid : saisie rapide de ce qu'on rapporte.
         Button(

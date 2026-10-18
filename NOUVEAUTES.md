@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.6.0
+
+- **Préparer mon raid** : ajoute ce que tu cherches (ta liste de courses en un geste, ou objet par objet) et l'appli te dit sur quelle carte aller et où chercher : les cartes qui donnent le plus de tes objets, les meilleures zones de chacune (touche une zone pour la voir sur le plan), les conditions en cours, et les cartes à faire pour tout trouver. Les objets absents du butin indiquent où les obtenir autrement.
+- **Données du jeu à jour chaque jour** : elles sont relues automatiquement à partir des fichiers du jeu, avec les noms français officiels.
+
 ## 0.5.0
 
 - **Minuteurs** : les conditions de la carte et les événements affichent un compte à rebours à la seconde, sur l'accueil, dans l'onglet Cartes et sur le plan de chaque carte (temps restant, ou temps avant le début).
