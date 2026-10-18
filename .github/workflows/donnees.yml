@@ -1,0 +1,181 @@
+# Met à jour chaque jour les données du jeu (noms français officiels, objets, quêtes, plans, butin…)
+# à partir de github.com/baschny/arcraiders-raider-tools, comme le ferait scripts/importer_donnees_jeu.py
+# lancé à la main (CLAUDE.md).
+#
+# - Job « Import » (lecture seule, aucun secret) : lance l'import sur les données du jour, puis les tests
+#   du module core. Si rien n'a changé, tout s'arrête là. Sinon, il produit le correctif (fichiers de
+#   données uniquement) et un résumé : version du jeu, nouveaux noms exclus à vérifier en jeu.
+# - Job « Enregistrement » : applique ce correctif sur main (il refuse tout fichier hors des données),
+#   puis relance le build complet (lint, APK, pré-version « dev ») et la lecture du calendrier.
+#   Il n'exécute rien de ce qui vient de l'extérieur : il ne fait qu'appliquer le correctif vérifié.
+#
+# Pour que les nouvelles données arrivent sur le téléphone, publier ensuite une version comme
+# d'habitude (Actions → Build → Run workflow).
+name: Données du jeu
+
+on:
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: donnees-jeu
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash # bash -eo pipefail : la moindre erreur arrête l'étape
+
+env:
+  # Seuls fichiers que l'import a le droit de changer.
+  CHEMINS_DONNEES: >-
+    core/src/main/resources/donnees-jeu.json
+    docs/NOMS-A-VERIFIER.md
+    app/src/main/assets/objets
+    app/src/main/assets/cartes
+
+jobs:
+  import:
+    name: Import
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      change: ${{ steps.changements.outputs.change }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Bibliothèques Python (versions et empreintes fixées)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --require-hashes --only-binary :all: -r scripts/requirements-import.txt
+
+      - name: Données de raider-tools
+        id: source
+        run: |
+          git clone --quiet --depth 1 https://github.com/baschny/arcraiders-raider-tools "$RUNNER_TEMP/raider-tools"
+          echo "commit=$(git -C "$RUNNER_TEMP/raider-tools" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Import
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" -I scripts/importer_donnees_jeu.py "$RUNNER_TEMP/raider-tools/public/data/game" \
+            | tee "$RUNNER_TEMP/import.txt"
+
+      - name: Changements
+        id: changements
+        env:
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+        run: |
+          read -ra chemins <<< "$CHEMINS_DONNEES"
+          autres=$(git status --porcelain -- . $(printf ":(exclude)%s " "${chemins[@]}"))
+          if [[ -n "$autres" ]]; then
+            echo "::error title=Import::L'import a changé des fichiers hors des données du jeu :"
+            echo "$autres"
+            exit 1
+          fi
+          git add -A -- "${chemins[@]}"
+          if git diff --cached --quiet; then
+            echo "Données du jeu déjà à jour." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "change=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "change=true" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/correctif"
+          git diff --cached --binary --no-renames > "$RUNNER_TEMP/correctif/donnees.patch"
+          version=$(python3 -c "import json; print(json.load(open('core/src/main/resources/donnees-jeu.json'))['versionJeu'])")
+          nouveaux=$(git diff --cached -U0 -- docs/NOMS-A-VERIFIER.md | grep '^+|' | sed 's/^+//' || true)
+          {
+            echo "Données du jeu mises à jour (jeu $version)"
+            echo
+            echo "Import automatique depuis baschny/arcraiders-raider-tools ($SOURCE_COMMIT)."
+            echo
+            tail -n 1 "$RUNNER_TEMP/import.txt"
+            echo
+            git diff --cached --stat | tail -n 1
+            if [[ -n "$nouveaux" ]]; then
+              echo
+              echo "Nouveaux noms exclus, à vérifier en jeu en français (docs/NOMS-A-VERIFIER.md) :"
+              echo "$nouveaux"
+            fi
+          } > "$RUNNER_TEMP/correctif/message.txt"
+          cat "$RUNNER_TEMP/correctif/message.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        if: steps.changements.outputs.change == 'true'
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        if: steps.changements.outputs.change == 'true'
+        with:
+          cache-provider: basic
+
+      - name: Tests du module core avec les nouvelles données
+        if: steps.changements.outputs.change == 'true'
+        run: ./gradlew --stacktrace :core:test
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.changements.outputs.change == 'true'
+        with:
+          name: correctif
+          path: ${{ runner.temp }}/correctif/
+          if-no-files-found: error
+          retention-days: 7
+
+  enregistrement:
+    name: Enregistrement
+    needs: import
+    if: needs.import.outputs.change == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # commit des données sur main
+      actions: write # relance du build et du calendrier sur le nouveau commit
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: correctif
+          path: ${{ runner.temp }}/correctif
+
+      - name: Vérification du correctif
+        run: |
+          read -ra chemins <<< "$CHEMINS_DONNEES"
+          git apply --numstat "$RUNNER_TEMP/correctif/donnees.patch" | cut -f3- > "$RUNNER_TEMP/fichiers.txt"
+          while IFS= read -r f; do
+            ok=false
+            for c in "${chemins[@]}"; do
+              [[ "$f" == "$c" || "$f" == "$c"/* ]] && ok=true
+            done
+            if [[ "$f" == *..* || "$ok" != true ]]; then
+              echo "::error title=Correctif refusé::$f n'est pas un fichier de données du jeu."
+              exit 1
+            fi
+          done < "$RUNNER_TEMP/fichiers.txt"
+          wc -l < "$RUNNER_TEMP/fichiers.txt"
+
+      - name: Commit sur main
+        run: |
+          git apply --index "$RUNNER_TEMP/correctif/donnees.patch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --quiet -F "$RUNNER_TEMP/correctif/message.txt"
+          git push origin HEAD:main
+          echo "Commit $(git rev-parse --short HEAD) poussé sur main." >> "$GITHUB_STEP_SUMMARY"
+
+      # Un push fait avec le jeton du workflow ne déclenche pas les autres workflows : on les lance ici.
+      - name: Build complet et calendrier sur le nouveau commit
+        run: |
+          gh workflow run build.yml --ref main
+          gh workflow run calendrier.yml --ref main

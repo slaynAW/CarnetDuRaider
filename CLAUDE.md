@@ -33,7 +33,10 @@ telle qu'elle apparaît dans le jeu.
   « Réserve », « Recyclage en », « Conditions de la carte »…) reprennent le texte officiel du jeu.
 - Le reste du texte de l'interface (phrases d'aide, boutons propres à l'appli) est en français courant.
 
-Mettre à jour les données après une mise à jour du jeu :
+Les données sont mises à jour **chaque jour** par le workflow « Données du jeu »
+(`.github/workflows/donnees.yml`) : import en lecture seule, tests du module core, puis commit sur
+`main` des seuls fichiers de données (refus de tout autre fichier) et relance du build. Bibliothèques
+Python de l'import à versions et empreintes fixées (`scripts/requirements-import.txt`). À la main :
 
 ```bash
 git clone --depth 1 https://github.com/baschny/arcraiders-raider-tools /tmp/raider-tools
@@ -65,6 +68,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   l'enchaînement `requiert` des données du jeu) et retire de la réserve ce que le jeu a consommé.
   Les projets suivis (Expéditions…) ajoutent leur prochaine étape. Un niveau, une quête ou une étape se
   valide en un geste (`CarnetViewModel.valider…`), avec « Annuler » : jamais de saisie obligatoire.
+- Préparer mon raid (`core/PreparationRaid.kt`, `ui/EcranPreparerRaid.kt`) : liste des objets cherchés
+  (`Memoire`, clé « raid ») ; cartes classées par la somme des indices de butin des objets (chaque objet
+  compte au plus 1 par carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver.
 - Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
   officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).

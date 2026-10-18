@@ -23,6 +23,17 @@ class Memoire(context: Context) {
         prefs.edit().putString(RESERVE, reserve.entries.joinToString("\n") { "${it.key}=${it.value}" }).apply()
     }
 
+    /** Objets cherchés pour le prochain raid (« Préparer mon raid »), dans l'ordre où ils ont été ajoutés. */
+    fun lireRaid(): Map<String, Int> =
+        lignes(RAID).mapNotNull { ligne ->
+            val (id, quantite) = ligne.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
+            quantite.toIntOrNull()?.takeIf { it > 0 }?.let { id to it }
+        }.toMap()
+
+    fun ecrireRaid(liste: Map<String, Int>) {
+        prefs.edit().putString(RAID, liste.entries.joinToString("\n") { "${it.key}=${it.value}" }).apply()
+    }
+
     fun lireObjectifs(): List<Objectif> =
         prefs.getString(OBJECTIFS, "").orEmpty().lines().mapNotNull(::decoder)
 
@@ -85,6 +96,7 @@ class Memoire(context: Context) {
 
     private companion object {
         const val RESERVE = "reserve"
+        const val RAID = "raid"
         const val OBJECTIFS = "objectifs"
         const val NIVEAUX = "niveauxEtablis"
         const val QUETES_TERMINEES = "quetesTerminees"

@@ -272,7 +272,8 @@ def importer_plans(dossier_cartes, cartes, filtre):
 # zone qui peut donner l'objet (condition normale), pour classer les meilleures cartes et zones.
 ALIAS_THEMES = {"Tech": "Technological"}
 ALIAS_NATURE = {"cactus": "Prickly Pear", "seedbox_01": "Assorted Seeds", "seedvault": "Assorted Seeds"}
-ZONES_PAR_OBJET = 5
+ZONES_PAR_CARTE = 5  # meilleures zones gardées sur chaque carte (fiche objet, préparation du raid)
+INDICE_MINIMUM = 2  # une zone qui donne moins de 2 % du meilleur endroit n'est pas un bon conseil
 
 
 def _lettres(x):
@@ -375,12 +376,19 @@ def calculer_butin(dossier_cartes, ids_objets, cartes, filtre):
         if not totaux[ident]:
             continue
         meilleure = max(totaux[ident].values())
-        meilleures_zones = sorted(zones[ident].items(), key=lambda e: -e[1])[:ZONES_PAR_OBJET]
+        meilleure_zone = max(zones[ident].values(), default=0)
+        gardees = []
+        for carte in sorted(totaux[ident], key=lambda c: -totaux[ident][c]):
+            de_la_carte = sorted(((z, s) for (c, z), s in zones[ident].items() if c == carte), key=lambda e: -e[1])
+            for z, s in de_la_carte[:ZONES_PAR_CARTE]:
+                indice = round(100 * s / meilleure_zone)
+                if indice >= INDICE_MINIMUM:
+                    gardees.append({"carte": carte, "zone": z, "indice": indice})
         resultat[ident] = {
             "cartes": [{"carte": c, "indice": max(1, round(100 * t / meilleure))}
                        for c, t in sorted(totaux[ident].items(), key=lambda e: -e[1])],
-            "zones": [{"carte": c, "zone": z, "indice": max(1, round(100 * s / meilleures_zones[0][1]))}
-                      for (c, z), s in meilleures_zones],
+            # Meilleures zones de chaque carte ; indice relatif à la meilleure zone toutes cartes confondues.
+            "zones": sorted(gardees, key=lambda z: -z["indice"]),
         }
     return resultat
 

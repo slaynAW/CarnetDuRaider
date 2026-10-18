@@ -181,7 +181,7 @@ private fun CommentLObtenir(vm: CarnetViewModel, objet: Objet, ouvrir: (String) 
             }
             if (o.zones.isNotEmpty()) {
                 SousTitreFiche("Meilleures zones")
-                o.zones.forEach { z ->
+                o.zones.take(5).forEach { z ->
                     LigneIndice(z.zone, vm.catalogue.carte(z.carte)?.nom, z.indice, onClick = { ouvrirZone(z.carte, z.zone) })
                 }
                 Text(

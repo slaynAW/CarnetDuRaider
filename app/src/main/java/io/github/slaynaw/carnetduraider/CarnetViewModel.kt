@@ -6,11 +6,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import io.github.slaynaw.carnetduraider.core.Catalogue
+import io.github.slaynaw.carnetduraider.core.ConseilRaid
 import io.github.slaynaw.carnetduraider.core.Conseiller
 import io.github.slaynaw.carnetduraider.core.Etabli
 import io.github.slaynaw.carnetduraider.core.ListeDeCourses
 import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.Planificateur
+import io.github.slaynaw.carnetduraider.core.PreparationRaid
 import io.github.slaynaw.carnetduraider.core.Progression
 import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
@@ -29,6 +31,7 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     val catalogue: Catalogue = application.carnet.catalogue
     val planificateur = Planificateur(catalogue)
     val suivi = SuiviProgression(catalogue)
+    val preparationRaid = PreparationRaid(catalogue)
     private val conseiller = Conseiller(catalogue, planificateur)
     private val memoire = Memoire(application)
 
@@ -48,6 +51,10 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     var region by mutableStateOf(memoire.region)
         private set
 
+    /** Objets cherchés pour le prochain raid, avec la quantité voulue. */
+    var listeRaid by mutableStateOf(memoire.lireRaid())
+        private set
+
     /** Objectifs choisis par l'appli d'après la progression. */
     val objectifsAutomatiques: List<Objectif> get() = suivi.objectifsAutomatiques(progression)
 
@@ -60,6 +67,30 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         val nouvelle = (possede(objetId) + delta).coerceIn(0, MAX_QUANTITE)
         changerReserve(if (nouvelle == 0) reserve - objetId else reserve + (objetId to nouvelle))
     }
+
+    fun changerRaid(objetId: String, quantite: Int) {
+        val n = quantite.coerceIn(0, MAX_QUANTITE)
+        listeRaid = if (n == 0) listeRaid - objetId else listeRaid + (objetId to n)
+        memoire.ecrireRaid(listeRaid)
+    }
+
+    fun ajouterAuRaid(objetId: String) = changerRaid(objetId, (listeRaid[objetId] ?: 0) + 1)
+
+    /** Ajoute au raid tout ce qui manque à la liste de courses ; renvoie le nombre d'objets ajoutés. */
+    fun ajouterListeDeCoursesAuRaid(): Int {
+        val manquants = listeDeCourses().lignes.filter { it.manquant > 0 && (listeRaid[it.objetId] ?: 0) < it.manquant }
+        if (manquants.isEmpty()) return 0
+        listeRaid = listeRaid + manquants.map { it.objetId to it.manquant }
+        memoire.ecrireRaid(listeRaid)
+        return manquants.size
+    }
+
+    fun viderRaid() {
+        listeRaid = emptyMap()
+        memoire.ecrireRaid(listeRaid)
+    }
+
+    fun conseilRaid(): ConseilRaid = preparationRaid.conseiller(listeRaid.keys)
 
     fun suit(objectif: Objectif): Boolean = objectif in objectifs
 
