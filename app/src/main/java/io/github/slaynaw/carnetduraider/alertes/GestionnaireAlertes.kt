@@ -67,6 +67,12 @@ class GestionnaireAlertes(
         replanifier()
     }
 
+    /** Relit les réglages (après la restauration d'une sauvegarde) et recalcule le prochain réveil. */
+    fun recharger() {
+        _reglages.value = lireReglages()
+        replanifier()
+    }
+
     /** Recalcule le prochain réveil (réglages, région ou calendrier changés). */
     fun replanifier() {
         portee.launch { traiter() }

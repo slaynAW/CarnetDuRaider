@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.7.0
+
+- **Tout part de zéro** : à l'installation, rien n'est suivi et ta liste de courses est vide. Choisis les établis à améliorer (ou « Tout suivre »), indique tes quêtes en cours, suis un projet : seuls ces objectifs remplissent ta liste.
+- **Sauvegarde chiffrée** (Réglages → Sauvegarde) : tes données sont sauvegardées automatiquement, à chaque changement, dans un fichier chiffré avec ton mot de passe. Range-le dans Google Drive : après une réinstallation ou sur un nouveau téléphone, « Restaurer une sauvegarde » et ton mot de passe te rendent tout.
+
 ## 0.6.0
 
 - **Préparer mon raid** : ajoute ce que tu cherches (ta liste de courses en un geste, ou objet par objet) et l'appli te dit sur quelle carte aller et où chercher : les cartes qui donnent le plus de tes objets, les meilleures zones de chacune (touche une zone pour la voir sur le plan), les conditions en cours, et les cartes à faire pour tout trouver. Les objets absents du butin indiquent où les obtenir autrement.

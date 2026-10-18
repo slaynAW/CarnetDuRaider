@@ -97,6 +97,8 @@ fun EcranReglages(vm: CarnetViewModel, miseAJour: GestionnaireMiseAJour, etat: E
 
         SectionAlertes(vm)
 
+        SectionSauvegarde(vm)
+
         Text("À propos", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
         Reglage(
             titre = "Carnet du Raider ${BuildConfig.VERSION_NAME}",
@@ -123,7 +125,7 @@ private fun Reglage(titre: String, detail: String, onClick: () -> Unit) {
 }
 
 /** « à l'instant », « il y a 12 min », « il y a 3 h », « il y a 2 j ». */
-private fun depuis(instant: Long): String {
+internal fun depuis(instant: Long): String {
     val minutes = (System.currentTimeMillis() - instant).coerceAtLeast(0) / 60_000
     return when {
         minutes < 1 -> "à l'instant"

@@ -1,6 +1,7 @@
 package io.github.slaynaw.carnetduraider
 
 import android.app.Application
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -39,6 +40,7 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     val miseAJour = (application as CarnetApplication).miseAJour
     val calendrier = application.carnet.calendrier
     val alertes = application.carnet.alertes
+    val sauvegarde = application.carnet.sauvegarde
 
     var reserve by mutableStateOf(memoire.lireReserve())
         private set
@@ -46,8 +48,8 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         private set
     var objectifsManuels by mutableStateOf(memoire.lireObjectifs())
         private set
-    var quetesIndiquees by mutableStateOf(memoire.quetesIndiquees)
-        private set
+    /** Vrai une fois que le joueur a indiqué ses quêtes en cours (sinon, l'appli le lui propose). */
+    val quetesIndiquees: Boolean get() = progression.quetesIndiquees
     var region by mutableStateOf(memoire.region)
         private set
 
@@ -66,6 +68,27 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     fun changerQuantite(objetId: String, delta: Int) {
         val nouvelle = (possede(objetId) + delta).coerceIn(0, MAX_QUANTITE)
         changerReserve(if (nouvelle == 0) reserve - objetId else reserve + (objetId to nouvelle))
+    }
+
+    /**
+     * Restaure une sauvegarde chiffrée : toutes les données de l'appli sont remplacées, puis relues.
+     * Renvoie un message d'erreur, ou `null` si tout s'est bien passé.
+     */
+    suspend fun restaurerSauvegarde(uri: Uri, motDePasse: CharArray): String? {
+        val erreur = sauvegarde.restaurer(uri, motDePasse)
+        if (erreur == null) recharger()
+        return erreur
+    }
+
+    /** Relit tout ce qui est enregistré (après une restauration). */
+    private fun recharger() {
+        reserve = memoire.lireReserve()
+        progression = memoire.lireProgression()
+        objectifsManuels = memoire.lireObjectifs()
+        region = memoire.region
+        listeRaid = memoire.lireRaid()
+        derniereValidation = null
+        alertes.recharger()
     }
 
     fun changerRaid(objetId: String, quantite: Int) {
@@ -128,6 +151,8 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
 
     fun suivreEtabli(etabliId: String, suivre: Boolean) = changerProgression(suivi.suivreEtabli(progression, etabliId, suivre))
 
+    fun suivreTousLesEtablis(suivre: Boolean) = changerProgression(suivi.suivreTousLesEtablis(progression, suivre))
+
     /** Quête terminée en jeu, validée en une touche (objets demandés retirés de la réserve). */
     fun validerQuete(queteId: String) {
         val quete = catalogue.quete(queteId) ?: return
@@ -177,8 +202,6 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     /** Mise en place : les quêtes affichées en cours dans le jeu. */
     fun indiquerQuetesEnCours(enCours: Collection<String>) {
         changerProgression(suivi.indiquerQuetesEnCours(progression, enCours))
-        quetesIndiquees = true
-        memoire.quetesIndiquees = true
         retirerAtteints()
     }
 
