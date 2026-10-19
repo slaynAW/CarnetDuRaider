@@ -3,18 +3,23 @@ package io.github.slaynaw.carnetduraider.core
 /**
  * Où en est le joueur dans le jeu : niveau de chaque établi de l'Atelier et quêtes de l'histoire
  * terminées. C'est à partir de là que l'appli choisit elle-même les objectifs à suivre (le prochain
- * niveau de chaque établi, les quêtes en cours), au lieu de les ajouter un par un.
+ * niveau des établis suivis, les quêtes en cours), au lieu de les ajouter un par un.
+ *
+ * À l'installation, rien n'est suivi (liste de courses vide) : le joueur choisit les établis, indique
+ * ses quêtes en cours et choisit ses projets.
  */
 data class Progression(
     /** Niveau actuel des établis déjà améliorés (les autres sont à leur niveau de départ). */
     val niveauxEtablis: Map<String, Int> = emptyMap(),
     val quetesTerminees: Set<String> = emptySet(),
-    /** Établis dont le joueur ne veut pas suivre l'amélioration. */
-    val etablisIgnores: Set<String> = emptySet(),
+    /** Établis dont le joueur suit l'amélioration (aucun par défaut). */
+    val etablisSuivis: Set<String> = emptySet(),
     /** Nombre d'étapes terminées de chaque projet. */
     val etapesProjets: Map<String, Int> = emptyMap(),
     /** Projets suivis (aucun par défaut : les Expéditions et projets de saison se choisissent). */
     val projetsSuivis: Set<String> = emptySet(),
+    /** Le joueur a indiqué ses quêtes en cours : elles, puis leurs suites, deviennent des objectifs. */
+    val quetesIndiquees: Boolean = false,
 )
 
 /** Règles de progression, d'après les données du jeu (enchaînement des quêtes, niveaux d'établis). */
@@ -45,13 +50,17 @@ class SuiviProgression(private val catalogue: Catalogue) {
 
     /**
      * Objectifs choisis par l'appli : prochain niveau de chaque établi suivi, quêtes en cours qui
-     * demandent des objets, prochaine étape des projets suivis.
+     * demandent des objets (une fois les quêtes indiquées), prochaine étape des projets suivis.
      */
     fun objectifsAutomatiques(progression: Progression): List<Objectif> {
         val etablis = catalogue.donnees.etablis
-            .filter { it.id !in progression.etablisIgnores }
+            .filter { it.id in progression.etablisSuivis }
             .mapNotNull { e -> prochainNiveau(progression, e)?.let { Objectif.NiveauDEtabli(e.id, it.niveau) } }
-        val quetes = quetesEnCours(progression).filter { it.objets.isNotEmpty() }.map { Objectif.QueteATerminer(it.id) }
+        val quetes = if (!progression.quetesIndiquees) {
+            emptyList()
+        } else {
+            quetesEnCours(progression).filter { it.objets.isNotEmpty() }.map { Objectif.QueteATerminer(it.id) }
+        }
         val projets = catalogue.donnees.projets
             .filter { it.id in progression.projetsSuivis }
             .mapNotNull { p -> prochaineEtape(progression, p)?.let { Objectif.EtapeDeProjet(p.id, it) } }
@@ -82,7 +91,7 @@ class SuiviProgression(private val catalogue: Catalogue) {
     fun indiquerQuetesEnCours(progression: Progression, enCours: Collection<String>): Progression {
         val avant = enCours.flatMap { precedentes(it) }.toSet()
         val apres = enCours.flatMap { suivantes(it) + it }.toSet()
-        return progression.copy(quetesTerminees = progression.quetesTerminees + avant - apres)
+        return progression.copy(quetesTerminees = progression.quetesTerminees + avant - apres, quetesIndiquees = true)
     }
 
     /** Quête terminée : elle, et celles qui y mènent. Les suivantes deviennent disponibles. */
@@ -97,7 +106,11 @@ class SuiviProgression(private val catalogue: Catalogue) {
         progression.copy(niveauxEtablis = progression.niveauxEtablis + (etabli.id to niveau.coerceIn(niveauDeDepart(etabli), niveauMax(etabli))))
 
     fun suivreEtabli(progression: Progression, etabliId: String, suivi: Boolean): Progression =
-        progression.copy(etablisIgnores = if (suivi) progression.etablisIgnores - etabliId else progression.etablisIgnores + etabliId)
+        progression.copy(etablisSuivis = if (suivi) progression.etablisSuivis + etabliId else progression.etablisSuivis - etabliId)
+
+    /** Suivre (ou ne plus suivre) tous les établis d'un coup. */
+    fun suivreTousLesEtablis(progression: Progression, suivi: Boolean): Progression =
+        progression.copy(etablisSuivis = if (suivi) catalogue.donnees.etablis.map { it.id }.toSet() else emptySet())
 
     /**
      * Retire de la réserve ce que le jeu a consommé (amélioration construite, objets livrés), dans la

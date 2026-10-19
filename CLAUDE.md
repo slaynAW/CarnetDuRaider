@@ -63,6 +63,14 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   icône sur une tuile aux couleurs de leur rareté (`IconeObjet`).
 - La réserve et la progression du joueur sont saisies dans l'appli (`Memoire`) : l'appli ne se connecte
   jamais au compte Embark et ne touche jamais au jeu (pas de lecture de mémoire, de trafic ou de jeton).
+  **À l'installation, tout est à zéro** : aucun établi suivi (`Progression.etablisSuivis`, à choisir),
+  aucune quête suivie avant que le joueur les indique (`quetesIndiquees`), aucun projet.
+- Sauvegarde chiffrée (`core/…/sauvegarde`, `app/…/sauvegarde`) : fichiers de réglages « carnet » et
+  « alertes » écrits automatiquement (quelques secondes après chaque changement) dans un fichier choisi
+  par le joueur avec le sélecteur d'Android (Google Drive, dossier du téléphone). PBKDF2-SHA256
+  (600 000 tours) + AES-256-GCM, en-tête authentifié ; mot de passe jamais enregistré, clé dérivée gardée
+  chiffrée par le Keystore d'Android. L'appli n'ouvre aucune connexion pour cela. Pas de sauvegarde
+  sur GitHub : écrire sur GitHub exige un jeton, qu'on ne peut pas mettre dans un APK public.
 - Progression automatique (`core/Progression.kt`) : le joueur indique le niveau de ses établis et ses
   quêtes en cours ; l'appli en déduit les objectifs (prochain niveau, quêtes disponibles d'après
   l'enchaînement `requiert` des données du jeu) et retire de la réserve ce que le jeu a consommé.

@@ -34,6 +34,8 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
 - **Plans des cartes.** Le plan en jeu de chaque carte, qu'on agrandit avec deux doigts, avec le nom
   officiel des lieux et des sorties, et les conditions en cours sur cette carte. Une recherche
   (« les trappes », « bondisseurs », un lieu…) ne montre que ça, et pour un ARC, ses points d'apparition.
+- **Sauvegarde chiffrée.** Tes données sont sauvegardées automatiquement dans un fichier chiffré
+  avec ton mot de passe, rangé où tu veux (Google Drive pour les retrouver sur un autre téléphone).
 - **Sans compte.** Les données du jeu sont embarquées dans l'appli ; elle ne se connecte jamais à ton
   compte Embark ni aux serveurs du jeu, et ne touche jamais au jeu.
 - **Mises à jour sécurisées depuis GitHub.** L'appli propose elle-même les nouvelles versions

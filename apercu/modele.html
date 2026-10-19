@@ -153,7 +153,7 @@ function rechercher(saisie, limite) {
 const valeurRecyclage = o => o.recyclage.reduce((s, q) => s + (objets.get(q.id)?.valeur ?? 0) * q.quantite, 0);
 
 // ---- Mémoire du joueur (comme Memoire.kt), gardée pour ce compte ----
-const M = { reserve: {}, niveaux: {}, terminees: [], ignores: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {} };
+const M = { reserve: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {} };
 const projets = new Map((D.projets || []).map(p => [p.id, p]));
 const cartes = new Map(D.cartes.map(c => [c.id, c]));
 
@@ -178,8 +178,9 @@ const prochaineEtape = p => { const n = M.etapesProjets[p.id] ?? 0; return n < p
 const nomEtape = (p, i) => p?.etapes[i]?.nom ?? `étape ${i + 1}`;
 function objectifsAuto() {
   const liste = [];
-  for (const e of D.etablis) { if (M.ignores.includes(e.id)) continue; const p = prochainNiveau(e); if (p) liste.push({ type: "etabli", id: e.id, niveau: p.niveau }); }
-  for (const q of quetesEnCours()) if (q.objets.length) liste.push({ type: "quete", id: q.id });
+  // Rien n'est suivi à l'installation : établis choisis un par un, quêtes une fois indiquées (Progression.kt).
+  for (const e of D.etablis) { if (!(M.suivis || []).includes(e.id)) continue; const p = prochainNiveau(e); if (p) liste.push({ type: "etabli", id: e.id, niveau: p.niveau }); }
+  if (M.quetesIndiquees) for (const q of quetesEnCours()) if (q.objets.length) liste.push({ type: "quete", id: q.id });
   for (const p of D.projets || []) { if (!(M.projetsSuivis || []).includes(p.id)) continue; const e = prochaineEtape(p); if (e != null) liste.push({ type: "projet", id: p.id, etape: e }); }
   return liste;
 }
@@ -425,18 +426,18 @@ function ecranProgression() {
   const l = listeDeCourses(), enCours = quetesEnCours().sort((a, b) => (!a.objets.length) - (!b.objets.length) || a.nom.localeCompare(b.nom));
   const auto = new Set(objectifsAuto().map(cleObjectif)), autres = M.manuels.filter(o => !auto.has(cleObjectif(o)));
   return `${bandeau("Progression", "--vert")}<h2>Liste de courses</h2>
-  <p class="doux" style="margin:0">${pluriel(l.manquants, "objet", "objets")} à trouver pour le prochain niveau de tes établis et tes quêtes en cours. Quand tu améliores un établi ou termines une quête en jeu, coche-le ici${NB}: la suite se met à jour toute seule.</p>
+  <p class="doux" style="margin:0">${!objectifs().length ? `Rien n'est suivi pour l'instant. Choisis ci-dessous les établis à améliorer, indique tes quêtes en cours ou suis un projet${NB}: les objets à trouver s'ajoutent ici.` : `${pluriel(l.manquants, "objet", "objets")} à trouver pour tes établis, tes quêtes et tes projets suivis. Quand tu améliores un établi ou termines une quête en jeu, coche-le ici${NB}: la suite se met à jour toute seule.`}</p>
   ${l.lignes.length ? `<div class="ligne" style="align-items:flex-end;gap:8px"><b style="font:700 26px var(--titre);color:var(--or)">${Math.round(l.progression * 100)}${NB}%</b><span class="doux">des objets rassemblés</span></div><div class="barre" style="height:8px"><i style="width:${l.progression * 100}%"></i></div>` : ""}
   ${!M.quetesIndiquees ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:8px;padding:16px"><b style="font:700 16px var(--titre)">Où en es-tu dans les quêtes${NB}?</b><span class="doux">Coche une seule fois les quêtes affichées en cours dans ton jeu${NB}: l'appli en déduit toutes celles que tu as déjà terminées.</span><button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="quetes">Choisir mes quêtes en cours</button></div>` : ""}
-  <h4>Atelier</h4>
-  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveau(e), p = prochainNiveau(e), suivi = !M.ignores.includes(e.id); return `<div class="carte" style="display:flex;flex-direction:column;gap:4px">
+  <div class="ligne" style="margin-top:8px"><h4 class="flex" style="margin:0">Atelier</h4><button class="lien" style="--c:var(${(M.suivis || []).length === D.etablis.length ? "--texte-discret" : "--vert"})" data-action="suivre-tous">${(M.suivis || []).length === D.etablis.length ? "Ne rien suivre" : "Tout suivre"}</button></div>
+  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveau(e), p = prochainNiveau(e), suivi = (M.suivis || []).includes(e.id); return `<div class="carte" style="display:flex;flex-direction:column;gap:4px">
     <div class="ligne"><div class="flex"><span class="nom">${echap(e.nom)}</span><br><span class="petit" style="color:var(${p ? "--texte-doux" : "--vert"});font-weight:600">Niveau ${n} sur ${niveauMax(e)}</span></div>
     <button class="rond" data-action="niveau-moins" data-id="${e.id}" ${n > niveauDepart(e) ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(e.nom)} un niveau plus bas">−</button>
     <button class="rond" data-action="niveau-plus" data-id="${e.id}" ${p ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(e.nom)} un niveau plus haut, sans toucher à la réserve">+</button></div>
     ${p ? `<span class="petit" style="color:var(${suivi ? "--texte-doux" : "--texte-discret"})">Niveau ${p.niveau}${NB}: ${detailCout(p.cout)}</span>
     <div class="ligne"><button class="valider" data-action="valider-etabli" data-id="${e.id}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Niveau ${p.niveau} construit</button><span class="flex"></span><button class="lien petit" style="--c:var(${suivi ? "--texte-discret" : "--vert"})" data-action="suivre" data-id="${e.id}">${suivi ? "Ne pas suivre" : "Suivre"}</button></div>` : `<span class="petit discret">Niveau maximum atteint.</span>`}</div>`; }).join("")}
   <div class="ligne" style="margin-top:8px"><h4 class="flex" style="margin:0">Quêtes en cours</h4><button class="lien" style="--c:var(--vert)" data-action="quetes">Modifier</button></div>
-  ${enCours.length ? enCours.map(q => `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="nom">${echap(q.nom)}</span>${q.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}${q.objets.length ? `<span class="petit" style="color:var(--or)">${detailCout(q.objets)}</span>` : ""}
+  ${!M.quetesIndiquees ? "" : enCours.length ? enCours.map(q => `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="nom">${echap(q.nom)}</span>${q.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}${q.objets.length ? `<span class="petit" style="color:var(--or)">${detailCout(q.objets)}</span>` : ""}
     <button class="valider" data-action="valider-quete" data-id="${q.id}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Terminée</button></div>`).join("") : `<p class="petit discret">Aucune quête en cours.</p>`}
   <h4>Projets</h4><p class="petit doux" style="margin:0">Expéditions et projets de saison${NB}: suis ceux que tu fais, leur prochaine étape s'ajoute à ta liste de courses.</p>
   ${(D.projets || []).map(p => { const suivi = (M.projetsSuivis || []).includes(p.id), e = prochaineEtape(p), faites = M.etapesProjets[p.id] ?? 0, et = e != null ? p.etapes[e] : null; return `<div class="carte" style="display:flex;flex-direction:column;gap:6px">
@@ -569,6 +570,8 @@ function ecranReglages() {
   <h4>Tes données dans l'aperçu</h4>
   <p class="petit doux" style="margin:0">${stockage === "compte" ? "Ta réserve et ta progression sont gardées avec ton compte claude.ai, visibles de toi seul." : "Ta réserve et ta progression sont gardées dans ce navigateur."} Elles sont séparées de celles de l'appli sur ton téléphone.</p>
   <button class="lien" style="--c:var(--rouge);align-self:flex-start;padding-left:0" data-action="effacer">Effacer mes données de l'aperçu</button>
+  <h4>Sauvegarde</h4>
+  <p class="petit doux" style="margin:0">Dans l'appli Android, tes données sont sauvegardées automatiquement dans un fichier chiffré avec ton mot de passe, rangé où tu veux (Google Drive pour les retrouver sur un autre téléphone). Propre à l'appli Android.</p>
   <h4>À propos</h4>
   <p class="petit discret" style="margin:0">Projet de fan, non officiel. ARC Raiders est une marque d'Embark Studios AB${NB}; cette appli n'est ni affiliée à Embark Studios ni approuvée par Embark Studios. Noms et icônes du jeu © Embark Studios AB.</p>`;
 }
@@ -656,7 +659,8 @@ document.addEventListener("click", ev => {
     case "plan-zones": P.zones = !P.zones; rendre(); return;
     case "plan-sorties": P.sorties = !P.sorties; rendre(); return;
     case "plan-entier": Object.assign(P, { e: 1, dx: 0, dy: 0 }); rendre(); return;
-    case "suivre": M.ignores = M.ignores.includes(id) ? M.ignores.filter(x => x !== id) : [...M.ignores, id]; break;
+    case "suivre": M.suivis = (M.suivis || []).includes(id) ? M.suivis.filter(x => x !== id) : [...(M.suivis || []), id]; break;
+    case "suivre-tous": M.suivis = (M.suivis || []).length === D.etablis.length ? [] : D.etablis.map(e => e.id); break;
     case "cocher": S.choix.has(id) ? S.choix.delete(id) : S.choix.add(id); rendre(); return;
     case "valider-quetes": {
       const avant = new Set([...S.choix].flatMap(x => [...precedentes(x)])), apres = new Set([...S.choix].flatMap(x => [...suivantes(x), x]));
@@ -665,7 +669,7 @@ document.addEventListener("click", ev => {
     }
     case "ajouter-objectif": M.manuels.push(objectifDepuisCle(b.dataset.cle)); S.ecran = null; break;
     case "retirer-objectif": M.manuels = M.manuels.filter(o => cleObjectif(o) !== b.dataset.cle); break;
-    case "effacer": Object.assign(M, { reserve: {}, niveaux: {}, terminees: [], ignores: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {} }); break;
+    case "effacer": Object.assign(M, { reserve: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {} }); break;
     default: return;
   }
   enregistrer();

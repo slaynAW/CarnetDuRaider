@@ -55,17 +55,34 @@ class ProgressionTest {
         val station = catalogue.etabli("utility_bench")!!
         assertEquals(0, suivi.niveau(depart, station))
 
-        val objectifs = suivi.objectifsAutomatiques(depart)
+        // À l'installation, rien n'est suivi : liste de courses vide.
+        assertTrue(suivi.objectifsAutomatiques(depart).isEmpty())
+
+        val tous = suivi.suivreTousLesEtablis(depart, true)
+        val objectifs = suivi.objectifsAutomatiques(tous)
         assertTrue(Objectif.NiveauDEtabli("utility_bench", 1) in objectifs)
         assertTrue(Objectif.NiveauDEtabli("scrappy", 2) in objectifs)
+        assertFalse(objectifs.any { it is Objectif.QueteATerminer }, "quêtes pas encore indiquées")
 
-        val auMax = suivi.changerNiveau(depart, station, 99)
+        val auMax = suivi.changerNiveau(tous, station, 99)
         assertEquals(3, suivi.niveau(auMax, station))
         assertNull(suivi.prochainNiveau(auMax, station))
         assertFalse(suivi.objectifsAutomatiques(auMax).any { it is Objectif.NiveauDEtabli && it.etabliId == "utility_bench" })
 
-        val ignore = suivi.suivreEtabli(depart, "scrappy", false)
+        val ignore = suivi.suivreEtabli(tous, "scrappy", false)
         assertFalse(suivi.objectifsAutomatiques(ignore).any { it is Objectif.NiveauDEtabli && it.etabliId == "scrappy" })
+        val unSeul = suivi.suivreEtabli(depart, "scrappy", true)
+        assertEquals(listOf(Objectif.NiveauDEtabli("scrappy", 2)), suivi.objectifsAutomatiques(unSeul))
+        assertTrue(suivi.objectifsAutomatiques(suivi.suivreTousLesEtablis(tous, false)).isEmpty())
+    }
+
+    @Test
+    fun `quetes suivies une fois indiquees`() {
+        val premiere = suivi.quetesEnCours(depart).first()
+        val indiquees = suivi.indiquerQuetesEnCours(depart, listOf(premiere.id))
+        assertTrue(indiquees.quetesIndiquees)
+        val attendues = suivi.quetesEnCours(indiquees).filter { it.objets.isNotEmpty() }.map { Objectif.QueteATerminer(it.id) }
+        assertEquals(attendues, suivi.objectifsAutomatiques(indiquees).filterIsInstance<Objectif.QueteATerminer>())
     }
 
     @Test

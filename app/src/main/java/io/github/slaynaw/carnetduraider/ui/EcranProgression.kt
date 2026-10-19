@@ -80,8 +80,13 @@ fun EcranProgression(
                     Bandeau("Progression", Signal.Vert)
                     Text("Liste de courses", style = MaterialTheme.typography.headlineLarge)
                     Text(
-                        "${pluriel(liste.objetsManquants, "objet", "objets")} à trouver pour le prochain niveau de tes établis et tes quêtes en cours. " +
-                            "Quand tu améliores un établi ou termines une quête en jeu, coche-le ici\u00a0: la suite se met à jour toute seule.",
+                        if (vm.objectifs.isEmpty()) {
+                            "Rien n'est suivi pour l'instant. Choisis ci-dessous les établis à améliorer, indique tes quêtes en cours " +
+                                "ou suis un projet\u00a0: les objets à trouver s'ajoutent ici."
+                        } else {
+                            "${pluriel(liste.objetsManquants, "objet", "objets")} à trouver pour tes établis, tes quêtes et tes projets suivis. " +
+                                "Quand tu améliores un établi ou termines une quête en jeu, coche-le ici\u00a0: la suite se met à jour toute seule."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = Signal.TexteDoux,
                     )
@@ -118,7 +123,15 @@ fun EcranProgression(
                 }
             }
 
-            item { SousTitre("Atelier") }
+            item {
+                val tous = vm.progression.etablisSuivis.size == vm.catalogue.donnees.etablis.size
+                Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Atelier", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { vm.suivreTousLesEtablis(!tous) }) {
+                        Text(if (tous) "Ne rien suivre" else "Tout suivre", color = if (tous) Signal.TexteDiscret else Signal.Vert)
+                    }
+                }
+            }
             items(vm.catalogue.donnees.etablis.sortedBy { it.nom }, key = { "etabli-${it.id}" }) { etabli ->
                 CarteEtabli(vm, etabli)
             }
@@ -129,10 +142,11 @@ fun EcranProgression(
                     TextButton(onClick = choisirQuetes) { Text("Modifier", color = Signal.Vert) }
                 }
             }
-            if (enCours.isEmpty()) {
+            if (vm.quetesIndiquees && enCours.isEmpty()) {
                 item { Text("Aucune quête en cours.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret) }
             }
-            items(enCours.sortedWith(compareBy({ it.objets.isEmpty() }, { it.nom })), key = { "quete-${it.id}" }) { quete ->
+            // Avant que le joueur ait indiqué ses quêtes, rien n'est suivi : la carte ci-dessus le lui propose.
+            items(if (vm.quetesIndiquees) enCours.sortedWith(compareBy({ it.objets.isEmpty() }, { it.nom })) else emptyList(), key = { "quete-${it.id}" }) { quete ->
                 CarteQuete(vm, quete)
             }
 
@@ -204,7 +218,7 @@ private fun CarteEtabli(vm: CarnetViewModel, etabli: Etabli) {
     val niveau = vm.suivi.niveau(vm.progression, etabli)
     val max = vm.suivi.niveauMax(etabli)
     val prochain = vm.suivi.prochainNiveau(vm.progression, etabli)
-    val suivi = etabli.id !in vm.progression.etablisIgnores
+    val suivi = etabli.id in vm.progression.etablisSuivis
     Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
