@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
@@ -31,12 +32,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
-/** Les quatre onglets, chacun avec la couleur de son domaine. */
+/**
+ * Les cinq onglets, chacun avec sa couleur : ce qui compte maintenant, garder ou vendre un objet, où
+ * aller au prochain raid, les cartes, et ce qu'on veut faire avancer.
+ */
 enum class Onglet(val titre: String, val icone: ImageVector, val couleur: Color) {
     ACCUEIL("Accueil", Icons.Filled.Home, Signal.Texte),
     OBJETS("Objets", Icons.Filled.Search, Signal.Or),
+    RAID("Raid", Icons.Filled.ShoppingCart, Signal.Rouge),
     CARTES("Cartes", Icons.Filled.Place, Signal.Cyan),
-    PROGRESSION("Progression", Icons.Filled.ShoppingCart, Signal.Vert),
+    OBJECTIFS("Objectifs", Icons.Filled.CheckCircle, Signal.Vert),
 }
 
 @Composable
@@ -48,7 +53,6 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     var reglages by rememberSaveable { mutableStateOf(false) }
     var choixQuetes by rememberSaveable { mutableStateOf(false) }
     var retourRaid by rememberSaveable { mutableStateOf(false) }
-    var preparerRaid by rememberSaveable { mutableStateOf(false) }
     var planOuvert by rememberSaveable { mutableStateOf<String?>(null) }
     var planRecherche by rememberSaveable { mutableStateOf("") }
     val calendrier by vm.calendrier.etat.collectAsStateWithLifecycle()
@@ -80,7 +84,6 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
         reglages = false
         choixQuetes = false
         retourRaid = false
-        preparerRaid = false
         planOuvert = null
         onglet = cible
     }
@@ -94,14 +97,13 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     }
 
     // Retour : d'abord l'écran ouvert par-dessus l'onglet, puis l'accueil.
-    BackHandler(enabled = objetOuvert != null || ajoutObjectif || choixQuetes || retourRaid || preparerRaid || planOuvert != null || reglages || onglet != Onglet.ACCUEIL) {
+    BackHandler(enabled = objetOuvert != null || ajoutObjectif || choixQuetes || retourRaid || planOuvert != null || reglages || onglet != Onglet.ACCUEIL) {
         when {
             planOuvert != null -> planOuvert = null
             objetOuvert != null -> objetOuvert = null
             ajoutObjectif -> ajoutObjectif = false
             choixQuetes -> choixQuetes = false
             retourRaid -> retourRaid = false
-            preparerRaid -> preparerRaid = false
             reglages -> reglages = false
             else -> onglet = Onglet.ACCUEIL
         }
@@ -115,7 +117,6 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                 ajoutObjectif = false
                 choixQuetes = false
                 retourRaid = false
-                preparerRaid = false
                 planOuvert = null
                 reglages = true
             }
@@ -158,15 +159,6 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                 ajoutObjectif -> EcranAjoutObjectif(vm, onRetour = { ajoutObjectif = false })
                 choixQuetes -> EcranQuetesEnCours(vm, onRetour = { choixQuetes = false })
                 retourRaid -> EcranRetourRaid(vm, onRetour = { retourRaid = false })
-                preparerRaid -> EcranPreparerRaid(
-                    vm,
-                    onRetour = { preparerRaid = false },
-                    ouvrir = { objetOuvert = it },
-                    ouvrirZone = { carte, zone ->
-                        planRecherche = zone
-                        planOuvert = carte
-                    },
-                )
                 reglages -> EcranReglages(
                     vm,
                     vm.miseAJour,
@@ -180,22 +172,28 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                         aller = ::aller,
                         nouvelleVersion = miseAJour.nouvelle?.version,
                         calendrier = calendrierOfficiel,
-                        retourDeRaid = { retourRaid = true },
-                        preparerRaid = { preparerRaid = true },
                         afficherMiseAJour = { dialogueMiseAJour = true },
                     )
                     Onglet.OBJETS -> EcranObjets(vm, recherche, { recherche = it }, ouvrir = { objetOuvert = it })
+                    Onglet.RAID -> EcranRaid(
+                        vm,
+                        ouvrir = { objetOuvert = it },
+                        ouvrirZone = { carte, zone ->
+                            planRecherche = zone
+                            planOuvert = carte
+                        },
+                        retourDeRaid = { retourRaid = true },
+                        choisirObjectifs = { aller(Onglet.OBJECTIFS) },
+                    )
                     Onglet.CARTES -> EcranCartes(vm, ouvrirPlan = {
                         planRecherche = ""
                         planOuvert = it
                     })
-                    Onglet.PROGRESSION -> EcranProgression(
+                    Onglet.OBJECTIFS -> EcranObjectifs(
                         vm,
                         ajouterObjectif = { ajoutObjectif = true },
                         choisirQuetes = { choixQuetes = true },
-                        retourDeRaid = { retourRaid = true },
-                        preparerRaid = { preparerRaid = true },
-                        ouvrir = { objetOuvert = it },
+                        voirRaid = { aller(Onglet.RAID) },
                     )
                 }
             }

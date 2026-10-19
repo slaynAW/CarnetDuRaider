@@ -23,7 +23,7 @@ class Memoire(context: Context) {
         prefs.edit().putString(RESERVE, reserve.entries.joinToString("\n") { "${it.key}=${it.value}" }).apply()
     }
 
-    /** Objets cherchés pour le prochain raid (« Préparer mon raid »), dans l'ordre où ils ont été ajoutés. */
+    /** Objets ajoutés à la main dans l'onglet Raid (identifiant → quantité voulue), dans l'ordre où ils ont été ajoutés. */
     fun lireRaid(): Map<String, Int> =
         lignes(RAID).mapNotNull { ligne ->
             val (id, quantite) = ligne.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null

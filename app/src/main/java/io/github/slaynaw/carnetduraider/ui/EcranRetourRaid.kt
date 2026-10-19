@@ -52,8 +52,8 @@ fun EcranRetourRaid(vm: CarnetViewModel, onRetour: () -> Unit) {
     val avant = remember { vm.reserve }
     var recherche by rememberSaveable { mutableStateOf("") }
     // Liste figée à l'ouverture : un objet qui atteint son compte ne disparaît pas sous le doigt.
-    val besoins = remember { vm.listeDeCourses().lignes.associate { it.objetId to it.besoin } }
-    val aTrouver = remember { vm.listeDeCourses().lignes.filter { !it.complet }.map { it.objetId } }
+    val besoins = remember { vm.aTrouver().associate { it.objetId to it.voulu } }
+    val aTrouver = remember { vm.aTrouver().filter { !it.trouve }.map { it.objetId } }
     val ids = if (recherche.isBlank()) aTrouver else vm.catalogue.rechercher(recherche, limite = 50).map { it.id }
     val ajoutes = vm.reserve.entries.sumOf { (id, n) -> (n - (avant[id] ?: 0)).coerceAtLeast(0) }
 
@@ -70,7 +70,7 @@ fun EcranRetourRaid(vm: CarnetViewModel, onRetour: () -> Unit) {
                 }
                 Text("Retour de raid", style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    "Ajoute ce que tu rapportes. Les objets encore à trouver pour ta progression sont en tête\u00a0; cherche les autres.",
+                    "Ajoute ce que tu rapportes. Ce qu'il te faut est en tête\u00a0; cherche les autres objets.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
                 )
@@ -105,7 +105,7 @@ fun EcranRetourRaid(vm: CarnetViewModel, onRetour: () -> Unit) {
                 }
                 if (recherche.isBlank() && ids.isEmpty()) {
                     Text(
-                        "Rien à trouver pour ta progression\u00a0: cherche les objets rapportés.",
+                        "Rien à trouver pour l'instant\u00a0: cherche les objets rapportés.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Signal.TexteDoux,
                     )

@@ -5,6 +5,14 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.8.0
+
+- **Plus simple** : cinq onglets, Accueil, Objets, Raid, Cartes et Objectifs. L'accueil te dit tout de suite sur quelle carte aller à ton prochain raid.
+- **Onglet Raid** : plus rien à préparer. Ce qu'il te faut pour tes objectifs s'y ajoute tout seul, avec la carte où aller, les zones où chercher et les cartes à faire pour tout trouver. Touche « +1 » quand tu trouves un objet, ajoute autre chose à chercher en un geste, et « Saisir mon butin » au retour.
+- **À quoi sert chaque objet** : avant de vendre, sa fiche te dit tout ce à quoi il sert dans le jeu : fabrication, établis, quêtes, projets, clés (avec la description du jeu), équipement, schémas à apprendre, Station de recherche, Avant-poste, échanges chez les commerçants.
+- **Garder, recycler ou vendre ?** Un objet que tu cherches (pour tes objectifs ou ajouté par toi) n'est plus jamais proposé à la vente. Un objet qui sert encore est « Utile » ; seuls ceux qui ne servent à rien sont à vendre ou à recycler. Le verdict s'affiche aussi dans la liste des objets.
+- **Objectifs** : « Suivre tous mes établis » et « Indiquer mes quêtes en cours » pour démarrer en deux gestes.
+
 ## 0.7.0
 
 - **Tout part de zéro** : à l'installation, rien n'est suivi et ta liste de courses est vide. Choisis les établis à améliorer (ou « Tout suivre »), indique tes quêtes en cours, suis un projet : seuls ces objectifs remplissent ta liste.

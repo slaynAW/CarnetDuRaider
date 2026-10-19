@@ -12,12 +12,15 @@ import io.github.slaynaw.carnetduraider.core.Conseiller
 import io.github.slaynaw.carnetduraider.core.Etabli
 import io.github.slaynaw.carnetduraider.core.ListeDeCourses
 import io.github.slaynaw.carnetduraider.core.Objectif
+import io.github.slaynaw.carnetduraider.core.ObjetATrouver
 import io.github.slaynaw.carnetduraider.core.Planificateur
 import io.github.slaynaw.carnetduraider.core.PreparationRaid
 import io.github.slaynaw.carnetduraider.core.Progression
 import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
 import io.github.slaynaw.carnetduraider.core.SuiviProgression
+import io.github.slaynaw.carnetduraider.core.Usages
+import io.github.slaynaw.carnetduraider.core.UsagesObjet
 import io.github.slaynaw.carnetduraider.core.Verdict
 import io.github.slaynaw.carnetduraider.core.calendrier.Calendrier
 import io.github.slaynaw.carnetduraider.core.calendrier.DonneesCalendrier
@@ -33,7 +36,8 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     val planificateur = Planificateur(catalogue)
     val suivi = SuiviProgression(catalogue)
     val preparationRaid = PreparationRaid(catalogue)
-    private val conseiller = Conseiller(catalogue, planificateur)
+    val usages = Usages(catalogue, suivi)
+    private val conseiller = Conseiller(catalogue, planificateur, usages)
     private val memoire = Memoire(application)
 
     /** Mises à jour intégrées et calendrier : vivent avec l'appli, pas avec l'écran. */
@@ -99,21 +103,14 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
 
     fun ajouterAuRaid(objetId: String) = changerRaid(objetId, (listeRaid[objetId] ?: 0) + 1)
 
-    /** Ajoute au raid tout ce qui manque à la liste de courses ; renvoie le nombre d'objets ajoutés. */
-    fun ajouterListeDeCoursesAuRaid(): Int {
-        val manquants = listeDeCourses().lignes.filter { it.manquant > 0 && (listeRaid[it.objetId] ?: 0) < it.manquant }
-        if (manquants.isEmpty()) return 0
-        listeRaid = listeRaid + manquants.map { it.objetId to it.manquant }
-        memoire.ecrireRaid(listeRaid)
-        return manquants.size
-    }
+    /** Fiche d'un objet : l'ajouter à ce qu'on cherche, ou l'en retirer. */
+    fun basculerRaid(objetId: String) = changerRaid(objetId, if (objetId in listeRaid) 0 else 1)
 
-    fun viderRaid() {
-        listeRaid = emptyMap()
-        memoire.ecrireRaid(listeRaid)
-    }
+    /** Ce qu'il reste à trouver : ce qui manque pour les objectifs suivis, puis les objets ajoutés à la main. */
+    fun aTrouver(): List<ObjetATrouver> = planificateur.aTrouver(objectifs, reserve, listeRaid)
 
-    fun conseilRaid(): ConseilRaid = preparationRaid.conseiller(listeRaid.keys)
+    /** Où aller pour trouver ce qui manque encore. */
+    fun conseilRaid(): ConseilRaid = preparationRaid.conseiller(aTrouver().filter { !it.trouve }.map { it.objetId })
 
     fun suit(objectif: Objectif): Boolean = objectif in objectifs
 
@@ -218,7 +215,10 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
 
     fun listeDeCourses(): ListeDeCourses = planificateur.listeDeCourses(objectifs, reserve)
 
-    fun verdict(objetId: String): Verdict = conseiller.verdict(objetId, possede(objetId), objectifs)
+    fun verdict(objetId: String): Verdict = conseiller.verdict(objetId, possede(objetId), objectifs, progression, listeRaid)
+
+    /** À quoi sert l'objet, compte tenu de la progression (ce qui est fait ne compte plus). */
+    fun usagesDe(objetId: String): UsagesObjet = usages.pour(objetId, progression)
 
     private fun changerReserve(nouvelle: Map<String, Int>) {
         reserve = nouvelle

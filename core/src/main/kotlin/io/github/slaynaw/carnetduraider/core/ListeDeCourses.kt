@@ -27,12 +27,24 @@ data class Besoin(val objectif: Objectif, val libelle: String, val quantite: Int
 data class ListeDeCourses(val lignes: List<LigneDeCourses>) {
     val objetsManquants: Int get() = lignes.sumOf { it.manquant }
 
+    /** Nombre d'objets différents qu'il reste à trouver. */
+    val objetsATrouver: Int get() = lignes.count { !it.complet }
+
     /** Part des objets déjà rassemblés, de 0 à 1 (chaque unité compte pareil). */
     val progression: Double
         get() {
             val total = lignes.sumOf { it.besoin }
             return if (total == 0) 1.0 else lignes.sumOf { minOf(it.possede, it.besoin) }.toDouble() / total
         }
+}
+
+/**
+ * Un objet à trouver pendant les raids : demandé par les objectifs suivis ([pour] dit lesquels), ou
+ * ajouté par le joueur lui-même ([pour] vide). [voulu] : combien il en faut en tout.
+ */
+data class ObjetATrouver(val objetId: String, val possede: Int, val voulu: Int, val pour: List<Besoin>) {
+    val ajouteParLeJoueur: Boolean get() = pour.isEmpty()
+    val trouve: Boolean get() = possede >= voulu
 }
 
 /** Calcule les besoins en objets des objectifs suivis, d'après les données du jeu. */
@@ -83,5 +95,17 @@ class Planificateur(private val catalogue: Catalogue) {
             )
         }
         return ListeDeCourses(lignes.sortedWith(compareBy({ it.complet }, { -it.manquant }, { it.nom })))
+    }
+
+    /**
+     * Tout ce qu'il reste à trouver : ce qui manque pour les objectifs suivis (les plus en retard
+     * d'abord), puis les objets ajoutés par le joueur ([ajouts] : identifiant → quantité voulue).
+     */
+    fun aTrouver(objectifs: List<Objectif>, reserve: Map<String, Int>, ajouts: Map<String, Int>): List<ObjetATrouver> {
+        val pourObjectifs = listeDeCourses(objectifs, reserve).lignes.filter { !it.complet }
+            .map { ObjetATrouver(it.objetId, it.possede, it.besoin, it.pour) }
+        val dejaLa = pourObjectifs.map { it.objetId }.toSet()
+        val ajoutes = ajouts.filterKeys { it !in dejaLa }.map { (id, voulu) -> ObjetATrouver(id, reserve[id] ?: 0, voulu, emptyList()) }
+        return pourObjectifs + ajoutes
     }
 }

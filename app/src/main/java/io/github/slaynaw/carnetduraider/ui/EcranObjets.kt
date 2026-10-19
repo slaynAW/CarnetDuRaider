@@ -27,17 +27,21 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
+import io.github.slaynaw.carnetduraider.core.Besoin
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.Objet
 import io.github.slaynaw.carnetduraider.core.Sortie
+import io.github.slaynaw.carnetduraider.core.UsagesObjet
 import io.github.slaynaw.carnetduraider.core.Verdict
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
@@ -74,7 +78,7 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
                 )
                 Text(
                     when {
-                        recherche.isBlank() -> "${pluriel(resultats.size, "objet", "objets")} par ordre alphabétique. Touche un objet\u00a0: sa fiche te dit s'il faut le garder, le recycler ou le vendre."
+                        recherche.isBlank() -> "${pluriel(resultats.size, "objet", "objets")} par ordre alphabétique. Touche un objet pour savoir à quoi il sert et où le trouver."
                         resultats.isEmpty() -> "Aucun objet ne correspond."
                         else -> pluriel(resultats.size, "objet trouvé", "objets trouvés")
                     },
@@ -84,13 +88,13 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
             }
         }
         items(resultats, key = { it.id }) { objet ->
-            LigneObjet(objet, vm.possede(objet.id), onClick = { ouvrir(objet.id) })
+            LigneObjet(objet, vm.possede(objet.id), vm.verdict(objet.id), onClick = { ouvrir(objet.id) })
         }
     }
 }
 
 @Composable
-private fun LigneObjet(objet: Objet, possede: Int, onClick: () -> Unit) {
+private fun LigneObjet(objet: Objet, possede: Int, verdict: Verdict, onClick: () -> Unit) {
     Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             IconeObjet(objet.id, objet.rarete, 48.dp)
@@ -99,14 +103,29 @@ private fun LigneObjet(objet: Objet, possede: Int, onClick: () -> Unit) {
                 val details = listOfNotNull(objet.rarete?.libelle, objet.categorie).joinToString(" · ")
                 if (details.isNotEmpty()) Text(details, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
-            if (possede > 0) Text("× $possede", style = MaterialTheme.typography.titleSmall, color = Signal.Or)
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                PuceVerdict(verdict)
+                if (possede > 0) Text("× $possede", style = MaterialTheme.typography.titleSmall, color = Signal.Or)
+            }
         }
     }
 }
 
+/** Le verdict en un mot, pour la liste : Garder, Assez, Utile, Vendre ou Recycler. */
+@Composable
+fun PuceVerdict(verdict: Verdict) {
+    val (texte, fond, couleur) = when (verdict) {
+        is Verdict.Garder, is Verdict.Cherche -> Triple("Garder", Signal.Or, Signal.SurCouleur)
+        is Verdict.Suffisant -> Triple("Assez", Signal.Vert, Signal.SurCouleur)
+        is Verdict.Utile -> Triple("Utile", Signal.Cyan, Signal.SurCouleur)
+        is Verdict.Inutile -> Triple(if (verdict.conseil == Sortie.VENDRE) "Vendre" else "Recycler", Signal.Releve, Signal.TexteDoux)
+    }
+    Puce(texte, fond = fond, couleur = couleur)
+}
+
 /**
- * Fiche d'un objet : réserve, verdict, valeur, recyclage, et comment l'obtenir (butin, commerçants,
- * fabrication, recyclage d'autres objets, récompenses). [ouvrirZone] ouvre le plan sur une zone de butin.
+ * Fiche d'un objet, dans l'ordre où le joueur se pose les questions : le verdict (garder, utile, vendre…),
+ * à quoi il sert, où le trouver, puis ce qu'il rapporte. [ouvrirZone] ouvre le plan sur une zone de butin.
  */
 @Composable
 fun EcranFiche(
@@ -143,24 +162,39 @@ fun EcranFiche(
             }
         }
 
+        val verdict = vm.verdict(objet.id)
+        CarteVerdict(verdict, objet, vm)
+
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Dans ta réserve", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Compteur(vm.possede(objet.id), objet.nom, onChange = { vm.changerQuantite(objet.id, it) })
         }
-
-        CarteVerdict(vm.verdict(objet.id), objet, vm)
-
-        Section("Valeur") {
-            Text("${objet.valeur} pièces l'unité", style = MaterialTheme.typography.bodyLarge)
+        // Le chercher au prochain raid (inutile s'il l'est déjà pour les objectifs).
+        if (verdict !is Verdict.Garder) {
+            val cherche = objet.id in vm.listeRaid
+            TextButton(onClick = { vm.basculerRaid(objet.id) }) {
+                Text(
+                    if (cherche) "Dans ce que tu cherches · le retirer" else "Le chercher au prochain raid",
+                    color = if (cherche) Signal.TexteDoux else Signal.Rouge,
+                )
+            }
         }
-        Section("Recyclage en") {
+
+        SectionUsages(vm, vm.usagesDe(objet.id), ouvrir)
+        CommentLObtenir(vm, objet, ouvrir, ouvrirZone)
+        Section("Vente et recyclage") {
+            Text("Se vend ${objet.valeur} pièces l'unité.", style = MaterialTheme.typography.bodyLarge)
             if (objet.recyclage.isEmpty()) {
-                Text("Ne se recycle pas.", style = MaterialTheme.typography.bodyLarge, color = Signal.TexteDoux)
+                Text("Ne se recycle pas.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
             } else {
+                Text(
+                    "Recyclage en (matériaux\u00a0: ${vm.catalogue.valeurRecyclage(objet)} pièces)\u00a0:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Signal.TexteDoux,
+                )
                 objet.recyclage.forEach { LigneQuantite(vm, it.id, it.quantite) }
             }
         }
-        CommentLObtenir(vm, objet, ouvrir, ouvrirZone)
         Spacer(Modifier.height(8.dp))
     }
 }
@@ -283,53 +317,134 @@ private fun Section(titre: String, contenu: @Composable () -> Unit) {
     }
 }
 
+/** Ce que dit la carte du verdict : titre, explication, couleur, objectifs concernés, conseil de vente. */
+private data class ContenuVerdict(val titre: String, val texte: String, val fond: Color, val pour: List<Besoin> = emptyList(), val note: String? = null)
+
 @Composable
 private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
     val valeurRecyclage = vm.catalogue.valeurRecyclage(objet)
-    fun raisonSortie(sortie: Sortie): String = when {
-        sortie == Sortie.RECYCLER -> "Ses matériaux valent $valeurRecyclage pièces, plus que l'objet (${objet.valeur})."
-        objet.recyclage.isEmpty() -> "Il vaut ${objet.valeur} pièces et ne se recycle pas."
-        else -> "Il vaut ${objet.valeur} pièces, plus que ses matériaux ($valeurRecyclage)."
+    fun sortie(sortie: Sortie): String = when {
+        sortie == Sortie.RECYCLER -> "recycle-le\u00a0: ses matériaux valent $valeurRecyclage pièces, plus que l'objet (${objet.valeur})."
+        objet.recyclage.isEmpty() -> "vends-le\u00a0: il vaut ${objet.valeur} pièces et ne se recycle pas."
+        else -> "vends-le\u00a0: il vaut ${objet.valeur} pièces, plus que ses matériaux ($valeurRecyclage)."
     }
-    val (titre, texte, pour) = when (verdict) {
-        is Verdict.Garder -> Triple("Garde-le", "Il t'en manque ${verdict.manquant} pour tes objectifs.", verdict.pour)
-        is Verdict.Suffisant -> Triple(
-            "Tu en as assez",
-            if (verdict.surplus == 0) {
-                "Objectifs couverts, pile ce qu'il faut."
+    val c = when (verdict) {
+        is Verdict.Garder -> ContenuVerdict("Garde-le", "Il t'en manque ${verdict.manquant} pour tes objectifs.", Signal.Or, verdict.pour)
+        is Verdict.Cherche -> ContenuVerdict(
+            "Garde-le",
+            if (verdict.possede < verdict.voulu) {
+                "Tu le cherches pour ton raid (encore ${verdict.voulu - verdict.possede})."
             } else {
-                val action = if (verdict.conseil == Sortie.VENDRE) "vends" else "recycle"
-                "Objectifs couverts, avec ${verdict.surplus} en trop\u00a0: $action le surplus. ${raisonSortie(verdict.conseil)}"
+                "Tu le cherchais pour ton raid\u00a0: tu en as assez."
             },
+            Signal.Or,
+        )
+        is Verdict.Suffisant -> ContenuVerdict(
+            "Tu en as assez",
+            if (verdict.surplus == 0) "Pile ce qu'il faut pour tes objectifs." else "Tes objectifs sont couverts, avec ${verdict.surplus} en plus.",
+            Signal.Vert,
             verdict.pour,
         )
-        is Verdict.Inutile -> Triple(
+        is Verdict.Utile -> ContenuVerdict(
+            "Il peut servir",
+            "Aucun de tes objectifs n'en demande, mais il sert\u00a0: ${verdict.usages.resume().joinToString(", ")}. Le détail est plus bas.",
+            Signal.Cyan,
+            note = "Si tu n'en as pas l'usage, ${sortie(verdict.conseil)}",
+        )
+        is Verdict.Inutile -> ContenuVerdict(
             if (verdict.conseil == Sortie.VENDRE) "Vends-le" else "Recycle-le",
-            "Aucun objectif suivi n'en demande. ${raisonSortie(verdict.conseil)}",
-            emptyList(),
+            "Il ne sert à rien d'autre dans le jeu\u00a0: ${sortie(verdict.conseil)}",
+            Signal.Releve,
         )
     }
-    Surface(color = Signal.Or, contentColor = Signal.SurCouleur, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+    val texte = if (c.fond == Signal.Releve) Signal.Texte else Signal.SurCouleur
+    Surface(color = c.fond, contentColor = texte, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("VERDICT", style = MaterialTheme.typography.labelSmall)
-            Text(titre, style = MaterialTheme.typography.headlineLarge)
-            Text(texte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            if (pour.isNotEmpty()) {
-                HorizontalDivider(Modifier.padding(vertical = 6.dp), color = Signal.SurCouleur.copy(alpha = 0.3f))
-                pour.forEach { besoin ->
+            Text(c.titre, style = MaterialTheme.typography.headlineLarge)
+            Text(c.texte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            if (c.pour.isNotEmpty()) {
+                HorizontalDivider(Modifier.padding(vertical = 6.dp), color = texte.copy(alpha = 0.3f))
+                c.pour.forEach { besoin ->
                     Row(Modifier.fillMaxWidth()) {
                         Text(besoin.libelle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                         Text("× ${besoin.quantite}", style = MaterialTheme.typography.titleSmall)
                     }
                 }
             }
-            if (vm.objectifs.isEmpty()) {
-                Text(
-                    "Suis tes objectifs dans l'onglet Progression pour un verdict sur mesure.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
+            c.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        }
+    }
+}
+
+/** À quoi sert l'objet : description officielle, puis tout ce qui le demande encore. */
+@Composable
+private fun SectionUsages(vm: CarnetViewModel, u: UsagesObjet, ouvrir: (String) -> Unit) {
+    val ut = u.utilisations
+    Section("À quoi il sert") {
+        u.description?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
+        if (u.aucun) {
+            Text("Rien d'autre que la vente ou le recyclage, d'après les données du jeu.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+        }
+        if (ut.cle) LigneUsage("Clé", "Elle ouvre une porte ou une salle\u00a0: voir la description.")
+        if (ut.equipement) LigneUsage("Équipement", "Il s'utilise en raid.")
+        if (u.ameliorations.isNotEmpty()) {
+            LigneUsage("Établis", u.ameliorations.joinToString(" · ") { "${it.etabli.nom} niveau ${it.niveau} (${it.quantite})" })
+        }
+        if (u.quetes.isNotEmpty()) {
+            LigneUsage("Quêtes", u.quetes.joinToString(" · ") { "«\u00a0${it.quete.nom}\u00a0» (${it.quantite})" })
+        }
+        if (u.projets.isNotEmpty()) {
+            LigneUsage("Projets", u.projets.joinToString(" · ") { "${it.projet.nom}, ${vm.planificateur.nomEtape(it.projet, it.etape)} (${it.quantite})" })
+        }
+        if (ut.fabrication.isNotEmpty()) {
+            SousTitreFiche("Sert à fabriquer")
+            ut.fabrication.take(6).forEach { f ->
+                Surface(onClick = { ouvrir(f.objet) }, color = Signal.Fond, shape = RoundedCornerShape(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        IconeObjet(f.objet, vm.catalogue.objet(f.objet)?.rarete, 32.dp)
+                        Text(vm.catalogue.nomObjet(f.objet), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text(
+                            f.etabli?.let { e -> f.niveau?.let { "$e · niv. $it" } ?: e } ?: "en raid",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Signal.TexteDoux,
+                        )
+                    }
+                }
+            }
+            if (ut.fabrication.size > 6) {
+                Text("Et ${pluriel(ut.fabrication.size - 6, "autre objet", "autres objets")}.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
         }
+        if (ut.amplification.isNotEmpty()) {
+            LigneUsage("Amplification", ut.amplification.joinToString(" · ") { vm.catalogue.nomObjet(it) })
+        }
+        if (ut.aApprendre) {
+            val quoi = ut.debloque.map { vm.catalogue.nomObjet(it) } + ut.meubles
+            LigneUsage("À apprendre", if (quoi.isEmpty()) "Il débloque une fabrication." else "Il débloque\u00a0: ${quoi.joinToString(", ")}.")
+        }
+        if (ut.apparence) LigneUsage("Apparence", "Une apparence à débloquer.")
+        if (ut.recherches.isNotEmpty()) LigneUsage("Station de recherche", abrege(ut.recherches))
+        if (ut.avantPoste.isNotEmpty()) LigneUsage("Avant-poste", abrege(ut.avantPoste))
+        if (ut.echanges.isNotEmpty()) {
+            LigneUsage("Échanges", ut.echanges.take(4).joinToString(" · ") { "${it.commercant}\u00a0: ${it.donne} contre ${it.quantite} × ${vm.catalogue.nomObjet(it.objet)}" } +
+                if (ut.echanges.size > 4) " · et ${ut.echanges.size - 4} autres" else "")
+        }
+        if (ut.echangesValeur.isNotEmpty()) {
+            LigneUsage("Échanges", "${ut.echangesValeur.joinToString(", ")} l'accepte en échange, au prix de sa valeur.")
+        }
+    }
+}
+
+/** « A, B, C et 4 autres ». */
+private fun abrege(noms: List<String>, nombre: Int = 3): String =
+    noms.take(nombre).joinToString(", ") + if (noms.size > nombre) " et ${noms.size - nombre} autres" else ""
+
+@Composable
+private fun LigneUsage(titre: String, texte: String) {
+    Column(Modifier.padding(top = 4.dp)) {
+        Text(titre, style = MaterialTheme.typography.titleSmall, color = Signal.Cyan)
+        Text(texte, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
