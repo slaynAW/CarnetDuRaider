@@ -12,8 +12,8 @@ sealed interface Verdict {
     /** Il en manque encore pour les objectifs suivis. */
     data class Garder(val manquant: Int, val besoin: Int, val pour: List<Besoin>) : Verdict
 
-    /** Le joueur l'a ajouté à sa liste de raid ([voulu] exemplaires). */
-    data class Cherche(val voulu: Int, val possede: Int) : Verdict
+    /** Le joueur l'a ajouté à sa liste de raid : il en veut [voulu], il en a rapporté [trouves]. */
+    data class Cherche(val voulu: Int, val trouves: Int) : Verdict
 
     /** Les objectifs sont couverts ; [surplus] en plus de ce qu'il faut. */
     data class Suffisant(val surplus: Int, val besoin: Int, val pour: List<Besoin>) : Verdict
@@ -36,13 +36,14 @@ class Conseiller(private val catalogue: Catalogue, private val planificateur: Pl
         objectifs: List<Objectif>,
         progression: Progression = Progression(),
         listeRaid: Map<String, Int> = emptyMap(),
+        trouvesRaid: Map<String, Int> = emptyMap(),
     ): Verdict {
         val pour = planificateur.besoinsPourObjet(objetId, objectifs)
         val besoin = pour.sumOf { it.quantite }
         val voulu = listeRaid[objetId]
         return when {
             besoin > possede -> Verdict.Garder(besoin - possede, besoin, pour)
-            voulu != null -> Verdict.Cherche(voulu, possede)
+            voulu != null -> Verdict.Cherche(voulu, trouvesRaid[objetId] ?: 0)
             besoin > 0 -> Verdict.Suffisant(possede - besoin, besoin, pour)
             else -> {
                 val u = usages.pour(objetId, progression)

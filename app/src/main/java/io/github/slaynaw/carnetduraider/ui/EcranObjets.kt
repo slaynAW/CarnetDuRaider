@@ -169,14 +169,16 @@ fun EcranFiche(
             Text("Dans ta réserve", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Compteur(vm.possede(objet.id), objet.nom, onChange = { vm.changerQuantite(objet.id, it) })
         }
-        // Le chercher au prochain raid (inutile s'il l'est déjà pour les objectifs).
+        // Le chercher au prochain raid, et combien (inutile s'il l'est déjà pour les objectifs).
         if (verdict !is Verdict.Garder) {
-            val cherche = objet.id in vm.listeRaid
-            TextButton(onClick = { vm.basculerRaid(objet.id) }) {
-                Text(
-                    if (cherche) "Dans ce que tu cherches · le retirer" else "Le chercher au prochain raid",
-                    color = if (cherche) Signal.TexteDoux else Signal.Rouge,
-                )
+            val voulu = vm.listeRaid[objet.id]
+            if (voulu == null) {
+                TextButton(onClick = { vm.ajouterAuRaid(objet.id) }) { Text("Le chercher au prochain raid", color = Signal.Rouge) }
+            } else {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("À trouver au prochain raid", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Compteur(voulu, objet.nom, onChange = { vm.changerRaid(objet.id, voulu + it) }, suffixe = "à trouver au prochain raid")
+                }
             }
         }
 
@@ -332,10 +334,10 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
         is Verdict.Garder -> ContenuVerdict("Garde-le", "Il t'en manque ${verdict.manquant} pour tes objectifs.", Signal.Or, verdict.pour)
         is Verdict.Cherche -> ContenuVerdict(
             "Garde-le",
-            if (verdict.possede < verdict.voulu) {
-                "Tu le cherches pour ton raid (encore ${verdict.voulu - verdict.possede})."
+            if (verdict.trouves < verdict.voulu) {
+                "Tu le cherches pour ton raid\u00a0: encore ${verdict.voulu - verdict.trouves} à trouver."
             } else {
-                "Tu le cherchais pour ton raid\u00a0: tu en as assez."
+                "Tu le cherchais pour ton raid\u00a0: tu en as trouvé assez."
             },
             Signal.Or,
         )

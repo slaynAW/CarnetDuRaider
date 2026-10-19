@@ -39,12 +39,16 @@ data class ListeDeCourses(val lignes: List<LigneDeCourses>) {
 }
 
 /**
- * Un objet à trouver pendant les raids : demandé par les objectifs suivis ([pour] dit lesquels), ou
- * ajouté par le joueur lui-même ([pour] vide). [voulu] : combien il en faut en tout.
+ * Un objet à trouver pendant les raids, et son décompte. Demandé par les objectifs suivis ([pour] dit
+ * lesquels) : [trouves] est ce qu'il y a dans la réserve. Ajouté par le joueur lui-même ([pour] vide) :
+ * [trouves] est ce qu'il en a rapporté depuis, saisi au retour de raid. [voulu] : combien il en faut.
  */
-data class ObjetATrouver(val objetId: String, val possede: Int, val voulu: Int, val pour: List<Besoin>) {
+data class ObjetATrouver(val objetId: String, val trouves: Int, val voulu: Int, val pour: List<Besoin>) {
     val ajouteParLeJoueur: Boolean get() = pour.isEmpty()
-    val trouve: Boolean get() = possede >= voulu
+
+    /** Combien il en reste à trouver. */
+    val reste: Int get() = (voulu - trouves).coerceAtLeast(0)
+    val trouve: Boolean get() = trouves >= voulu
 }
 
 /** Calcule les besoins en objets des objectifs suivis, d'après les données du jeu. */
@@ -99,13 +103,20 @@ class Planificateur(private val catalogue: Catalogue) {
 
     /**
      * Tout ce qu'il reste à trouver : ce qui manque pour les objectifs suivis (les plus en retard
-     * d'abord), puis les objets ajoutés par le joueur ([ajouts] : identifiant → quantité voulue).
+     * d'abord), puis les objets ajoutés par le joueur ([ajouts] : identifiant → quantité voulue ;
+     * [trouvesAjouts] : combien il en a déjà rapporté).
      */
-    fun aTrouver(objectifs: List<Objectif>, reserve: Map<String, Int>, ajouts: Map<String, Int>): List<ObjetATrouver> {
+    fun aTrouver(
+        objectifs: List<Objectif>,
+        reserve: Map<String, Int>,
+        ajouts: Map<String, Int>,
+        trouvesAjouts: Map<String, Int> = emptyMap(),
+    ): List<ObjetATrouver> {
         val pourObjectifs = listeDeCourses(objectifs, reserve).lignes.filter { !it.complet }
             .map { ObjetATrouver(it.objetId, it.possede, it.besoin, it.pour) }
         val dejaLa = pourObjectifs.map { it.objetId }.toSet()
-        val ajoutes = ajouts.filterKeys { it !in dejaLa }.map { (id, voulu) -> ObjetATrouver(id, reserve[id] ?: 0, voulu, emptyList()) }
+        val ajoutes = ajouts.filterKeys { it !in dejaLa }
+            .map { (id, voulu) -> ObjetATrouver(id, trouvesAjouts[id] ?: 0, voulu, emptyList()) }
         return pourObjectifs + ajoutes
     }
 }

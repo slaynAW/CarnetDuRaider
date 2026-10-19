@@ -19,16 +19,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,8 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,10 +47,11 @@ import io.github.slaynaw.carnetduraider.core.calendrier.Creneau
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
 /**
- * Onglet Raid : ce qu'il te faut et où aller, sans rien préparer. La liste se remplit toute seule avec
- * ce qui manque pour tes objectifs suivis, plus les objets que tu ajoutes ; l'appli en déduit les cartes
- * et les zones où tu as le plus de chances de tout trouver
- * ([io.github.slaynaw.carnetduraider.core.PreparationRaid]). « +1 » note un objet trouvé.
+ * Onglet Raid, « Préparer mon raid » : ce qu'il te faut et où aller, sans rien préparer. La liste se
+ * remplit toute seule avec ce qui manque pour tes objectifs suivis, plus les objets que tu ajoutes ;
+ * l'appli en déduit les cartes et les zones où tu as le plus de chances de tout trouver
+ * ([io.github.slaynaw.carnetduraider.core.PreparationRaid]). Le retour de raid décompte ce que tu
+ * rapportes.
  */
 @Composable
 fun EcranRaid(
@@ -89,7 +85,7 @@ fun EcranRaid(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Bandeau("Raid", Signal.Rouge)
-                Text("Ton prochain raid", style = MaterialTheme.typography.headlineLarge)
+                Text("Préparer mon raid", style = MaterialTheme.typography.headlineLarge)
                 Text(
                     if (restants.isEmpty()) {
                         "Rien à chercher pour l'instant."
@@ -99,6 +95,19 @@ fun EcranRaid(
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
                 )
+            }
+        }
+
+        // De retour : saisir le butin, qui se décompte de la liste.
+        if (restants.isNotEmpty()) {
+            item {
+                Button(
+                    onClick = retourDeRaid,
+                    colors = ButtonDefaults.buttonColors(containerColor = Signal.Or, contentColor = Signal.SurCouleur),
+                    contentPadding = PaddingValues(16.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Retour de raid\u00a0: ajouter mon butin", style = MaterialTheme.typography.titleMedium) }
             }
         }
 
@@ -149,10 +158,7 @@ fun EcranRaid(
 
         if (aTrouver.isNotEmpty()) {
             item {
-                Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Ce qu'il te faut", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = retourDeRaid) { Text("Saisir mon butin", color = Signal.Or) }
-                }
+                Text("Ce qu'il te faut", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
             }
             items(aTrouver, key = { "atrouver-${it.objetId}" }) { a -> LigneATrouver(vm, a, onClick = { ouvrir(a.objetId) }) }
         }
@@ -165,6 +171,11 @@ fun EcranRaid(
                     onValueChange = { recherche = it },
                     placeholder = { Text("Ajouter un objet à chercher…") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Rouge) },
+                    trailingIcon = {
+                        if (recherche.isNotEmpty()) {
+                            IconButton(onClick = { recherche = "" }) { Icon(Icons.Filled.Close, contentDescription = "Effacer la recherche") }
+                        }
+                    },
                     singleLine = true,
                     shape = RoundedCornerShape(26.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -178,11 +189,9 @@ fun EcranRaid(
             }
         }
         items(resultats, key = { "resultat-${it.id}" }) { o ->
+            val voulu = vm.listeRaid[o.id]
             Surface(
-                onClick = {
-                    vm.ajouterAuRaid(o.id)
-                    recherche = ""
-                },
+                onClick = { vm.ajouterAuRaid(o.id) },
                 color = Signal.Surface,
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -190,7 +199,7 @@ fun EcranRaid(
                 Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     IconeObjet(o.id, o.rarete, 36.dp)
                     Text(o.nom, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    Text("Ajouter", style = MaterialTheme.typography.labelLarge, color = Signal.Rouge)
+                    Text(if (voulu == null) "Ajouter" else "× $voulu  +1", style = MaterialTheme.typography.labelLarge, color = Signal.Rouge)
                 }
             }
         }
@@ -221,8 +230,8 @@ private fun TitreRaid(texte: String) {
 private fun nomCarte(vm: CarnetViewModel, carteId: String): String = vm.catalogue.carte(carteId)?.nom ?: Catalogue.NOM_A_VERIFIER
 
 /**
- * Un objet à trouver : combien on en a sur combien il en faut, pour quoi, et « +1 » quand on en trouve
- * un. Un objet ajouté à la main se retire d'un geste.
+ * Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien on en a
+ * sur combien il en faut, et pour quoi. Un objet ajouté à la main se retire d'un geste.
  */
 @Composable
 private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> Unit) {
@@ -233,7 +242,7 @@ private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> 
             Column(Modifier.weight(1f)) {
                 Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${a.possede}/${a.voulu} · " + if (a.ajouteParLeJoueur) "ajouté par toi" else a.pour.joinToString(" · ") { it.libelle },
+                    "${a.trouves}/${a.voulu} · " + if (a.ajouteParLeJoueur) "ajouté par toi" else a.pour.joinToString(" · ") { it.libelle },
                     style = MaterialTheme.typography.labelMedium,
                     color = if (a.trouve) Signal.Vert else Signal.TexteDoux,
                     maxLines = 2,
@@ -242,11 +251,10 @@ private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> 
             if (a.trouve) {
                 Icon(Icons.Filled.Check, contentDescription = "Trouvé", tint = Signal.Vert, modifier = Modifier.size(24.dp))
             } else {
-                FilledIconButton(
-                    onClick = { vm.changerQuantite(a.objetId, +1) },
-                    modifier = Modifier.size(width = 56.dp, height = 40.dp).semantics { contentDescription = "J'en ai trouvé un\u00a0: $nom" },
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Or, contentColor = Signal.SurCouleur),
-                ) { Text("+1", style = MaterialTheme.typography.titleMedium) }
+                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 6.dp)) {
+                    Text("${a.reste}", style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"), color = Signal.Or)
+                    Text("à trouver", style = MaterialTheme.typography.labelSmall, color = Signal.TexteDoux)
+                }
             }
             if (a.ajouteParLeJoueur) {
                 IconButton(onClick = { vm.changerRaid(a.objetId, 0) }) {

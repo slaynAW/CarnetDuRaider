@@ -43,14 +43,17 @@ class ListeDeCoursesEtVerdictTest {
 
     @Test
     fun `a trouver - objectifs puis ajouts du joueur`() {
-        val reserve = mapOf("arc_alloy" to 9, "film_reel" to 1)
-        val liste = planificateur.aTrouver(listOf(cielDegage), reserve, mapOf("film_reel" to 2, "battery" to 1, "arc_alloy" to 5))
-        // L'Alliage ARC est complet pour la quête ; ajouté à la main (5 voulus, 9 en réserve), il est trouvé.
+        val reserve = mapOf("arc_alloy" to 9, "film_reel" to 4)
+        val ajouts = mapOf("film_reel" to 2, "battery" to 1, "arc_alloy" to 5)
+        val liste = planificateur.aTrouver(listOf(cielDegage), reserve, ajouts, trouvesAjouts = mapOf("film_reel" to 1, "arc_alloy" to 5))
+        // L'Alliage ARC est complet pour la quête ; ajouté à la main (5 voulus, 5 rapportés), il est trouvé.
         assertTrue(liste.single { it.objetId == "arc_alloy" }.let { it.ajouteParLeJoueur && it.trouve })
+        // Un objet ajouté à la main se décompte avec ce qui a été rapporté depuis, pas avec la réserve.
         val bobine = liste.single { it.objetId == "film_reel" }
         assertTrue(bobine.ajouteParLeJoueur)
-        assertEquals(1, bobine.possede)
+        assertEquals(1, bobine.trouves)
         assertEquals(2, bobine.voulu)
+        assertEquals(1, bobine.reste)
         assertEquals(listOf("film_reel", "battery", "arc_alloy"), liste.filter { it.ajouteParLeJoueur }.map { it.objetId })
         assertTrue(liste.filterNot { it.ajouteParLeJoueur }.all { it.pour.isNotEmpty() && !it.trouve })
     }
@@ -80,7 +83,9 @@ class ListeDeCoursesEtVerdictTest {
     @Test
     fun `jamais a vendre s'il est dans la liste de raid`() {
         val v = conseiller.verdict("film_reel", possede = 4, objectifs = emptyList(), listeRaid = mapOf("film_reel" to 2))
-        assertEquals(Verdict.Cherche(voulu = 2, possede = 4), v)
+        assertEquals(Verdict.Cherche(voulu = 2, trouves = 0), v)
+        val rapporte = conseiller.verdict("film_reel", 4, emptyList(), listeRaid = mapOf("film_reel" to 2), trouvesRaid = mapOf("film_reel" to 1))
+        assertEquals(Verdict.Cherche(voulu = 2, trouves = 1), rapporte)
     }
 
     @Test

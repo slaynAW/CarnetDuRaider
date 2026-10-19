@@ -88,6 +88,12 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
         onglet = cible
     }
 
+    // Retour de raid quitté (« Valider », retour, autre onglet) : il est validé, et l'animation montre ce
+    // qui a été trouvé. Une rotation de l'écran ne le valide pas (l'état est gardé).
+    LaunchedEffect(retourRaid) {
+        if (!retourRaid) vm.validerRetourDeRaid()
+    }
+
     // Ouverture depuis une notification : directement sur l'onglet demandé.
     LaunchedEffect(ongletDemande) {
         ongletDemande?.let {
@@ -109,95 +115,100 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
         }
     }
 
-    Scaffold(
-        containerColor = Signal.Fond,
-        topBar = {
-            EnTete(reglagesOuverts = reglages) {
-                objetOuvert = null
-                ajoutObjectif = false
-                choixQuetes = false
-                retourRaid = false
-                planOuvert = null
-                reglages = true
-            }
-        },
-        bottomBar = {
-            NavigationBar(containerColor = Signal.Surface) {
-                Onglet.entries.forEach { o ->
-                    NavigationBarItem(
-                        selected = onglet == o,
-                        onClick = { aller(o) },
-                        icon = { Icon(o.icone, contentDescription = null) },
-                        label = { Text(o.titre) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Signal.SurCouleur,
-                            selectedTextColor = Signal.Texte,
-                            indicatorColor = o.couleur,
-                            unselectedIconColor = Signal.TexteDoux,
-                            unselectedTextColor = Signal.TexteDoux,
-                        ),
-                    )
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Signal.Fond,
+            topBar = {
+                EnTete(reglagesOuverts = reglages) {
+                    objetOuvert = null
+                    ajoutObjectif = false
+                    choixQuetes = false
+                    retourRaid = false
+                    planOuvert = null
+                    reglages = true
                 }
-            }
-        },
-    ) { marges ->
-        Box(Modifier.fillMaxSize().padding(marges)) {
-            val id = objetOuvert
-            when {
-                // Le plan passe devant la fiche : ouvert depuis une zone de butin, le retour ramène à la fiche.
-                planOuvert != null -> EcranPlan(vm, planOuvert!!, planRecherche, onRetour = { planOuvert = null })
-                id != null -> EcranFiche(
-                    vm,
-                    id,
-                    onRetour = { objetOuvert = null },
-                    ouvrir = { objetOuvert = it },
-                    ouvrirZone = { carte, zone ->
-                        planRecherche = zone
-                        planOuvert = carte
-                    },
-                )
-                ajoutObjectif -> EcranAjoutObjectif(vm, onRetour = { ajoutObjectif = false })
-                choixQuetes -> EcranQuetesEnCours(vm, onRetour = { choixQuetes = false })
-                retourRaid -> EcranRetourRaid(vm, onRetour = { retourRaid = false })
-                reglages -> EcranReglages(
-                    vm,
-                    vm.miseAJour,
-                    miseAJour,
-                    afficherMiseAJour = { dialogueMiseAJour = true },
-                    onRetour = { reglages = false },
-                )
-                else -> when (onglet) {
-                    Onglet.ACCUEIL -> EcranAccueil(
+            },
+            bottomBar = {
+                NavigationBar(containerColor = Signal.Surface) {
+                    Onglet.entries.forEach { o ->
+                        NavigationBarItem(
+                            selected = onglet == o,
+                            onClick = { aller(o) },
+                            icon = { Icon(o.icone, contentDescription = null) },
+                            label = { Text(o.titre) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Signal.SurCouleur,
+                                selectedTextColor = Signal.Texte,
+                                indicatorColor = o.couleur,
+                                unselectedIconColor = Signal.TexteDoux,
+                                unselectedTextColor = Signal.TexteDoux,
+                            ),
+                        )
+                    }
+                }
+            },
+        ) { marges ->
+            Box(Modifier.fillMaxSize().padding(marges)) {
+                val id = objetOuvert
+                when {
+                    // Le plan passe devant la fiche : ouvert depuis une zone de butin, le retour ramène à la fiche.
+                    planOuvert != null -> EcranPlan(vm, planOuvert!!, planRecherche, onRetour = { planOuvert = null })
+                    id != null -> EcranFiche(
                         vm,
-                        aller = ::aller,
-                        nouvelleVersion = miseAJour.nouvelle?.version,
-                        calendrier = calendrierOfficiel,
-                        afficherMiseAJour = { dialogueMiseAJour = true },
-                    )
-                    Onglet.OBJETS -> EcranObjets(vm, recherche, { recherche = it }, ouvrir = { objetOuvert = it })
-                    Onglet.RAID -> EcranRaid(
-                        vm,
+                        id,
+                        onRetour = { objetOuvert = null },
                         ouvrir = { objetOuvert = it },
                         ouvrirZone = { carte, zone ->
                             planRecherche = zone
                             planOuvert = carte
                         },
-                        retourDeRaid = { retourRaid = true },
-                        choisirObjectifs = { aller(Onglet.OBJECTIFS) },
                     )
-                    Onglet.CARTES -> EcranCartes(vm, ouvrirPlan = {
-                        planRecherche = ""
-                        planOuvert = it
-                    })
-                    Onglet.OBJECTIFS -> EcranObjectifs(
+                    ajoutObjectif -> EcranAjoutObjectif(vm, onRetour = { ajoutObjectif = false })
+                    choixQuetes -> EcranQuetesEnCours(vm, onRetour = { choixQuetes = false })
+                    retourRaid -> EcranRetourRaid(vm, onRetour = { retourRaid = false })
+                    reglages -> EcranReglages(
                         vm,
-                        ajouterObjectif = { ajoutObjectif = true },
-                        choisirQuetes = { choixQuetes = true },
-                        voirRaid = { aller(Onglet.RAID) },
+                        vm.miseAJour,
+                        miseAJour,
+                        afficherMiseAJour = { dialogueMiseAJour = true },
+                        onRetour = { reglages = false },
                     )
+                    else -> when (onglet) {
+                        Onglet.ACCUEIL -> EcranAccueil(
+                            vm,
+                            aller = ::aller,
+                            nouvelleVersion = miseAJour.nouvelle?.version,
+                            calendrier = calendrierOfficiel,
+                            afficherMiseAJour = { dialogueMiseAJour = true },
+                        )
+                        Onglet.OBJETS -> EcranObjets(vm, recherche, { recherche = it }, ouvrir = { objetOuvert = it })
+                        Onglet.RAID -> EcranRaid(
+                            vm,
+                            ouvrir = { objetOuvert = it },
+                            ouvrirZone = { carte, zone ->
+                                planRecherche = zone
+                                planOuvert = carte
+                            },
+                            retourDeRaid = { retourRaid = true },
+                            choisirObjectifs = { aller(Onglet.OBJECTIFS) },
+                        )
+                        Onglet.CARTES -> EcranCartes(vm, ouvrirPlan = {
+                            planRecherche = ""
+                            planOuvert = it
+                        })
+                        Onglet.OBJECTIFS -> EcranObjectifs(
+                            vm,
+                            ajouterObjectif = { ajoutObjectif = true },
+                            choisirQuetes = { choixQuetes = true },
+                            voirRaid = { aller(Onglet.RAID) },
+                        )
+                    }
                 }
             }
         }
+
+        // Fin du retour de raid : objets trouvés, raid terminé.
+        vm.celebration?.let { bilan -> CelebrationRaid(vm, bilan, onFin = vm::finCelebration) }
     }
 
     if (dialogueMiseAJour && miseAJour.nouvelle != null) {

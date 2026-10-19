@@ -107,6 +107,29 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .indice small { margin-left: 8px; }
 .plan-vue .arc { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--rouge); border: 2px solid var(--fond); pointer-events: none; }
 .plan-vue .sortie { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--cyan); border: 3px solid var(--fond); pointer-events: none; }
+.reste { display: flex; flex-direction: column; align-items: flex-end; padding-right: 8px; flex: none; }
+.reste b { font: 700 20px/1.1 var(--titre); color: var(--or); font-variant-numeric: tabular-nums; }
+.reste small { font-size: 11px; color: var(--texte-doux); }
+.celebration { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; overflow: hidden; cursor: pointer;
+  background: color-mix(in srgb, var(--fond) 95%, transparent); animation: apparaitre .3s ease-out both;
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px)); }
+.celebration:focus { outline: none; }
+.celebration-in { position: relative; width: min(100%, 420px); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.celebration h2 { font-size: 34px; }
+.celebration .sous { margin: 0; font: 600 18px var(--titre); }
+.atteints { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px; }
+.atteint { text-align: left; padding: 10px; animation: rebond .55s cubic-bezier(.34, 1.56, .64, 1) both; }
+.coche-icone { position: relative; flex: none; display: grid; }
+.coche-icone i { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--fond);
+  background: var(--vert); color: var(--sur-couleur); font: 700 11px/16px var(--titre); font-style: normal; text-align: center; }
+.pop { animation: rebond .6s .3s cubic-bezier(.34, 1.56, .64, 1) both; }
+.gerbe { position: absolute; left: 50%; top: 30%; width: 0; height: 0; }
+.gerbe i { position: absolute; width: 8px; height: 22px; margin: -11px 0 0 -4px; background: var(--c); animation: gerbe 1.8s cubic-bezier(.2, .7, .4, 1) both; }
+@keyframes apparaitre { from { opacity: 0; } }
+@keyframes rebond { from { opacity: 0; transform: scale(.7); } }
+@keyframes gerbe { from { transform: translate(0, 0) rotate(0deg) skewX(-20deg); opacity: 1; }
+  to { transform: translate(var(--dx), calc(var(--dy) + 35vh)) rotate(var(--r)) skewX(-20deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .celebration, .atteint, .pop { animation: none; } .gerbe { display: none; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s; } }
 </style>
 
@@ -125,6 +148,7 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 </div>
 <nav class="nav" aria-label="Onglets"><div class="nav-in" id="nav"></div></nav>
 <div id="dialogue"></div>
+<div id="celebration"></div>
 
 <script id="donnees-jeu" type="application/json">/*DONNEES*/</script>
 <script>
@@ -156,7 +180,7 @@ function rechercher(saisie, limite) {
 const valeurRecyclage = o => o.recyclage.reduce((s, q) => s + (objets.get(q.id)?.valeur ?? 0) * q.quantite, 0);
 
 // ---- Mémoire du joueur (comme Memoire.kt), gardée pour ce compte ----
-const M = { reserve: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {} };
+const M = { reserve: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {}, raidTrouves: {} };
 const projets = new Map((D.projets || []).map(p => [p.id, p]));
 const cartes = new Map(D.cartes.map(c => [c.id, c]));
 
@@ -210,12 +234,43 @@ function listeDeCourses() {
   const total = lignes.reduce((s, l) => s + l.besoin, 0);
   return { lignes, manquants: lignes.reduce((s, l) => s + l.manquant, 0), progression: total ? lignes.reduce((s, l) => s + Math.min(l.possede, l.besoin), 0) / total : 1 };
 }
-// Tout ce qu'il reste à trouver : ce qui manque pour les objectifs, puis les objets ajoutés par le joueur (M.raid).
+// Tout ce qu'il reste à trouver, avec son décompte : ce qui manque pour les objectifs (trouvés = réserve),
+// puis les objets ajoutés par le joueur (M.raid : voulus ; M.raidTrouves : rapportés depuis).
 function aTrouver() {
-  const pourObjectifs = listeDeCourses().lignes.filter(x => !x.complet).map(x => ({ id: x.id, possede: x.possede, voulu: x.besoin, pour: x.pour }));
+  const pourObjectifs = listeDeCourses().lignes.filter(x => !x.complet).map(x => ({ id: x.id, trouves: x.possede, voulu: x.besoin, pour: x.pour }));
   const deja = new Set(pourObjectifs.map(x => x.id));
-  const ajoutes = Object.entries(M.raid || {}).filter(([id]) => !deja.has(id)).map(([id, voulu]) => ({ id, possede: possede(id), voulu, pour: [] }));
-  return [...pourObjectifs, ...ajoutes].map(x => ({ ...x, ajoute: !x.pour.length, trouve: x.possede >= x.voulu }));
+  const ajoutes = Object.entries(M.raid || {}).filter(([id]) => !deja.has(id)).map(([id, voulu]) => ({ id, trouves: M.raidTrouves?.[id] ?? 0, voulu, pour: [] }));
+  return [...pourObjectifs, ...ajoutes].map(etatATrouver);
+}
+const etatATrouver = x => ({ ...x, ajoute: !x.pour.length, reste: Math.max(0, x.voulu - x.trouves), trouve: x.trouves >= x.voulu });
+
+// ---- Retour de raid (core/RetourDeRaid.kt) : décompte de ce qu'on cherche, bilan à la validation ----
+function compterTrouves(id, ecart) {
+  if (!(id in (M.raid || {})) || !ecart) return;
+  M.raidTrouves = M.raidTrouves || {};
+  const n = Math.max(0, (M.raidTrouves[id] ?? 0) + ecart);
+  if (n) M.raidTrouves[id] = n; else delete M.raidTrouves[id];
+}
+// Butin rapporté (ou retiré) : ajouté à la réserve et décompté de ce qu'on cherche.
+function rapporter(id, d) { const avant = possede(id); changerQte(id, d); compterTrouves(id, possede(id) - avant); }
+// Un objet des objectifs quitte la liste quand il est complet : il compte comme atteint.
+function bilanRaid(avant, apres) {
+  const maintenant = new Map(apres.map(x => [x.id, x]));
+  const atteints = avant.filter(a => !a.trouve).map(a => maintenant.get(a.id) ?? etatATrouver({ ...a, trouves: Math.max(possede(a.id), a.voulu) })).filter(x => x.trouve);
+  return { atteints, termine: avant.some(a => !a.trouve) && apres.every(x => x.trouve) };
+}
+// Retour de raid quitté (Valider, retour, autre onglet) : bilan pour l'animation, puis les objets ajoutés
+// à la main et trouvés quittent la liste.
+function validerRetour() {
+  const R = S.raid;
+  if (!R) return;
+  S.raid = null;
+  const bilan = bilanRaid(R.liste, aTrouver());
+  M.raid = M.raid || {}; M.raidTrouves = M.raidTrouves || {};
+  for (const [id, voulu] of Object.entries(M.raid)) if ((M.raidTrouves[id] ?? 0) >= voulu) delete M.raid[id];
+  for (const id of Object.keys(M.raidTrouves)) if (!(id in M.raid)) delete M.raidTrouves[id];
+  if (bilan.atteints.length) S.celebration = bilan;
+  enregistrer();
 }
 
 // ---- À quoi sert un objet (core/Usages.kt) : données du jeu, plus établis, quêtes et projets pas encore faits ----
@@ -242,7 +297,7 @@ function meilleureSortie(o) { return !o?.recyclage.length ? "VENDRE" : valeurRec
 function verdict(id, objs = objectifs()) {
   const pour = besoinsPourObjet(id, objs), besoin = pour.reduce((s, b) => s + b.quantite, 0), p = possede(id), voulu = M.raid?.[id];
   if (besoin > p) return { type: "garder", manquant: besoin - p, besoin, pour };
-  if (voulu != null) return { type: "cherche", voulu, possede: p };
+  if (voulu != null) return { type: "cherche", voulu, trouves: M.raidTrouves?.[id] ?? 0 };
   if (besoin > 0) return { type: "suffisant", surplus: p - besoin, besoin, pour };
   const u = usages(id), sortie = meilleureSortie(objets.get(id));
   return u.aucun ? { type: "inutile", sortie } : { type: "utile", usages: u, sortie };
@@ -326,11 +381,11 @@ function ecranObjets() {
 
 // Fiche d'un objet, dans l'ordre où le joueur se pose les questions : verdict, à quoi il sert, où le trouver, ce qu'il rapporte.
 function ecranFiche(id) {
-  const o = objets.get(id), v = verdict(id), vr = valeurRecyclage(o), rar = RARETES[o.rarete], cherche = id in (M.raid || {});
+  const o = objets.get(id), v = verdict(id), vr = valeurRecyclage(o), rar = RARETES[o.rarete], voulu = M.raid?.[id];
   const sortie = s => s === "RECYCLER" ? `recycle-le${NB}: ses matériaux valent ${vr} pièces, plus que l'objet (${o.valeur}).`
     : !o.recyclage.length ? `vends-le${NB}: il vaut ${o.valeur} pièces et ne se recycle pas.` : `vends-le${NB}: il vaut ${o.valeur} pièces, plus que ses matériaux (${vr}).`;
   const c = v.type === "garder" ? { titre: "Garde-le", texte: `Il t'en manque ${v.manquant} pour tes objectifs.`, fond: "--or", pour: v.pour }
-    : v.type === "cherche" ? { titre: "Garde-le", texte: v.possede < v.voulu ? `Tu le cherches pour ton raid (encore ${v.voulu - v.possede}).` : `Tu le cherchais pour ton raid${NB}: tu en as assez.`, fond: "--or" }
+    : v.type === "cherche" ? { titre: "Garde-le", texte: v.trouves < v.voulu ? `Tu le cherches pour ton raid${NB}: encore ${v.voulu - v.trouves} à trouver.` : `Tu le cherchais pour ton raid${NB}: tu en as trouvé assez.`, fond: "--or" }
     : v.type === "suffisant" ? { titre: "Tu en as assez", texte: v.surplus === 0 ? "Pile ce qu'il faut pour tes objectifs." : `Tes objectifs sont couverts, avec ${v.surplus} en plus.`, fond: "--vert", pour: v.pour }
     : v.type === "utile" ? { titre: "Il peut servir", texte: `Aucun de tes objectifs n'en demande, mais il sert${NB}: ${resumeUsages(v.usages).join(", ")}. Le détail est plus bas.`, fond: "--cyan", note: `Si tu n'en as pas l'usage, ${sortie(v.sortie)}` }
     : { titre: v.sortie === "VENDRE" ? "Vends-le" : "Recycle-le", texte: `Il ne sert à rien d'autre dans le jeu${NB}: ${sortie(v.sortie)}`, fond: "--releve" };
@@ -342,7 +397,8 @@ function ecranFiche(id) {
     ${c.pour?.length ? `<hr>${c.pour.map(b => `<div class="ligne"><b class="flex">${echap(b.libelle)}</b><b>× ${b.quantite}</b></div>`).join("")}` : ""}
     ${c.note ? `<span class="petit">${c.note}</span>` : ""}</div>
   <div class="ligne"><span class="flex" style="font:600 14px var(--titre)">Dans ta réserve</span>${compteur(id)}</div>
-  ${v.type !== "garder" ? `<button class="lien" style="--c:var(${cherche ? "--texte-doux" : "--rouge"});align-self:flex-start;padding-left:0" data-action="raid-basculer" data-id="${id}">${cherche ? "Dans ce que tu cherches · le retirer" : "Le chercher au prochain raid"}</button>` : ""}
+  ${v.type === "garder" ? "" : voulu == null ? `<button class="lien" style="--c:var(--rouge);align-self:flex-start;padding-left:0" data-action="raid-ajouter" data-id="${id}">Le chercher au prochain raid</button>`
+    : `<div class="ligne"><span class="flex" style="font:600 14px var(--titre)">À trouver au prochain raid</span><div class="compteur"><button class="rond" data-action="raid-voulu" data-id="${id}" data-d="-1" aria-label="En chercher un de moins${NB}: ${echap(o.nom)}">−</button><b>${voulu}</b><button class="rond plein" data-action="raid-voulu" data-id="${id}" data-d="1" aria-label="En chercher un de plus${NB}: ${echap(o.nom)}">+</button></div></div>`}
   ${sectionUsages(usages(id))}
   ${commentLObtenir(o)}
   <h4>Vente et recyclage</h4><p style="margin:0">Se vend ${o.valeur} pièces l'unité.</p>
@@ -567,20 +623,31 @@ function ecranAjout() {
 }
 
 function ecranRaid() {
-  const R = S.raid, ids = S.rechercheRaid.trim() ? rechercher(S.rechercheRaid, 50).map(o => o.id) : R.aTrouver;
+  const R = S.raid, depart = new Map(R.liste.filter(x => !x.trouve).map(x => [x.id, x]));
+  const ids = S.rechercheRaid.trim() ? rechercher(S.rechercheRaid, 50).map(o => o.id) : [...depart.keys()];
+  const actuels = new Map(aTrouver().map(x => [x.id, x]));
+  const etat = id => actuels.get(id) ?? (depart.has(id) ? etatATrouver({ ...depart.get(id), trouves: Math.max(possede(id), depart.get(id).voulu) }) : null);
+  const trouves = [...depart.keys()].filter(id => etat(id)?.trouve).length;
   const ajoutes = Object.entries(M.reserve).reduce((s, [id, n]) => s + Math.max(0, n - (R.avant[id] ?? 0)), 0);
-  const change = JSON.stringify(M.reserve) !== JSON.stringify(R.avant);
-  return `${retour("Réserve", "--or")}<h3>Retour de raid</h3>
-  <p class="doux" style="margin:0">Ajoute ce que tu rapportes. Ce qu'il te faut est en tête${NB}; cherche les autres objets.</p>
+  const change = JSON.stringify(M.reserve) !== JSON.stringify(R.avant) || JSON.stringify(M.raidTrouves || {}) !== JSON.stringify(R.trouves);
+  return `${retour("Raid", "--rouge")}<h3>Retour de raid</h3>
+  <p class="doux" style="margin:0">Ajoute ce que tu rapportes${NB}: ce que tu cherches est en tête et se décompte. Valide à la fin pour voir ce que tu as trouvé.</p>
   <label class="recherche"><svg class="ic" viewBox="0 0 24 24" style="color:var(--or)"><path d="${ONGLETS[1][3]}"/></svg><input id="recherche-raid" type="search" placeholder="Chercher un autre objet…" value="${echap(S.rechercheRaid)}" data-champ="rechercheRaid" autocomplete="off"></label>
-  <div class="ligne"><b class="flex" style="font:600 14px var(--titre);color:var(${ajoutes ? "--or" : "--texte-doux"})">${ajoutes ? `${pluriel(ajoutes, "objet ajouté", "objets ajoutés")} à ta réserve.` : "Rien d'ajouté pour l'instant."}</b>
-    ${change ? `<button class="lien" style="--c:var(--texte-doux)" data-action="annuler-raid">Annuler</button>` : ""}<button class="bouton" data-action="fermer">Terminé</button></div>
+  <div class="ligne"><span class="flex">${depart.size ? `<b style="font:600 14px var(--titre);color:var(${trouves ? "--vert" : "--texte-doux"})">${trouves} sur ${depart.size} trouvé${trouves > 1 ? "s" : ""}</b><br>` : ""}<span class="petit" style="color:var(${ajoutes ? "--or" : "--texte-doux"})">${ajoutes ? `${pluriel(ajoutes, "objet ajouté", "objets ajoutés")} à ta réserve.` : "Rien d'ajouté pour l'instant."}</span></span>
+    ${change ? `<button class="lien" style="--c:var(--texte-doux)" data-action="annuler-raid">Annuler</button>` : ""}<button class="bouton" data-action="valider-retour">Valider</button></div>
   ${!S.rechercheRaid.trim() && !ids.length ? `<p class="doux">Rien à trouver pour l'instant${NB}: cherche les objets rapportés.</p>` : ""}
-  ${ids.map(id => { const ecart = possede(id) - (R.avant[id] ?? 0), besoin = R.besoins[id]; return `<div class="carte" style="display:flex;flex-direction:column;gap:8px;padding:10px">
-    <div class="ligne">${icone(id, 52)}<div class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit" style="font-weight:600;color:var(${ecart > 0 ? "--or" : "--texte-doux"})">${besoin != null ? `${possede(id)} / ${besoin}` : `${possede(id)} en réserve`}${ecart ? `  (${ecart > 0 ? "+" : ""}${ecart})` : ""}</span></div></div>
-    <div class="ligne" style="justify-content:flex-end;gap:8px"><button class="rond" style="width:48px;height:48px;background:var(--releve)" data-action="qte" data-id="${id}" data-d="-1" ${possede(id) ? "" : "disabled"} aria-label="En retirer un${NB}: ${echap(nomObjet(id))}">−</button>
-    <button class="rond" style="width:48px;height:48px;background:var(--releve);color:var(--or);font-size:16px" data-action="qte" data-id="${id}" data-d="5" aria-label="En ajouter cinq${NB}: ${echap(nomObjet(id))}">+5</button>
-    <button class="rond plein" style="width:72px;height:48px;border-radius:24px" data-action="qte" data-id="${id}" data-d="1" aria-label="En ajouter un${NB}: ${echap(nomObjet(id))}">+1</button></div></div>`; }).join("")}`;
+  ${ids.map(id => ligneSaisie(id, etat(id), possede(id) - (R.avant[id] ?? 0))).join("")}`;
+}
+
+// Un objet rapporté : son décompte s'il est cherché, sinon ce qu'il y a en réserve (LigneSaisie, EcranRetourRaid.kt).
+function ligneSaisie(id, c, ecart) {
+  const nom = echap(nomObjet(id));
+  const detail = !c ? `${possede(id)} en réserve` : c.trouve ? `Trouvé${NB}! ${c.voulu}/${c.voulu}` : `Encore ${c.reste} à trouver · ${c.trouves}/${c.voulu}`;
+  return `<div class="carte" style="display:flex;flex-direction:column;gap:8px;padding:10px">
+    <div class="ligne">${icone(id, 52)}<div class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${c?.trouve ? "--vert" : ecart > 0 ? "--or" : "--texte-doux"})">${detail}${ecart ? `  (${ecart > 0 ? "+" : ""}${ecart})` : ""}</span></div>${c?.trouve ? `<span role="img" aria-label="Trouvé" style="color:var(--vert);font:700 24px var(--titre);padding-right:6px">✓</span>` : ""}</div>
+    <div class="ligne" style="justify-content:flex-end;gap:8px"><button class="rond" style="width:48px;height:48px;background:var(--releve)" data-action="rapporter" data-id="${id}" data-d="-1" ${possede(id) ? "" : "disabled"} aria-label="En retirer un${NB}: ${nom}">−</button>
+    <button class="rond" style="width:48px;height:48px;background:var(--releve);color:var(--or);font-size:16px" data-action="rapporter" data-id="${id}" data-d="5" aria-label="En ajouter cinq${NB}: ${nom}">+5</button>
+    <button class="rond plein" style="width:72px;height:48px;border-radius:24px" data-action="rapporter" data-id="${id}" data-d="1" aria-label="En ajouter un${NB}: ${nom}">+1</button></div></div>`;
 }
 
 // ---- Où aller pour trouver ce qui manque (PreparationRaid.kt) ----
@@ -633,8 +700,9 @@ function ecranOngletRaid() {
   if (!detaillees.length) detaillees = conseil.cartes.slice(0, 1);
   const autres = conseil.cartes.filter(c => !detaillees.includes(c)), avecButin = new Set(conseil.cartes.flatMap(c => c.objets)).size;
   const couverts = conseil.parcours.reduce((n, e) => n + e.objets.length, 0);
-  return `${bandeau("Raid", "--rouge")}<h2>Ton prochain raid</h2>
+  return `${bandeau("Raid", "--rouge")}<h2>Préparer mon raid</h2>
   <p class="doux" style="margin:0">${restants.length ? `${pluriel(restants.length, "objet", "objets")} à trouver pour tes objectifs et ta liste. Voici où aller.` : "Rien à chercher pour l'instant."}</p>
+  ${restants.length ? `<button class="bouton large" data-action="raid">Retour de raid${NB}: ajouter mon butin</button>` : ""}
   ${!restants.length ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:8px;padding:16px"><span class="doux">Suis un objectif (un établi à améliorer, une quête, un projet) ou ajoute un objet ci-dessous${NB}: l'appli te dira sur quelle carte aller et où chercher.</span>
     <button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="onglet" data-onglet="OBJECTIFS">Choisir mes objectifs</button></div>` : ""}
   ${detaillees.length ? `<h4>Où aller</h4>
@@ -644,22 +712,22 @@ function ecranOngletRaid() {
   ${detaillees.map(c => carteRaid(c, avecButin, c === conseil.cartes[0])).join("")}
   ${autres.length ? `<p class="doux" style="margin:0">Aussi${NB}: ${echap(autres.map(c => `${nomC(c.carteId)} (${pluriel(c.objets.length, "objet", "objets")})`).join(" · "))}</p>` : ""}
   <p class="petit discret" style="margin:0">Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs. Les conditions en cours sur chaque carte s'affichent dans l'appli Android.</p>` : ""}
-  ${liste.length ? `<div class="ligne" style="margin-top:8px"><h4 class="flex" style="margin:0">Ce qu'il te faut</h4><button class="lien" data-action="raid">Saisir mon butin</button></div>
+  ${liste.length ? `<h4>Ce qu'il te faut</h4>
   ${liste.map(ligneATrouver).join("")}` : ""}
   <h4>Chercher autre chose</h4>
   <label class="recherche" style="--f:var(--rouge)"><svg class="ic" viewBox="0 0 24 24" style="color:var(--rouge)"><path d="${ONGLETS[1][3]}"/></svg><input id="recherche-ajout" type="search" placeholder="Ajouter un objet à chercher…" value="${echap(S.rechercheAjout)}" data-champ="rechercheAjout" autocomplete="off"></label>
-  ${res.map(o => `<button class="carte ligne" style="padding:8px" data-action="raid-ajouter" data-id="${o.id}">${icone(o.id, 36)}<span class="flex">${echap(o.nom)}</span><b style="color:var(--rouge);font-size:13px">Ajouter</b></button>`).join("")}
+  ${res.map(o => `<button class="carte ligne" style="padding:8px" data-action="raid-ajouter" data-id="${o.id}">${icone(o.id, 36)}<span class="flex">${echap(o.nom)}</span><b style="color:var(--rouge);font-size:13px">${M.raid?.[o.id] ? `× ${M.raid[o.id]}  +1` : "Ajouter"}</b></button>`).join("")}
   ${conseil.sansButin.length ? `<h4>Pas dans le butin</h4>${conseil.sansButin.map(id => `<button class="carte ligne" style="padding:10px;text-align:left" data-action="fiche" data-id="${id}">${icone(id, 36)}<span class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit doux">${echap(autreMoyen(objets.get(id)))}</span></span></button>`).join("")}` : ""}`;
 }
 
-// Un objet à trouver : combien on en a sur combien il en faut, pour quoi, et « +1 » quand on en trouve un.
-// Un objet ajouté par le joueur se retire d'un geste.
+// Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien on en a sur
+// combien il en faut, et pour quoi. Un objet ajouté par le joueur se retire d'un geste.
 function ligneATrouver(a) {
   const nom = echap(nomObjet(a.id));
   return `<div class="carte ligne" style="padding:8px 4px 8px 10px;gap:10px"><button class="ligne flex" style="text-align:left;gap:10px" data-action="fiche" data-id="${a.id}">${icone(a.id, 40)}
-    <span class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : "--texte-doux"})">${a.possede}/${a.voulu} · ${echap(a.ajoute ? "ajouté par toi" : a.pour.map(b => b.libelle).join(" · "))}</span></span></button>
+    <span class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : "--texte-doux"})">${a.trouves}/${a.voulu} · ${echap(a.ajoute ? "ajouté par toi" : a.pour.map(b => b.libelle).join(" · "))}</span></span></button>
     ${a.trouve ? `<span role="img" aria-label="Trouvé" style="color:var(--vert);font:700 22px var(--titre);padding:0 10px">✓</span>`
-      : `<button class="rond plein" style="width:56px;height:40px;border-radius:20px;font-size:16px" data-action="qte" data-id="${a.id}" data-d="1" aria-label="J'en ai trouvé un${NB}: ${nom}">+1</button>`}
+      : `<span class="reste"><b>${a.reste}</b><small>à trouver</small></span>`}
     ${a.ajoute ? `<button class="retour" data-action="raid-retirer" data-id="${a.id}" aria-label="Ne plus chercher${NB}: ${nom}">✕</button>` : ""}</div>`;
 }
 
@@ -684,6 +752,35 @@ function ecranReglages() {
   <p class="petit discret" style="margin:0">Projet de fan, non officiel. ARC Raiders est une marque d'Embark Studios AB${NB}; cette appli n'est ni affiliée à Embark Studios ni approuvée par Embark Studios. Noms et icônes du jeu © Embark Studios AB.</p>`;
 }
 
+// ---- Animation de fin de retour de raid (CelebrationRaid.kt) : objets qui ont atteint leur nombre ;
+// quand toute la liste est trouvée, « Raid terminé, objets trouvés » et une gerbe de bandes ----
+const GERBE = (() => {
+  let g = 7;
+  const hasard = () => (g = (g * 16807) % 2147483647) / 2147483647;
+  const couleurs = ["--cyan", "--vert", "--or", "--rouge"];
+  return Array.from({ length: 40 }, (_, i) => {
+    const a = hasard() * 2 * Math.PI, v = 30 + hasard() * 45;
+    return `<i style="--c:var(${couleurs[i % 4]});--dx:${(Math.cos(a) * v).toFixed(1)}vmin;--dy:${(Math.sin(a) * v).toFixed(1)}vmin;--r:${Math.round(180 + hasard() * 360)}deg"></i>`;
+  }).join("");
+})();
+function celebration() {
+  const b = S.celebration;
+  if (!b) return "";
+  const restants = aTrouver().filter(x => !x.trouve).length, montres = b.atteints.slice(0, 6);
+  const titre = b.termine
+    ? `<svg class="pop" width="70" height="40" viewBox="0 0 35 20" aria-hidden="true"><path d="M0 20h5l7.2-20h-5z" fill="#3CC4D8"/><path d="M7.5 20h5l7.2-20h-5z" fill="#6CCB5F"/><path d="M15 20h5l7.2-20h-5z" fill="#F2B233"/><path d="M22.5 20h5l7.2-20h-5z" fill="#F0544A"/></svg>
+      <h2 class="pop">Raid terminé</h2><p class="sous" style="color:var(--vert)">Objets trouvés${NB}!</p>`
+    : `<h2 class="pop" style="color:var(--vert)">Objets trouvés</h2><p class="sous doux">${restants ? `Encore ${pluriel(restants, "objet", "objets")} à trouver.` : "Tout est trouvé."}</p>`;
+  return `<div class="celebration" data-action="fin-celebration" role="dialog" aria-modal="true" aria-label="${b.termine ? "Raid terminé" : "Objets trouvés"}" tabindex="-1">
+    ${b.termine ? `<div class="gerbe" aria-hidden="true">${GERBE}</div>` : ""}
+    <div class="celebration-in" aria-live="polite">${titre}
+      <div class="atteints">${montres.map((a, i) => `<div class="carte ligne atteint" style="animation-delay:${350 + i * 150}ms"><span class="coche-icone">${icone(a.id, 44)}<i>✓</i></span>
+        <span class="flex"><span class="nom">${echap(nomObjet(a.id))}</span><br><span class="petit doux">${Math.min(a.trouves, a.voulu)}/${a.voulu} · ${echap(a.ajoute ? `trouvé${a.trouves > 1 ? "s" : ""}` : a.pour.map(x => x.libelle).join(" · "))}</span></span></div>`).join("")}</div>
+      ${b.atteints.length > montres.length ? `<p class="petit doux" style="margin:0">Et ${pluriel(b.atteints.length - montres.length, "autre objet", "autres objets")}.</p>` : ""}
+      <p class="petit discret" style="margin:8px 0 0">Touche l'écran pour continuer</p>
+    </div></div>`;
+}
+
 // ---- Validation en une touche, annulable (BandeauValidation) ----
 function bandeauValidation() {
   const v = S.validation;
@@ -701,7 +798,10 @@ function valider(titre, cout, avancer) {
 }
 
 // ---- Rendu ----
+let celebrationAffichee = null;
 function rendre() {
+  // Retour de raid quitté (Valider, retour, autre onglet, réglages) : il est validé.
+  if (S.raid && S.ecran !== "raid") validerRetour();
   const champ = document.activeElement?.dataset?.champ, pos = document.activeElement?.selectionStart;
   const e = S.ecran;
   document.getElementById("contenu").innerHTML =
@@ -709,6 +809,11 @@ function rendre() {
     : { ACCUEIL: ecranAccueil, OBJETS: ecranObjets, RAID: ecranOngletRaid, CARTES: ecranCartes, OBJECTIFS: ecranObjectifs }[S.onglet]();
   document.getElementById("nav").innerHTML = ONGLETS.map(([k, t, c, d]) => `<button data-action="onglet" data-onglet="${k}" style="--c:var(${c})" ${S.onglet === k && !S.ecran ? 'aria-current="page"' : ""}><span class="pastille"><svg class="ic" viewBox="0 0 24 24"><path d="${d}"/></svg></span>${t}</button>`).join("");
   document.getElementById("dialogue").innerHTML = bandeauValidation();
+  if (S.celebration !== celebrationAffichee) {
+    celebrationAffichee = S.celebration;
+    document.getElementById("celebration").innerHTML = celebration();
+    document.querySelector(".celebration")?.focus();
+  }
   if (e === "plan") brancherPlan();
   document.getElementById("bouton-reglages").style.color = S.ecran === "reglages" ? "var(--or)" : "var(--texte-doux)";
   if (champ) { const el = document.querySelector(`[data-champ="${champ}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} } }
@@ -736,21 +841,27 @@ document.addEventListener("click", ev => {
   switch (b.dataset.action) {
     case "onglet": S.onglet = b.dataset.onglet; S.ecran = null; rendre(); window.scrollTo(0, 0); return;
     case "fiche": S.precedent = S.ecran; return ouvrir({ type: "fiche", id });
-    case "fermer": S.ecran = S.ecran === "plan" && P.depuis ? P.depuis : S.ecran?.type === "fiche" && S.precedent ? S.precedent : null; P.depuis = null; S.precedent = null; S.raid = null; rendre(); return;
-    case "raid-ajouter": M.raid = M.raid || {}; M.raid[id] = Math.min((M.raid[id] ?? 0) + 1, 9999); S.rechercheAjout = ""; break;
-    case "raid-retirer": if (M.raid) delete M.raid[id]; break;
-    case "raid-basculer": M.raid = M.raid || {}; if (id in M.raid) delete M.raid[id]; else M.raid[id] = 1; break;
+    case "fermer": S.ecran = S.ecran === "plan" && P.depuis ? P.depuis : S.ecran?.type === "fiche" && S.precedent ? S.precedent : null; P.depuis = null; S.precedent = null; rendre(); return;
+    case "raid-ajouter": M.raid = M.raid || {}; M.raid[id] = Math.min((M.raid[id] ?? 0) + 1, 9999); break;
+    case "raid-retirer": if (M.raid) delete M.raid[id]; if (M.raidTrouves) delete M.raidTrouves[id]; break;
+    case "raid-voulu": {
+      const n = Math.min(Math.max((M.raid?.[id] ?? 0) + +b.dataset.d, 0), 9999);
+      M.raid = M.raid || {};
+      if (n) M.raid[id] = n; else { delete M.raid[id]; if (M.raidTrouves) delete M.raidTrouves[id]; }
+      break;
+    }
     case "reglages": return ouvrir("reglages");
     case "quetes": S.choix = null; S.rechercheQuetes = ""; return ouvrir("quetes");
     case "ajout": return ouvrir("ajout");
-    case "raid": {
-      // Liste figée à l'ouverture : un objet qui atteint son compte ne disparaît pas sous le doigt.
-      const l = aTrouver();
-      S.raid = { avant: { ...M.reserve }, aTrouver: l.filter(x => !x.trouve).map(x => x.id), besoins: Object.fromEntries(l.map(x => [x.id, x.voulu])) };
+    case "raid":
+      // État à l'ouverture (bilan, annulation) ; la liste est figée : un objet qui atteint son nombre ne disparaît pas sous le doigt.
+      S.raid = { avant: { ...M.reserve }, trouves: { ...(M.raidTrouves || {}) }, liste: aTrouver() };
       S.rechercheRaid = ""; return ouvrir("raid");
-    }
     case "qte": changerQte(id, +b.dataset.d); break;
-    case "annuler-raid": M.reserve = { ...S.raid.avant }; break;
+    case "rapporter": rapporter(id, +b.dataset.d); break;
+    case "annuler-raid": M.reserve = { ...S.raid.avant }; M.raidTrouves = { ...S.raid.trouves }; break;
+    case "valider-retour": S.ecran = null; break;
+    case "fin-celebration": S.celebration = null; rendre(); return;
     case "region": M.region = b.dataset.region; break;
     case "niveau-moins": { const e = etablis.get(id); M.niveaux[id] = Math.max(niveau(e) - 1, niveauDepart(e)); retirerAtteints(); break; }
     case "niveau-plus": { const e = etablis.get(id); M.niveaux[id] = Math.min(niveau(e) + 1, niveauMax(e)); retirerAtteints(); break; }
@@ -776,7 +887,7 @@ document.addEventListener("click", ev => {
     }
     case "ajouter-objectif": M.manuels.push(objectifDepuisCle(b.dataset.cle)); S.ecran = null; break;
     case "retirer-objectif": M.manuels = M.manuels.filter(o => cleObjectif(o) !== b.dataset.cle); break;
-    case "effacer": Object.assign(M, { reserve: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {} }); break;
+    case "effacer": Object.assign(M, { reserve: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {}, raidTrouves: {} }); break;
     default: return;
   }
   enregistrer();
@@ -788,7 +899,11 @@ document.addEventListener("input", ev => {
   S[c] = ev.target.value;
   rendre();
 });
-document.addEventListener("keydown", ev => { if (ev.key === "Escape" && S.ecran) { S.ecran = null; rendre(); } });
+document.addEventListener("keydown", ev => {
+  if (ev.key !== "Escape") return;
+  if (S.celebration) S.celebration = null; else if (S.ecran) S.ecran = null; else return;
+  rendre();
+});
 
 // ---- Sauvegarde : compte claude.ai (privé) si disponible, sinon ce navigateur ----
 let stockage = "navigateur", docCompte = null, minuterie = null, ecriture = Promise.resolve();

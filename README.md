@@ -25,12 +25,12 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
   une quête terminée ou une étape de projet : la suite apparaît et ce que le jeu a pris est retiré de
   ta réserve, sans rien saisir (« Annuler » pour revenir en arrière). Des objectifs plus lointains
   peuvent s'ajouter à la main.
-- **Ton prochain raid.** Rien à préparer : l'onglet Raid se remplit tout seul avec ce qui manque pour
-  tes objectifs, plus ce que tu ajoutes toi-même. L'appli dit sur quelle carte aller, où chercher sur
-  chacune et les cartes à faire pour tout trouver (d'après les tables de butin du jeu) ; « +1 » quand
-  tu trouves un objet.
-- **Retour de raid.** Après un raid, un écran pour ajouter vite ce que tu rapportes (« +1 », « +5 »),
-  en commençant par ce qu'il te faut.
+- **Préparer mon raid.** Rien à préparer : l'onglet Raid se remplit tout seul avec ce qui manque pour
+  tes objectifs, plus ce que tu ajoutes toi-même (et combien). L'appli dit sur quelle carte aller, où
+  chercher sur chacune et les cartes à faire pour tout trouver (d'après les tables de butin du jeu).
+- **Retour de raid.** Après un raid, un écran pour ajouter vite ce que tu rapportes (« +1 », « +5 ») :
+  ce que tu cherches se décompte. À la validation, une animation montre les objets qui ont atteint le
+  nombre demandé, puis « Raid terminé, objets trouvés » quand toute la liste est trouvée.
 - **Conditions de la carte.** Le calendrier officiel d'Embark
   ([arcraiders.com/map-conditions](https://arcraiders.com/map-conditions)) dans l'appli, avec les noms
   français officiels : ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois

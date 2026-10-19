@@ -109,9 +109,12 @@ fun Barre(progression: Float, couleur: Color, modifier: Modifier = Modifier, epa
     }
 }
 
-/** Compteur « − n + » pour saisir en une touche ce qu'on a dans sa réserve. */
+/**
+ * Compteur « − n + » pour saisir en une touche ce qu'on a dans sa réserve (ou, avec [suffixe], ce qu'on
+ * veut trouver).
+ */
 @Composable
-fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, modifier: Modifier = Modifier, suffixe: String = "dans ta réserve") {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         FilledIconButton(
             onClick = { onChange(-1) },
@@ -124,7 +127,7 @@ fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, modifier: M
         Text(
             valeur.toString(),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.width(44.dp).semantics { contentDescription = "$valeur $nomObjet dans ta réserve" },
+            modifier = Modifier.width(44.dp).semantics { contentDescription = "$valeur $nomObjet $suffixe" },
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
         FilledIconButton(

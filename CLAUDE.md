@@ -85,11 +85,17 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   l'enchaînement `requiert` des données du jeu) et retire de la réserve ce que le jeu a consommé.
   Les projets suivis (Expéditions…) ajoutent leur prochaine étape. Un niveau, une quête ou une étape se
   valide en un geste (`CarnetViewModel.valider…`), avec « Annuler » : jamais de saisie obligatoire.
-- Onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Ce qu'il faut trouver
-  (`Planificateur.aTrouver`) = ce qui manque aux objectifs suivis, puis les objets ajoutés par le joueur
-  (`Memoire`, clé « raid ») ; cartes classées par la somme des indices de butin des objets encore à
-  trouver (chaque objet compte au plus 1 par carte), zones où chercher, et parcours de 1 à 3 cartes
-  pour tout trouver. « +1 » note un objet trouvé ; l'accueil reprend la meilleure carte.
+- Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Ce
+  qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs suivis, puis les objets
+  ajoutés par le joueur (`Memoire`, clé « raid » : nombre voulu) ; cartes classées par la somme des
+  indices de butin des objets encore à trouver (chaque objet compte au plus 1 par carte), zones où
+  chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la meilleure carte.
+- Retour de raid (`core/RetourDeRaid.kt`, `ui/EcranRetourRaid.kt`) : le butin saisi se décompte (la
+  réserve pour les objets des objectifs ; `Memoire`, clé « raidTrouves », pour les objets ajoutés par
+  le joueur). À la validation (bouton, retour ou autre onglet, jamais une rotation), `RetourDeRaid.bilan`
+  donne les objets qui ont atteint le nombre demandé et si toute la liste est trouvée : animation
+  `ui/CelebrationRaid.kt` (« Raid terminé, objets trouvés »), puis les objets ajoutés et trouvés quittent
+  la liste.
 - Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
   officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).
