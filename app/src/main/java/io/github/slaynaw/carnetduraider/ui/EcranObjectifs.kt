@@ -47,27 +47,29 @@ import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.Etabli
-import io.github.slaynaw.carnetduraider.core.LigneDeCourses
 import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
 import io.github.slaynaw.carnetduraider.core.Quete
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
-import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
+/**
+ * Onglet Objectifs : ce que le joueur veut faire avancer (établis, quêtes, projets). Rien n'est suivi à
+ * l'installation ; un geste suffit pour suivre, et un geste pour valider ce qui est fait en jeu. Ce qu'il
+ * faut trouver pour tout ça s'affiche dans l'onglet Raid.
+ */
 @Composable
-fun EcranProgression(
+fun EcranObjectifs(
     vm: CarnetViewModel,
     ajouterObjectif: () -> Unit,
     choisirQuetes: () -> Unit,
-    retourDeRaid: () -> Unit,
-    preparerRaid: () -> Unit,
-    ouvrir: (String) -> Unit,
+    voirRaid: () -> Unit,
 ) {
     val liste = vm.listeDeCourses()
     val enCours = vm.suivi.quetesEnCours(vm.progression)
     val autres = vm.objectifsManuels.filter { it !in vm.objectifsAutomatiques }
+    val tousLesEtablis = vm.progression.etablisSuivis.size == vm.catalogue.donnees.etablis.size
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -77,46 +79,58 @@ fun EcranProgression(
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Bandeau("Progression", Signal.Vert)
-                    Text("Liste de courses", style = MaterialTheme.typography.headlineLarge)
+                    Bandeau("Objectifs", Signal.Vert)
+                    Text("Objectifs", style = MaterialTheme.typography.headlineLarge)
                     Text(
-                        if (vm.objectifs.isEmpty()) {
-                            "Rien n'est suivi pour l'instant. Choisis ci-dessous les établis à améliorer, indique tes quêtes en cours " +
-                                "ou suis un projet\u00a0: les objets à trouver s'ajoutent ici."
-                        } else {
-                            "${pluriel(liste.objetsManquants, "objet", "objets")} à trouver pour tes établis, tes quêtes et tes projets suivis. " +
-                                "Quand tu améliores un établi ou termines une quête en jeu, coche-le ici\u00a0: la suite se met à jour toute seule."
-                        },
+                        "Choisis ce que tu veux faire avancer. Quand c'est fait en jeu, valide-le d'un geste\u00a0: " +
+                            "ce que le jeu a pris est retiré de ta réserve et la suite s'ajoute toute seule.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Signal.TexteDoux,
                     )
                 }
             }
 
-            if (liste.lignes.isNotEmpty()) {
+            // Résumé, et le chemin vers ce qu'il faut trouver.
+            if (vm.objectifs.isNotEmpty()) {
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("${(liste.progression * 100).roundToInt()}\u00a0%", style = MaterialTheme.typography.headlineMedium, color = Signal.Or)
-                            Text("des objets rassemblés", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux, modifier = Modifier.padding(bottom = 4.dp))
+                    Surface(onClick = voirRaid, color = Signal.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "${pluriel(vm.objectifs.size, "objectif suivi", "objectifs suivis")} · ${pluriel(liste.objetsATrouver, "objet", "objets")} à trouver",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text("Raid ›", style = MaterialTheme.typography.labelLarge, color = Signal.Rouge)
+                            }
+                            Barre(liste.progression.toFloat(), Signal.Vert, epaisseur = 8.dp)
                         }
-                        Barre(liste.progression.toFloat(), Signal.Or, epaisseur = 8.dp)
                     }
                 }
             }
 
-            if (!vm.quetesIndiquees) {
+            // Démarrage en un geste : tout l'Atelier, puis les quêtes.
+            if (vm.progression.etablisSuivis.isEmpty() || !vm.quetesIndiquees) {
                 item {
                     Surface(color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Où en es-tu dans les quêtes\u00a0?", style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                "Coche une seule fois les quêtes affichées en cours dans ton jeu\u00a0: l'appli en déduit toutes celles que tu as déjà terminées.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Signal.TexteDoux,
-                            )
-                            Button(onClick = choisirQuetes, colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur)) {
-                                Text("Choisir mes quêtes en cours")
+                            Text("Pour commencer", style = MaterialTheme.typography.titleMedium)
+                            if (vm.progression.etablisSuivis.isEmpty()) {
+                                Button(
+                                    onClick = { vm.suivreTousLesEtablis(true) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
+                                ) { Text("Suivre tous mes établis") }
+                            }
+                            if (!vm.quetesIndiquees) {
+                                Text(
+                                    "Coche une seule fois les quêtes en cours dans ton jeu\u00a0: l'appli en déduit celles déjà terminées.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Signal.TexteDoux,
+                                )
+                                Button(
+                                    onClick = choisirQuetes,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
+                                ) { Text("Indiquer mes quêtes en cours") }
                             }
                         }
                     }
@@ -124,11 +138,10 @@ fun EcranProgression(
             }
 
             item {
-                val tous = vm.progression.etablisSuivis.size == vm.catalogue.donnees.etablis.size
                 Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Atelier", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { vm.suivreTousLesEtablis(!tous) }) {
-                        Text(if (tous) "Ne rien suivre" else "Tout suivre", color = if (tous) Signal.TexteDiscret else Signal.Vert)
+                    TextButton(onClick = { vm.suivreTousLesEtablis(!tousLesEtablis) }) {
+                        Text(if (tousLesEtablis) "Ne rien suivre" else "Tout suivre", color = if (tousLesEtablis) Signal.TexteDiscret else Signal.Vert)
                     }
                 }
             }
@@ -136,24 +149,25 @@ fun EcranProgression(
                 CarteEtabli(vm, etabli)
             }
 
-            item {
-                Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Quêtes en cours", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = choisirQuetes) { Text("Modifier", color = Signal.Vert) }
+            if (vm.quetesIndiquees) {
+                item {
+                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Quêtes en cours", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        TextButton(onClick = choisirQuetes) { Text("Modifier", color = Signal.Vert) }
+                    }
                 }
-            }
-            if (vm.quetesIndiquees && enCours.isEmpty()) {
-                item { Text("Aucune quête en cours.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret) }
-            }
-            // Avant que le joueur ait indiqué ses quêtes, rien n'est suivi : la carte ci-dessus le lui propose.
-            items(if (vm.quetesIndiquees) enCours.sortedWith(compareBy({ it.objets.isEmpty() }, { it.nom })) else emptyList(), key = { "quete-${it.id}" }) { quete ->
-                CarteQuete(vm, quete)
+                if (enCours.isEmpty()) {
+                    item { Text("Aucune quête en cours.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret) }
+                }
+                items(enCours.sortedWith(compareBy({ it.objets.isEmpty() }, { it.nom })), key = { "quete-${it.id}" }) { quete ->
+                    CarteQuete(vm, quete)
+                }
             }
 
             item { SousTitre("Projets") }
             item {
                 Text(
-                    "Expéditions et projets de saison\u00a0: suis ceux que tu fais, leur prochaine étape s'ajoute à ta liste de courses.",
+                    "Expéditions et projets de saison\u00a0: suis ceux que tu fais, leur prochaine étape s'ajoute à ce qu'il te faut.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Signal.TexteDoux,
                 )
@@ -169,21 +183,6 @@ fun EcranProgression(
                         Text("Ajouter un objectif plus lointain", color = Signal.Vert, modifier = Modifier.padding(start = 6.dp))
                     }
                 }
-            }
-
-            if (liste.lignes.isNotEmpty()) {
-                item {
-                    Column(Modifier.padding(top = 8.dp)) {
-                        Text("Objets à trouver", style = MaterialTheme.typography.titleMedium)
-                        Row {
-                            TextButton(onClick = preparerRaid) { Text("Préparer mon raid", color = Signal.Cyan) }
-                            TextButton(onClick = retourDeRaid) { Text("Retour de raid", color = Signal.Or) }
-                        }
-                    }
-                }
-            }
-            items(liste.lignes, key = { it.objetId }) { ligne ->
-                LigneCourses(vm, ligne, onClick = { ouvrir(ligne.objetId) })
             }
         }
 
@@ -359,33 +358,6 @@ private fun LigneObjectif(vm: CarnetViewModel, objectif: Objectif) {
     }
 }
 
-@Composable
-private fun LigneCourses(vm: CarnetViewModel, ligne: LigneDeCourses, onClick: () -> Unit) {
-    val rarete = vm.catalogue.objet(ligne.objetId)?.rarete
-    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconeObjet(ligne.objetId, rarete, 40.dp)
-                    Text(ligne.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    Text(
-                        "${ligne.possede}/${ligne.besoin}",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = if (ligne.complet) Signal.Vert else Signal.Texte,
-                    )
-                }
-                Barre(minOf(ligne.possede, ligne.besoin).toFloat() / ligne.besoin, if (ligne.complet) Signal.Vert else Signal.Or)
-                Text(
-                    ligne.pour.joinToString(" · ") { "${it.libelle} (${it.quantite})" },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Signal.TexteDoux,
-                )
-            }
-            Compteur(ligne.possede, ligne.nom, onChange = { vm.changerQuantite(ligne.objetId, it) }, modifier = Modifier.padding(start = 8.dp))
-        }
-    }
-}
-
 /**
  * Mise en place des quêtes : le joueur coche celles qui sont en cours dans son jeu (journal de
  * quêtes). Celles qui y mènent sont marquées terminées.
@@ -409,7 +381,7 @@ fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
-                    Bandeau("Progression", Signal.Vert)
+                    Bandeau("Objectifs", Signal.Vert)
                 }
                 Text("Mes quêtes en cours", style = MaterialTheme.typography.headlineMedium)
                 Text(
@@ -474,11 +446,11 @@ fun EcranAjoutObjectif(vm: CarnetViewModel, onRetour: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
-                    Bandeau("Progression", Signal.Vert)
+                    Bandeau("Objectifs", Signal.Vert)
                 }
                 Text("Ajouter un objectif", style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    "Le prochain niveau de tes établis et tes quêtes en cours sont déjà suivis. Ajoute ici un objectif plus lointain\u00a0: ses objets s'ajoutent à ta liste de courses.",
+                    "Le prochain niveau des établis suivis et tes quêtes en cours sont déjà suivis. Ajoute ici un objectif plus lointain\u00a0: ses objets s'ajoutent à ce qu'il te faut.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
                 )

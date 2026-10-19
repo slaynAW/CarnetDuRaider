@@ -6,18 +6,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import io.github.slaynaw.carnetduraider.core.BilanRaid
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.ConseilRaid
 import io.github.slaynaw.carnetduraider.core.Conseiller
 import io.github.slaynaw.carnetduraider.core.Etabli
 import io.github.slaynaw.carnetduraider.core.ListeDeCourses
 import io.github.slaynaw.carnetduraider.core.Objectif
+import io.github.slaynaw.carnetduraider.core.ObjetATrouver
 import io.github.slaynaw.carnetduraider.core.Planificateur
 import io.github.slaynaw.carnetduraider.core.PreparationRaid
 import io.github.slaynaw.carnetduraider.core.Progression
 import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
+import io.github.slaynaw.carnetduraider.core.RetourDeRaid
 import io.github.slaynaw.carnetduraider.core.SuiviProgression
+import io.github.slaynaw.carnetduraider.core.Usages
+import io.github.slaynaw.carnetduraider.core.UsagesObjet
 import io.github.slaynaw.carnetduraider.core.Verdict
 import io.github.slaynaw.carnetduraider.core.calendrier.Calendrier
 import io.github.slaynaw.carnetduraider.core.calendrier.DonneesCalendrier
@@ -33,7 +38,8 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     val planificateur = Planificateur(catalogue)
     val suivi = SuiviProgression(catalogue)
     val preparationRaid = PreparationRaid(catalogue)
-    private val conseiller = Conseiller(catalogue, planificateur)
+    val usages = Usages(catalogue, suivi)
+    private val conseiller = Conseiller(catalogue, planificateur, usages)
     private val memoire = Memoire(application)
 
     /** Mises à jour intégrées et calendrier : vivent avec l'appli, pas avec l'écran. */
@@ -55,6 +61,10 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Objets cherchés pour le prochain raid, avec la quantité voulue. */
     var listeRaid by mutableStateOf(memoire.lireRaid())
+        private set
+
+    /** Pour chaque objet de [listeRaid] : combien le joueur en a rapporté depuis (le décompte). */
+    var trouvesRaid by mutableStateOf(memoire.lireTrouvesRaid())
         private set
 
     /** Objectifs choisis par l'appli d'après la progression. */
@@ -87,6 +97,8 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         objectifsManuels = memoire.lireObjectifs()
         region = memoire.region
         listeRaid = memoire.lireRaid()
+        trouvesRaid = memoire.lireTrouvesRaid()
+        retourOuvert = null
         derniereValidation = null
         alertes.recharger()
     }
@@ -95,25 +107,74 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         val n = quantite.coerceIn(0, MAX_QUANTITE)
         listeRaid = if (n == 0) listeRaid - objetId else listeRaid + (objetId to n)
         memoire.ecrireRaid(listeRaid)
+        // Retiré de la liste : son décompte repart de zéro s'il y revient.
+        if (n == 0) changerTrouvesRaid(trouvesRaid - objetId)
     }
 
     fun ajouterAuRaid(objetId: String) = changerRaid(objetId, (listeRaid[objetId] ?: 0) + 1)
 
-    /** Ajoute au raid tout ce qui manque à la liste de courses ; renvoie le nombre d'objets ajoutés. */
-    fun ajouterListeDeCoursesAuRaid(): Int {
-        val manquants = listeDeCourses().lignes.filter { it.manquant > 0 && (listeRaid[it.objetId] ?: 0) < it.manquant }
-        if (manquants.isEmpty()) return 0
-        listeRaid = listeRaid + manquants.map { it.objetId to it.manquant }
-        memoire.ecrireRaid(listeRaid)
-        return manquants.size
+    private fun changerTrouvesRaid(nouveaux: Map<String, Int>) {
+        if (nouveaux == trouvesRaid) return
+        trouvesRaid = nouveaux
+        memoire.ecrireTrouvesRaid(nouveaux)
     }
 
-    fun viderRaid() {
-        listeRaid = emptyMap()
-        memoire.ecrireRaid(listeRaid)
+    /** Ce qu'il reste à trouver : ce qui manque pour les objectifs suivis, puis les objets ajoutés à la main. */
+    fun aTrouver(): List<ObjetATrouver> = planificateur.aTrouver(objectifs, reserve, listeRaid, trouvesRaid)
+
+    /** Retour de raid en cours : réserve, décompte et liste à trouver à l'ouverture (annulation et bilan). */
+    class RetourOuvert(val reserve: Map<String, Int>, val trouves: Map<String, Int>, val aTrouver: List<ObjetATrouver>)
+
+    private var retourOuvert: RetourOuvert? = null
+
+    /** Ouvre le retour de raid, ou reprend celui qui est en cours. */
+    fun ouvrirRetourDeRaid(): RetourOuvert =
+        retourOuvert ?: RetourOuvert(reserve, trouvesRaid, aTrouver()).also { retourOuvert = it }
+
+    /** Butin rapporté (ou retiré, s'il est négatif) : ajouté à la réserve et décompté de ce qu'on cherche. */
+    fun rapporter(objetId: String, delta: Int) {
+        val avant = possede(objetId)
+        changerQuantite(objetId, delta)
+        changerTrouvesRaid(RetourDeRaid.compter(listeRaid, trouvesRaid, objetId, possede(objetId) - avant))
     }
 
-    fun conseilRaid(): ConseilRaid = preparationRaid.conseiller(listeRaid.keys)
+    /** Vrai si le retour de raid en cours a changé quelque chose (pour proposer « Annuler »). */
+    val retourModifie: Boolean get() = retourOuvert?.let { it.reserve != reserve || it.trouves != trouvesRaid } ?: false
+
+    /** Remet la réserve et le décompte comme à l'ouverture du retour de raid. */
+    fun annulerRetourDeRaid() {
+        val r = retourOuvert ?: return
+        changerReserve(r.reserve)
+        changerTrouvesRaid(r.trouves)
+    }
+
+    /** Ce que l'animation de fin de retour de raid montre : objets qui ont atteint leur nombre, raid terminé. */
+    var celebration by mutableStateOf<BilanRaid?>(null)
+        private set
+
+    /**
+     * Retour de raid validé : bilan de ce qui a atteint le nombre demandé (animation), puis les objets
+     * ajoutés à la main et trouvés quittent la liste.
+     */
+    fun validerRetourDeRaid() {
+        val r = retourOuvert ?: return
+        retourOuvert = null
+        val bilan = RetourDeRaid.bilan(r.aTrouver, aTrouver(), reserve)
+        val (raid, trouves) = RetourDeRaid.sansLesTrouves(listeRaid, trouvesRaid)
+        if (raid != listeRaid) {
+            listeRaid = raid
+            memoire.ecrireRaid(raid)
+        }
+        changerTrouvesRaid(trouves)
+        if (bilan.atteints.isNotEmpty()) celebration = bilan
+    }
+
+    fun finCelebration() {
+        celebration = null
+    }
+
+    /** Où aller pour trouver ce qui manque encore. */
+    fun conseilRaid(): ConseilRaid = preparationRaid.conseiller(aTrouver().filter { !it.trouve }.map { it.objetId })
 
     fun suit(objectif: Objectif): Boolean = objectif in objectifs
 
@@ -218,7 +279,10 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
 
     fun listeDeCourses(): ListeDeCourses = planificateur.listeDeCourses(objectifs, reserve)
 
-    fun verdict(objetId: String): Verdict = conseiller.verdict(objetId, possede(objetId), objectifs)
+    fun verdict(objetId: String): Verdict = conseiller.verdict(objetId, possede(objetId), objectifs, progression, listeRaid, trouvesRaid)
+
+    /** À quoi sert l'objet, compte tenu de la progression (ce qui est fait ne compte plus). */
+    fun usagesDe(objetId: String): UsagesObjet = usages.pour(objetId, progression)
 
     private fun changerReserve(nouvelle: Map<String, Int>) {
         reserve = nouvelle

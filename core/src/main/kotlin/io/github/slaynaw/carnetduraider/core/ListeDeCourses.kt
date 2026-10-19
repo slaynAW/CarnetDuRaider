@@ -27,12 +27,28 @@ data class Besoin(val objectif: Objectif, val libelle: String, val quantite: Int
 data class ListeDeCourses(val lignes: List<LigneDeCourses>) {
     val objetsManquants: Int get() = lignes.sumOf { it.manquant }
 
+    /** Nombre d'objets différents qu'il reste à trouver. */
+    val objetsATrouver: Int get() = lignes.count { !it.complet }
+
     /** Part des objets déjà rassemblés, de 0 à 1 (chaque unité compte pareil). */
     val progression: Double
         get() {
             val total = lignes.sumOf { it.besoin }
             return if (total == 0) 1.0 else lignes.sumOf { minOf(it.possede, it.besoin) }.toDouble() / total
         }
+}
+
+/**
+ * Un objet à trouver pendant les raids, et son décompte. Demandé par les objectifs suivis ([pour] dit
+ * lesquels) : [trouves] est ce qu'il y a dans la réserve. Ajouté par le joueur lui-même ([pour] vide) :
+ * [trouves] est ce qu'il en a rapporté depuis, saisi au retour de raid. [voulu] : combien il en faut.
+ */
+data class ObjetATrouver(val objetId: String, val trouves: Int, val voulu: Int, val pour: List<Besoin>) {
+    val ajouteParLeJoueur: Boolean get() = pour.isEmpty()
+
+    /** Combien il en reste à trouver. */
+    val reste: Int get() = (voulu - trouves).coerceAtLeast(0)
+    val trouve: Boolean get() = trouves >= voulu
 }
 
 /** Calcule les besoins en objets des objectifs suivis, d'après les données du jeu. */
@@ -83,5 +99,24 @@ class Planificateur(private val catalogue: Catalogue) {
             )
         }
         return ListeDeCourses(lignes.sortedWith(compareBy({ it.complet }, { -it.manquant }, { it.nom })))
+    }
+
+    /**
+     * Tout ce qu'il reste à trouver : ce qui manque pour les objectifs suivis (les plus en retard
+     * d'abord), puis les objets ajoutés par le joueur ([ajouts] : identifiant → quantité voulue ;
+     * [trouvesAjouts] : combien il en a déjà rapporté).
+     */
+    fun aTrouver(
+        objectifs: List<Objectif>,
+        reserve: Map<String, Int>,
+        ajouts: Map<String, Int>,
+        trouvesAjouts: Map<String, Int> = emptyMap(),
+    ): List<ObjetATrouver> {
+        val pourObjectifs = listeDeCourses(objectifs, reserve).lignes.filter { !it.complet }
+            .map { ObjetATrouver(it.objetId, it.possede, it.besoin, it.pour) }
+        val dejaLa = pourObjectifs.map { it.objetId }.toSet()
+        val ajoutes = ajouts.filterKeys { it !in dejaLa }
+            .map { (id, voulu) -> ObjetATrouver(id, trouvesAjouts[id] ?: 0, voulu, emptyList()) }
+        return pourObjectifs + ajoutes
     }
 }

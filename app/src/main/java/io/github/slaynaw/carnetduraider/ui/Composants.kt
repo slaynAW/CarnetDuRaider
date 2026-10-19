@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
@@ -110,9 +109,12 @@ fun Barre(progression: Float, couleur: Color, modifier: Modifier = Modifier, epa
     }
 }
 
-/** Compteur « − n + » pour saisir en une touche ce qu'on a dans sa réserve. */
+/**
+ * Compteur « − n + » pour saisir en une touche ce qu'on a dans sa réserve (ou, avec [suffixe], ce qu'on
+ * veut trouver).
+ */
 @Composable
-fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, modifier: Modifier = Modifier, suffixe: String = "dans ta réserve") {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         FilledIconButton(
             onClick = { onChange(-1) },
@@ -125,7 +127,7 @@ fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, modifier: M
         Text(
             valeur.toString(),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.width(44.dp).semantics { contentDescription = "$valeur $nomObjet dans ta réserve" },
+            modifier = Modifier.width(44.dp).semantics { contentDescription = "$valeur $nomObjet $suffixe" },
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
         FilledIconButton(
@@ -133,28 +135,6 @@ fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, modifier: M
             colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Or, contentColor = Signal.SurCouleur),
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Ajouter un $nomObjet")
-        }
-    }
-}
-
-/** Tuile colorée de l'accueil : un chiffre clé et son libellé. */
-@Composable
-fun Tuile(
-    titre: String,
-    chiffre: String,
-    legende: String,
-    couleur: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    contenu: Color = Signal.SurCouleur,
-) {
-    Surface(onClick = onClick, color = couleur, contentColor = contenu, shape = RoundedCornerShape(20.dp), modifier = modifier) {
-        Column(Modifier.padding(start = 16.dp, end = 14.dp, top = 13.dp, bottom = 12.dp).height(76.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(titre, style = MaterialTheme.typography.titleSmall)
-            Column {
-                Text(chiffre, style = MaterialTheme.typography.headlineMedium)
-                Text(legende, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-            }
         }
     }
 }

@@ -463,6 +463,131 @@ def obtention_objet(ident, it, src_textes, trades, recettes, filtre, noms_projet
     return obtention
 
 
+# ---- À quoi sert chaque objet ----
+# Familles d'équipement : ce qui s'utilise en raid (armes, modules, boucliers, utilitaires, mods, munitions).
+GROUPES_EQUIPEMENT = {"Weapons", "Augment", "Armor", "Utilities", "Modifications", "Ammunition"}
+
+
+class Utilisations:
+    """Index inversés des données du jeu : où chaque objet est demandé (fabrication, recherche, Avant-poste,
+    échanges), avec les noms français officiels."""
+
+    def __init__(self, src, ids_objets, filtre, textes):
+        self.ids_objets = ids_objets
+        self.filtre = filtre
+        self.commercants, self.items_fr, self.items_en, self.benches_fr, self.benches_en = textes
+        self.trades = charger(src, "trades.json")
+        self.recettes = {}
+        for r in charger(src, "recipes.json")["recipes"].values():
+            for c in (r.get("cost") or {}).get("items", []):
+                self.recettes.setdefault(c["itemId"], []).append(r)
+        recherche = charger(src, "research.json")["research"]
+        recherche_fr, recherche_en = charger(src, "research.text.fr.json"), charger(src, "research.text.en.json")
+        self.recherches = {}
+        for ident, r in sorted(recherche.items()):
+            nom = filtre.nom("Recherche", ident, recherche_fr.get(ident, {}).get("name"), recherche_en.get(ident, {}).get("name"))
+            if nom is None:
+                continue
+            for c in (r.get("cost") or {}).get("items", []):
+                self.recherches.setdefault(c["itemId"], []).append(nom)
+        self.meubles = {}
+        for ident, m in sorted(charger(src, "outpost.json")["furniture"].items()):
+            nom = filtre.nom("Meuble", ident, self.items_fr.get(ident, {}).get("name"), self.items_en.get(ident, {}).get("name"))
+            if nom is None:
+                continue
+            for c in ((m.get("craft") or {}).get("cost") or {}).get("items", []):
+                self.meubles.setdefault(c["itemId"], []).append(nom)
+        # Designs de l'Avant-poste : le meuble qu'ils débloquent.
+        self.designs = {}
+        for ident, dsg in charger(src, "outpost.json")["designs"].items():
+            for meuble in dsg.get("unlocks", []):
+                nom = filtre.nom("Meuble", meuble, self.items_fr.get(meuble, {}).get("name"), self.items_en.get(meuble, {}).get("name"))
+                if nom:
+                    self.designs.setdefault(ident, []).append(nom)
+        # Amplification des armes : objets demandés pour amplifier telle arme.
+        self.amplification = {}
+        for arme in charger(src, "amplification.json")["weapons"].values():
+            for depart, transitions in arme.get("graph", {}).items():
+                for tr in transitions:
+                    for c in (tr.get("cost") or {}).get("items", []):
+                        self.amplification.setdefault(c["itemId"], []).append(depart)
+        self.echanges, self.monnaie = {}, {}
+        for t in self.trades["trades"].values():
+            if not t.get("visible", True):
+                continue
+            cout = t.get("cost") or {}
+            for c in cout.get("items", []):
+                self.echanges.setdefault(c["itemId"], []).append((t, c["quantity"]))
+            for i in cout.get("itemIds", []) if cout.get("scrapValue") else []:
+                self.monnaie.setdefault(i, []).append(t)
+
+    def _commercant(self, t):
+        trader = t.get("traderId", "")
+        return self.filtre.nom("Commerçant", trader, self.commercants.get(trader, {}).get("name"),
+                               self.trades["traders"].get(trader, {}).get("nameEn"))
+
+    def _etabli(self, ident):
+        return self.filtre.nom("Établi", ident, self.benches_fr.get(ident, {}).get("name"),
+                               self.benches_en.get(ident, {}).get("name"))
+
+    def pour(self, ident, it):
+        fabrication = []
+        for r in self.recettes.get(ident, []):
+            for produit in r.get("rewards", []):
+                if produit["itemId"] not in self.ids_objets or produit["itemId"] == ident:
+                    continue
+                usage = {"objet": produit["itemId"]}
+                if r.get("station") == "bench":
+                    etabli = self._etabli(r.get("benchId"))
+                    if etabli is None:
+                        continue
+                    usage["etabli"] = etabli
+                    if r.get("benchLevel"):
+                        usage["niveau"] = r["benchLevel"]
+                if usage not in fabrication:
+                    fabrication.append(usage)
+        echanges = []
+        for t, donne in self.echanges.get(ident, []):
+            commercant = self._commercant(t)
+            for recu in t.get("rewards", []):
+                if commercant and recu["itemId"] in self.ids_objets and recu["itemId"] != ident:
+                    e = {"commercant": commercant, "objet": recu["itemId"], "quantite": recu.get("quantity", 1), "donne": donne}
+                    if e not in echanges:
+                        echanges.append(e)
+        monnaie = sorted({c for c in (self._commercant(t) for t in self.monnaie.get(ident, [])) if c})
+        u = {}
+        if fabrication:
+            u["fabrication"] = fabrication
+        if self.recherches.get(ident):
+            u["recherches"] = sorted(set(self.recherches[ident]))
+        if self.meubles.get(ident):
+            u["avantPoste"] = sorted(set(self.meubles[ident]))
+        if echanges:
+            u["echanges"] = echanges
+        if monnaie:
+            u["echangesValeur"] = monnaie
+        amplifiees = [a for a in dict.fromkeys(self.amplification.get(ident, [])) if a in self.ids_objets]
+        if amplifiees:
+            u["amplification"] = amplifiees
+        # Ce qui s'apprend : schémas (débloquent une fabrication), designs (un meuble), apparences.
+        categorie = it.get("category") or ""
+        if categorie == "Recipe.ItemSkin":
+            u["apparence"] = True
+        elif categorie.startswith("Recipe") or ident in self.designs:
+            produit = it.get("blueprintFor")
+            debloque = [produit] if produit in self.ids_objets else []
+            u["aApprendre"] = True
+            if debloque:
+                u["debloque"] = debloque
+            if self.designs.get(ident):
+                u["meubles"] = self.designs[ident]
+        if it.get("group") == "Keys":
+            u["cle"] = True
+        if it.get("group") in GROUPES_EQUIPEMENT:
+            u["equipement"] = True
+        return u
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
@@ -586,7 +711,16 @@ def main():
     textes_obtention = (commercants, items_fr, items_en, benches_fr, benches_en, quests_fr, quests_en)
     noms_projets = {p["id"]: p["nom"] for p in projets}
     butin = calculer_butin(src.parent / "map-data", ids_objets, cartes, filtre)
+    utilisations = Utilisations(src, ids_objets, filtre, (commercants, items_fr, items_en, benches_fr, benches_en))
     for o in objets:
+        it = items["items"][o["id"]]
+        # Description officielle (« Déverrouille certaines portes… »), si le jeu la traduit vraiment.
+        fr, en = items_fr.get(o["id"], {}).get("description"), items_en.get(o["id"], {}).get("description")
+        if fr and fr.strip() and fr.strip() != (en or "").strip():
+            o["description"] = fr.strip()
+        u = utilisations.pour(o["id"], it)
+        if u:
+            o["utilisations"] = u
         obtention = obtention_objet(o["id"], items["items"][o["id"]], textes_obtention, trades, recettes, filtre, noms_projets)
         if o["id"] in butin:
             obtention = {**butin[o["id"]], **obtention}
@@ -611,7 +745,9 @@ def main():
                         + [x for q in quetes for x in q["objets"]]
                         + [x for p in projets for e in p["etapes"] for x in e["cout"]]
                         + [x for o in objets for a in o.get("obtention", {}).get("achats", []) for x in a.get("objets", [])]
-                        + [x for o in objets for f in o.get("obtention", {}).get("fabrications", []) for x in f["ingredients"]]}
+                        + [x for o in objets for f in o.get("obtention", {}).get("fabrications", []) for x in f["ingredients"]]
+                        + [{"id": f["objet"]} for o in objets for f in o.get("utilisations", {}).get("fabrication", [])]
+                        + [{"id": e["objet"]} for o in objets for e in o.get("utilisations", {}).get("echanges", [])]}
                        - ids_objets)
 
     SORTIE.parent.mkdir(parents=True, exist_ok=True)

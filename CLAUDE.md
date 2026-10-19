@@ -24,6 +24,10 @@ telle qu'elle apparaît dans le jeu.
   fabrications, récompenses ; les sources de recyclage sont calculées dans `Catalogue`. Les vrais taux de
   drop ne sont pas dans les fichiers du jeu (tirage côté serveur) : ne jamais présenter l'indice comme un
   pourcentage ni comme un taux de drop.
+- À quoi sert un objet : sa description officielle (`Objet.description`, gardée seulement si le jeu la
+  traduit) et `Objet.utilisations` (fabrications, recherches, Avant-poste, échanges, amplification,
+  schémas, clés, équipement), produits par le script ; les établis, quêtes et projets qui le demandent
+  sont calculés dans `Usages`.
 - Un nom sans traduction officielle vérifiée n'entre pas dans l'appli : le script l'exclut et le liste
   dans `docs/NOMS-A-VERIFIER.md`. Dans l'interface, un objet absent s'affiche « Nom à vérifier en jeu »
   (`Catalogue.NOM_A_VERIFIER`), jamais avec un nom inventé.
@@ -53,12 +57,17 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
 
 ## Architecture
 
-- `core/` : Kotlin pur, sans Android. Données du jeu (`DonneesJeu`, `Catalogue`), liste de courses
-  (`Planificateur`) et verdict « garder, recycler ou vendre » (`Conseiller`). Toute logique métier va
-  ici, avec ses tests JUnit (`./gradlew :core:test`).
+- `core/` : Kotlin pur, sans Android. Données du jeu (`DonneesJeu`, `Catalogue`), liste de courses et
+  objets à trouver (`Planificateur`), à quoi sert un objet (`Usages`) et verdict « garder, recycler ou
+  vendre » (`Conseiller`). Toute logique métier va ici, avec ses tests JUnit (`./gradlew :core:test`).
+- Verdict (`core/Verdict.kt`) : un objet voulu (objectifs suivis, ou ajouté par le joueur dans l'onglet
+  Raid) n'est **jamais proposé à la vente** ; un objet qui sert encore à quelque chose (`Usages`) est
+  « Utile », avec le détail sur sa fiche (« À quoi il sert ») ; seul un objet qui ne sert à rien est à
+  vendre ou à recycler. Le verdict s'affiche aussi dans la liste des objets.
 - `app/` : interface Jetpack Compose, style « Signal » (`ui/theme/Theme.kt`) : fond sombre, et une
-  couleur par domaine — or pour les objets, cyan pour les cartes, vert pour la progression, rouge pour
-  les ARC. Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
+  couleur par domaine — or pour les objets, cyan pour les cartes, vert pour les objectifs, rouge pour
+  le raid et les ARC. Cinq onglets : Accueil, Objets, Raid, Cartes, Objectifs ; le joueur doit en faire
+  le moins possible (rien à préparer, un geste pour valider ou noter un objet trouvé). Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
   En-tête commun à toutes les sections (`EnTete` : logo, nom, réglages) ; objets affichés avec leur
   icône sur une tuile aux couleurs de leur rareté (`IconeObjet`).
 - La réserve et la progression du joueur sont saisies dans l'appli (`Memoire`) : l'appli ne se connecte
@@ -76,9 +85,17 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   l'enchaînement `requiert` des données du jeu) et retire de la réserve ce que le jeu a consommé.
   Les projets suivis (Expéditions…) ajoutent leur prochaine étape. Un niveau, une quête ou une étape se
   valide en un geste (`CarnetViewModel.valider…`), avec « Annuler » : jamais de saisie obligatoire.
-- Préparer mon raid (`core/PreparationRaid.kt`, `ui/EcranPreparerRaid.kt`) : liste des objets cherchés
-  (`Memoire`, clé « raid ») ; cartes classées par la somme des indices de butin des objets (chaque objet
-  compte au plus 1 par carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver.
+- Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Ce
+  qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs suivis, puis les objets
+  ajoutés par le joueur (`Memoire`, clé « raid » : nombre voulu) ; cartes classées par la somme des
+  indices de butin des objets encore à trouver (chaque objet compte au plus 1 par carte), zones où
+  chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la meilleure carte.
+- Retour de raid (`core/RetourDeRaid.kt`, `ui/EcranRetourRaid.kt`) : le butin saisi se décompte (la
+  réserve pour les objets des objectifs ; `Memoire`, clé « raidTrouves », pour les objets ajoutés par
+  le joueur). À la validation (bouton, retour ou autre onglet, jamais une rotation), `RetourDeRaid.bilan`
+  donne les objets qui ont atteint le nombre demandé et si toute la liste est trouvée : animation
+  `ui/CelebrationRaid.kt` (« Raid terminé, objets trouvés »), puis les objets ajoutés et trouvés quittent
+  la liste.
 - Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
   officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).

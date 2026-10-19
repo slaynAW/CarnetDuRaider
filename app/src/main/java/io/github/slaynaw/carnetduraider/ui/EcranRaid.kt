@@ -14,20 +14,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,8 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,124 +41,103 @@ import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.CarteConseillee
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.ConseilRaid
+import io.github.slaynaw.carnetduraider.core.ObjetATrouver
 import io.github.slaynaw.carnetduraider.core.Objet
 import io.github.slaynaw.carnetduraider.core.calendrier.Creneau
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
-/** Cartes détaillées (avec leurs zones) ; les suivantes sont seulement citées. */
-private const val CARTES_DETAILLEES = 3
-
 /**
- * Préparer mon raid : la liste de ce qu'on cherche (ajout en un geste de la liste de courses, ou objet
- * par objet), puis les cartes où aller et les zones où chercher pour avoir le plus de chances de tout
- * trouver, d'après le butin des fichiers du jeu ([io.github.slaynaw.carnetduraider.core.PreparationRaid]).
+ * Onglet Raid, « Préparer mon raid » : ce qu'il te faut et où aller, sans rien préparer. La liste se
+ * remplit toute seule avec ce qui manque pour tes objectifs suivis, plus les objets que tu ajoutes ;
+ * l'appli en déduit les cartes et les zones où tu as le plus de chances de tout trouver
+ * ([io.github.slaynaw.carnetduraider.core.PreparationRaid]). Le retour de raid décompte ce que tu
+ * rapportes.
  */
 @Composable
-fun EcranPreparerRaid(
+fun EcranRaid(
     vm: CarnetViewModel,
-    onRetour: () -> Unit,
     ouvrir: (String) -> Unit,
     ouvrirZone: (carteId: String, zone: String) -> Unit,
+    retourDeRaid: () -> Unit,
+    choisirObjectifs: () -> Unit,
 ) {
     var recherche by rememberSaveable { mutableStateOf("") }
-    val liste = vm.listeRaid
-    val conseil = remember(liste.keys) { vm.conseilRaid() }
-    val aAjouter = vm.listeDeCourses().lignes.count { it.manquant > 0 && (liste[it.objetId] ?: 0) < it.manquant }
+    val aTrouver = vm.aTrouver()
+    val restants = aTrouver.filter { !it.trouve }
+    val conseil = remember(restants.map { it.objetId }) { vm.conseilRaid() }
     val resultats = if (recherche.isBlank()) emptyList() else vm.catalogue.rechercher(recherche, limite = 8)
 
     val etat by vm.calendrier.etat.collectAsStateWithLifecycle()
     val calendrier = remember(etat.donnees) { etat.donnees?.let(vm::calendrierOfficiel) }
     val enCours = calendrier?.enCours(vm.region, maintenant())?.groupBy { it.carteId }.orEmpty()
 
+    // Cartes détaillées : celles du parcours (les cartes à faire), sinon la meilleure.
+    val detaillees = conseil.parcours.mapNotNull { e -> conseil.cartes.firstOrNull { it.carteId == e.carteId } }
+        .ifEmpty { conseil.cartes.take(1) }
+    val autres = conseil.cartes.filter { c -> detaillees.none { it.carteId == c.carteId } }
+    val avecButin = conseil.cartes.flatMap { it.objets }.toSet().size
+
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
-                    Bandeau("Raid", Signal.Cyan)
-                }
-                Text("Préparer mon raid", style = MaterialTheme.typography.headlineMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Bandeau("Raid", Signal.Rouge)
+                Text("Préparer mon raid", style = MaterialTheme.typography.headlineLarge)
                 Text(
-                    "Ajoute ce que tu cherches\u00a0: l'appli te dit sur quelle carte aller et où chercher pour avoir le plus de chances de le trouver.",
+                    if (restants.isEmpty()) {
+                        "Rien à chercher pour l'instant."
+                    } else {
+                        "${pluriel(restants.size, "objet", "objets")} à trouver pour tes objectifs et ta liste. Voici où aller."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
                 )
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (aAjouter > 0) {
-                        Button(
-                            onClick = { vm.ajouterListeDeCoursesAuRaid() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Signal.Cyan, contentColor = Signal.SurCouleur),
-                        ) { Text("Ajouter ma liste de courses ($aAjouter)") }
-                    }
-                    if (liste.isNotEmpty()) {
-                        TextButton(onClick = vm::viderRaid) { Text("Tout retirer", color = Signal.TexteDoux) }
-                    }
-                }
-                OutlinedTextField(
-                    value = recherche,
-                    onValueChange = { recherche = it },
-                    placeholder = { Text("Ajouter un objet…") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Cyan) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(26.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Signal.Cyan,
-                        unfocusedBorderColor = Signal.Trait,
-                        focusedContainerColor = Signal.Surface,
-                        unfocusedContainerColor = Signal.Surface,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        items(resultats, key = { "resultat-${it.id}" }) { o ->
-            Surface(
-                onClick = {
-                    vm.ajouterAuRaid(o.id)
-                    recherche = ""
-                },
-                color = Signal.Surface,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    IconeObjet(o.id, o.rarete, 36.dp)
-                    Text(o.nom, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    Text(if (o.id in liste) "× ${liste.getValue(o.id)}  +1" else "Ajouter", style = MaterialTheme.typography.labelLarge, color = Signal.Cyan)
-                }
             }
         }
 
-        if (liste.isEmpty()) {
+        // De retour : saisir le butin, qui se décompte de la liste.
+        if (restants.isNotEmpty()) {
             item {
-                Text(
-                    "Ta liste est vide. Ajoute ta liste de courses ou cherche un objet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Signal.TexteDoux,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
+                Button(
+                    onClick = retourDeRaid,
+                    colors = ButtonDefaults.buttonColors(containerColor = Signal.Or, contentColor = Signal.SurCouleur),
+                    contentPadding = PaddingValues(16.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Retour de raid\u00a0: ajouter mon butin", style = MaterialTheme.typography.titleMedium) }
             }
-            return@LazyColumn
         }
 
-        item { TitreRaid("Ce que je cherche (${liste.size})") }
-        items(liste.entries.toList(), key = { "cherche-${it.key}" }) { (id, quantite) ->
-            LigneCherchee(vm, id, quantite, onClick = { ouvrir(id) })
+        if (restants.isEmpty()) {
+            item {
+                Surface(color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "Suis un objectif (un établi à améliorer, une quête, un projet) ou ajoute un objet ci-dessous\u00a0: " +
+                                "l'appli te dira sur quelle carte aller et où chercher.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Signal.TexteDoux,
+                        )
+                        Button(
+                            onClick = choisirObjectifs,
+                            colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
+                        ) { Text("Choisir mes objectifs") }
+                    }
+                }
+            }
         }
 
-        if (conseil.cartes.isNotEmpty()) {
+        if (detaillees.isNotEmpty()) {
             item { TitreRaid("Où aller") }
-            if (conseil.parcours.size > 1 || conseil.parcours.firstOrNull()?.carteId != conseil.cartes.first().carteId) {
-                item { Parcours(vm, conseil, conseil.cartes.flatMap { it.objets }.toSet().size) }
+            if (conseil.parcours.size > 1) {
+                item { Parcours(vm, conseil, avecButin) }
             }
-            items(conseil.cartes.take(CARTES_DETAILLEES), key = { "carte-${it.carteId}" }) { c ->
-                CarteRaid(vm, c, liste.size, rang = conseil.cartes.indexOf(c), enCours[c.carteId].orEmpty(), ouvrirZone)
+            items(detaillees, key = { "carte-${it.carteId}" }) { c ->
+                CarteRaid(vm, c, avecButin, meilleure = c.carteId == conseil.cartes.first().carteId, enCours[c.carteId].orEmpty(), ouvrirZone)
             }
-            val autres = conseil.cartes.drop(CARTES_DETAILLEES)
             if (autres.isNotEmpty()) {
                 item {
                     Text(
@@ -176,8 +151,56 @@ fun EcranPreparerRaid(
                 Text(
                     "Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés\u00a0: le jeu tire le butin sur ses serveurs.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Signal.TexteDoux,
+                    color = Signal.TexteDiscret,
                 )
+            }
+        }
+
+        if (aTrouver.isNotEmpty()) {
+            item {
+                Text("Ce qu'il te faut", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+            }
+            items(aTrouver, key = { "atrouver-${it.objetId}" }) { a -> LigneATrouver(vm, a, onClick = { ouvrir(a.objetId) }) }
+        }
+
+        item {
+            Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Chercher autre chose", style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(
+                    value = recherche,
+                    onValueChange = { recherche = it },
+                    placeholder = { Text("Ajouter un objet à chercher…") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Rouge) },
+                    trailingIcon = {
+                        if (recherche.isNotEmpty()) {
+                            IconButton(onClick = { recherche = "" }) { Icon(Icons.Filled.Close, contentDescription = "Effacer la recherche") }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(26.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Signal.Rouge,
+                        unfocusedBorderColor = Signal.Trait,
+                        focusedContainerColor = Signal.Surface,
+                        unfocusedContainerColor = Signal.Surface,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+        items(resultats, key = { "resultat-${it.id}" }) { o ->
+            val voulu = vm.listeRaid[o.id]
+            Surface(
+                onClick = { vm.ajouterAuRaid(o.id) },
+                color = Signal.Surface,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    IconeObjet(o.id, o.rarete, 36.dp)
+                    Text(o.nom, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    Text(if (voulu == null) "Ajouter" else "× $voulu  +1", style = MaterialTheme.typography.labelLarge, color = Signal.Rouge)
+                }
             }
         }
 
@@ -206,34 +229,38 @@ private fun TitreRaid(texte: String) {
 
 private fun nomCarte(vm: CarnetViewModel, carteId: String): String = vm.catalogue.carte(carteId)?.nom ?: Catalogue.NOM_A_VERIFIER
 
-/** Un objet cherché : où le chercher (types de zones) et la quantité voulue. */
+/**
+ * Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien on en a
+ * sur combien il en faut, et pour quoi. Un objet ajouté à la main se retire d'un geste.
+ */
 @Composable
-private fun LigneCherchee(vm: CarnetViewModel, objetId: String, quantite: Int, onClick: () -> Unit) {
-    val objet = vm.catalogue.objet(objetId)
-    val nom = vm.catalogue.nomObjet(objetId)
-    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            IconeObjet(objetId, objet?.rarete, 40.dp)
+private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> Unit) {
+    val nom = vm.catalogue.nomObjet(a.objetId)
+    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(start = 10.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            IconeObjet(a.objetId, vm.catalogue.objet(a.objetId)?.rarete, 40.dp)
             Column(Modifier.weight(1f)) {
                 Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                val ou = objet?.lieux?.takeIf { it.isNotEmpty() }?.joinToString(" · ")
                 Text(
-                    "${vm.possede(objetId)} en réserve" + (ou?.let { " · zones $it" } ?: ""),
+                    "${a.trouves}/${a.voulu} · " + if (a.ajouteParLeJoueur) "ajouté par toi" else a.pour.joinToString(" · ") { it.libelle },
                     style = MaterialTheme.typography.labelMedium,
-                    color = Signal.TexteDoux,
+                    color = if (a.trouve) Signal.Vert else Signal.TexteDoux,
+                    maxLines = 2,
                 )
             }
-            FilledIconButton(
-                onClick = { vm.changerRaid(objetId, quantite - 1) },
-                modifier = Modifier.size(36.dp).semantics { contentDescription = "En chercher un de moins\u00a0: $nom" },
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Texte),
-            ) { Text("−", style = MaterialTheme.typography.titleMedium) }
-            Text("$quantite", style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"))
-            FilledIconButton(
-                onClick = { vm.changerRaid(objetId, quantite + 1) },
-                modifier = Modifier.size(36.dp).semantics { contentDescription = "En chercher un de plus\u00a0: $nom" },
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Cyan),
-            ) { Text("+", style = MaterialTheme.typography.titleMedium) }
+            if (a.trouve) {
+                Icon(Icons.Filled.Check, contentDescription = "Trouvé", tint = Signal.Vert, modifier = Modifier.size(24.dp))
+            } else {
+                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 6.dp)) {
+                    Text("${a.reste}", style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"), color = Signal.Or)
+                    Text("à trouver", style = MaterialTheme.typography.labelSmall, color = Signal.TexteDoux)
+                }
+            }
+            if (a.ajouteParLeJoueur) {
+                IconButton(onClick = { vm.changerRaid(a.objetId, 0) }) {
+                    Icon(Icons.Filled.Close, contentDescription = "Ne plus chercher\u00a0: $nom", tint = Signal.TexteDoux)
+                }
+            }
         }
     }
 }
@@ -243,7 +270,7 @@ private fun LigneCherchee(vm: CarnetViewModel, objetId: String, quantite: Int, o
 private fun Parcours(vm: CarnetViewModel, conseil: ConseilRaid, aTrouver: Int) {
     Surface(color = Signal.Releve, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Pour tout trouver", style = MaterialTheme.typography.titleSmall, color = Signal.Cyan)
+            Text("Pour tout trouver", style = MaterialTheme.typography.titleSmall, color = Signal.Rouge)
             conseil.parcours.forEachIndexed { i, etape ->
                 Text(
                     "${i + 1}. ${nomCarte(vm, etape.carteId)} · " +
@@ -254,7 +281,7 @@ private fun Parcours(vm: CarnetViewModel, conseil: ConseilRaid, aTrouver: Int) {
             val couverts = conseil.parcours.sumOf { it.objets.size }
             if (couverts < aTrouver) {
                 Text(
-                    "${pluriel(aTrouver - couverts, "autre objet", "autres objets")} sur d'autres cartes (voir plus bas).",
+                    "${pluriel(aTrouver - couverts, "autre objet", "autres objets")} sur d'autres cartes.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Signal.TexteDoux,
                 )
@@ -269,7 +296,7 @@ private fun CarteRaid(
     vm: CarnetViewModel,
     c: CarteConseillee,
     total: Int,
-    rang: Int,
+    meilleure: Boolean,
     enCours: List<Creneau>,
     ouvrirZone: (String, String) -> Unit,
 ) {
@@ -277,14 +304,14 @@ private fun CarteRaid(
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    if (rang == 0) Text("LE MIEUX", style = MaterialTheme.typography.labelSmall, color = Signal.Cyan)
+                    if (meilleure) Text("LE MIEUX", style = MaterialTheme.typography.labelSmall, color = Signal.Rouge)
                     Text(nomCarte(vm, c.carteId), style = MaterialTheme.typography.titleLarge)
                 }
-                Text("${c.objets.size}/$total", style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"), color = Signal.Cyan)
+                Text("${c.objets.size}/$total", style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"), color = Signal.Rouge)
             }
             Text(
                 buildString {
-                    append(pluriel(c.objets.size, "objet de ta liste", "objets de ta liste"))
+                    append(pluriel(c.objets.size, "objet à trouver", "objets à trouver"))
                     if (c.meilleurePour.isNotEmpty()) append(", dont ${c.meilleurePour.size} à leur meilleur endroit")
                     append(".")
                 },

@@ -8,23 +8,29 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
 ## Ce que fait l'appli
 
 - **Garder, recycler ou vendre ?** Recherche d'un objet parmi tout le catalogue du jeu (sans tenir
-  compte des accents), puis une fiche avec un verdict selon *tes* objectifs : ce qu'il t'en manque, ou,
-  s'il est inutile, s'il vaut mieux le vendre ou le recycler (comparaison en pièces).
+  compte des accents), avec un verdict dès la liste : *Garder* (tes objectifs ou ta liste de raid en
+  demandent), *Assez*, *Utile* (il sert à autre chose dans le jeu), ou *Vendre* / *Recycler*
+  (comparaison en pièces) seulement s'il ne sert à rien. Un objet que tu cherches n'est jamais proposé
+  à la vente.
+- **À quoi sert chaque objet.** Sur sa fiche, avant de vendre : la description du jeu et tout ce qui le
+  demande encore (fabrications, niveaux d'établis, quêtes, étapes de projets, clés, équipement, schémas
+  à apprendre, Station de recherche, Avant-poste, échanges chez les commerçants).
 - **Comment l'obtenir.** Sur chaque fiche : les meilleures cartes et zones où le trouver (d'après les
   tables de butin du jeu, avec un lien vers le plan), les commerçants et leurs prix, la fabrication, les
   objets qui le donnent au recyclage et les récompenses de quêtes et de projets.
-- **Progression automatique.** Tu indiques une fois le niveau de tes établis et tes quêtes en cours :
-  l'appli suit d'elle-même le prochain niveau de chaque établi et les quêtes disponibles (d'après
-  l'enchaînement des quêtes du jeu), ainsi que les projets que tu suis (Expéditions…). Un seul bouton
-  valide un niveau construit, une quête terminée ou une étape de projet : la suite apparaît et ce que
-  le jeu a pris est retiré de ta réserve, sans rien saisir (« Annuler » pour revenir en arrière).
-- **Préparer mon raid.** Ajoute ce que tu cherches (ta liste de courses en un geste, ou objet par
-  objet) : l'appli classe les cartes qui en donnent le plus, les zones où chercher sur chacune, et
-  les cartes à faire pour tout trouver (d'après les tables de butin du jeu).
-- **Retour de raid.** Après un raid, un écran pour ajouter vite ce que tu rapportes (« +1 », « +5 »),
-  en commençant par les objets encore à trouver.
-- **Liste de courses.** Les objets à trouver pour tout ça, avec ta réserve mise à jour en une touche
-  (« − » / « + »). Des objectifs plus lointains peuvent s'ajouter à la main.
+- **Objectifs et progression automatique.** Tu choisis ce que tu veux faire avancer (« Suivre tous
+  mes établis » en un geste) et tu indiques une fois tes quêtes en cours : l'appli suit d'elle-même le
+  prochain niveau de chaque établi et les quêtes disponibles (d'après l'enchaînement des quêtes du
+  jeu), ainsi que les projets que tu suis (Expéditions…). Un seul bouton valide un niveau construit,
+  une quête terminée ou une étape de projet : la suite apparaît et ce que le jeu a pris est retiré de
+  ta réserve, sans rien saisir (« Annuler » pour revenir en arrière). Des objectifs plus lointains
+  peuvent s'ajouter à la main.
+- **Préparer mon raid.** Rien à préparer : l'onglet Raid se remplit tout seul avec ce qui manque pour
+  tes objectifs, plus ce que tu ajoutes toi-même (et combien). L'appli dit sur quelle carte aller, où
+  chercher sur chacune et les cartes à faire pour tout trouver (d'après les tables de butin du jeu).
+- **Retour de raid.** Après un raid, un écran pour ajouter vite ce que tu rapportes (« +1 », « +5 ») :
+  ce que tu cherches se décompte. À la validation, une animation montre les objets qui ont atteint le
+  nombre demandé, puis « Raid terminé, objets trouvés » quand toute la liste est trouvée.
 - **Conditions de la carte.** Le calendrier officiel d'Embark
   ([arcraiders.com/map-conditions](https://arcraiders.com/map-conditions)) dans l'appli, avec les noms
   français officiels : ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois

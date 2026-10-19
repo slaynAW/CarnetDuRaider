@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 class ListeDeCoursesEtVerdictTest {
     private val catalogue = Catalogue(DonneesJeu.embarquees())
     private val planificateur = Planificateur(catalogue)
-    private val conseiller = Conseiller(catalogue, planificateur)
+    private val conseiller = Conseiller(catalogue, planificateur, Usages(catalogue, SuiviProgression(catalogue)))
 
     private val stationUtilitaire1 = Objectif.NiveauDEtabli("utility_bench", 1)
     private val cielDegage = Objectif.QueteATerminer("clearer_skies")
@@ -38,6 +38,24 @@ class ListeDeCoursesEtVerdictTest {
         assertTrue(liste.lignes.last().complet)
         assertEquals("mechanical_components", liste.lignes.last().objetId)
         assertEquals(4 + 50 + 3 + 8, liste.objetsManquants)
+        assertEquals(4, liste.objetsATrouver)
+    }
+
+    @Test
+    fun `a trouver - objectifs puis ajouts du joueur`() {
+        val reserve = mapOf("arc_alloy" to 9, "film_reel" to 4)
+        val ajouts = mapOf("film_reel" to 2, "battery" to 1, "arc_alloy" to 5)
+        val liste = planificateur.aTrouver(listOf(cielDegage), reserve, ajouts, trouvesAjouts = mapOf("film_reel" to 1, "arc_alloy" to 5))
+        // L'Alliage ARC est complet pour la quête ; ajouté à la main (5 voulus, 5 rapportés), il est trouvé.
+        assertTrue(liste.single { it.objetId == "arc_alloy" }.let { it.ajouteParLeJoueur && it.trouve })
+        // Un objet ajouté à la main se décompte avec ce qui a été rapporté depuis, pas avec la réserve.
+        val bobine = liste.single { it.objetId == "film_reel" }
+        assertTrue(bobine.ajouteParLeJoueur)
+        assertEquals(1, bobine.trouves)
+        assertEquals(2, bobine.voulu)
+        assertEquals(1, bobine.reste)
+        assertEquals(listOf("film_reel", "battery", "arc_alloy"), liste.filter { it.ajouteParLeJoueur }.map { it.objetId })
+        assertTrue(liste.filterNot { it.ajouteParLeJoueur }.all { it.pour.isNotEmpty() && !it.trouve })
     }
 
     @Test
@@ -56,18 +74,51 @@ class ListeDeCoursesEtVerdictTest {
     }
 
     @Test
-    fun `verdict suffisant avec le surplus a vendre`() {
+    fun `verdict suffisant sans proposer la vente`() {
         val v = conseiller.verdict("arc_alloy", possede = 12, objectifs = objectifs)
         v as Verdict.Suffisant
         assertEquals(3, v.surplus)
-        // 200 pièces l'unité contre 2 × Pièces métalliques (75) au recyclage : mieux vaut vendre.
-        assertEquals(Sortie.VENDRE, v.conseil)
     }
 
     @Test
-    fun `verdict inutile quand aucun objectif n'en demande`() {
-        val v = conseiller.verdict("arc_alloy", possede = 3, objectifs = listOf(armurier2))
-        assertEquals(Verdict.Inutile(Sortie.VENDRE), v)
+    fun `jamais a vendre s'il est dans la liste de raid`() {
+        val v = conseiller.verdict("film_reel", possede = 4, objectifs = emptyList(), listeRaid = mapOf("film_reel" to 2))
+        assertEquals(Verdict.Cherche(voulu = 2, trouves = 0), v)
+        val rapporte = conseiller.verdict("film_reel", 4, emptyList(), listeRaid = mapOf("film_reel" to 2), trouvesRaid = mapOf("film_reel" to 1))
+        assertEquals(Verdict.Cherche(voulu = 2, trouves = 1), rapporte)
+    }
+
+    @Test
+    fun `utile quand il sert a autre chose qu'aux objectifs suivis`() {
+        // L'Alliage ARC sert aux établis, à des quêtes, à la fabrication : jamais « à vendre » d'office.
+        val alliage = conseiller.verdict("arc_alloy", possede = 3, objectifs = listOf(armurier2))
+        alliage as Verdict.Utile
+        assertTrue(alliage.usages.ameliorations.isNotEmpty())
+        assertTrue(alliage.usages.utilisations.fabrication.isNotEmpty())
+
+        // Une clé ouvre une porte, une arme s'équipe, un schéma s'apprend.
+        assertTrue((conseiller.verdict("blue_gate_cellar_key", 1, emptyList()) as Verdict.Utile).usages.utilisations.cle)
+        assertTrue((conseiller.verdict("anvil_ii", 1, emptyList()) as Verdict.Utile).usages.utilisations.equipement)
+        val schema = conseiller.verdict("advanced_camera_blueprint", 1, emptyList()) as Verdict.Utile
+        assertEquals(listOf("advanced_camera"), schema.usages.utilisations.debloque)
+    }
+
+    @Test
+    fun `a vendre seulement s'il ne sert a rien`() {
+        // Babiole sans aucun usage dans le jeu.
+        val babiole = catalogue.donnees.objets.first { it.categorie == "Babiole" && Usages(catalogue, SuiviProgression(catalogue)).pour(it.id).aucun }
+        assertTrue(conseiller.verdict(babiole.id, 1, emptyList()) is Verdict.Inutile)
+    }
+
+    @Test
+    fun `ce qui est fait ne compte plus`() {
+        val suivi = SuiviProgression(catalogue)
+        val usages = Usages(catalogue, suivi)
+        val avant = usages.pour("arc_alloy").ameliorations.map { it.etabli.id to it.niveau }
+        assertTrue("utility_bench" to 1 in avant)
+        val station = catalogue.etabli("utility_bench")!!
+        val apres = usages.pour("arc_alloy", suivi.changerNiveau(Progression(), station, 3)).ameliorations.map { it.etabli.id to it.niveau }
+        assertTrue(apres.none { it.first == "utility_bench" })
     }
 
     @Test
@@ -82,7 +133,8 @@ class ListeDeCoursesEtVerdictTest {
         )
         val c = Catalogue(donnees)
         assertEquals(150, c.valeurRecyclage(c.objet("boite")!!))
-        assertEquals(Sortie.RECYCLER, Conseiller(c, Planificateur(c)).meilleureSortie("boite"))
-        assertEquals(Sortie.VENDRE, Conseiller(c, Planificateur(c)).meilleureSortie("vis"))
+        val conseil = Conseiller(c, Planificateur(c), Usages(c, SuiviProgression(c)))
+        assertEquals(Sortie.RECYCLER, conseil.meilleureSortie("boite"))
+        assertEquals(Sortie.VENDRE, conseil.meilleureSortie("vis"))
     }
 }

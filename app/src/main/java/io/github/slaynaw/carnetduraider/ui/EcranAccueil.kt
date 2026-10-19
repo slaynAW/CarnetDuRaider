@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,24 +12,28 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
+import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.calendrier.Calendrier
 import io.github.slaynaw.carnetduraider.core.calendrier.Creneau
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import java.time.LocalTime
 
+/**
+ * Accueil : ce qui compte maintenant, en un coup d'œil. Garder ou vendre un objet, où aller au prochain
+ * raid, les conditions de la carte en cours, et où en sont les objectifs. Chaque bloc mène à son onglet.
+ */
 @Composable
 fun EcranAccueil(
     vm: CarnetViewModel,
@@ -38,18 +41,15 @@ fun EcranAccueil(
     nouvelleVersion: String?,
     /** Calendrier officiel des conditions de la carte, ou `null` s'il n'a pas encore été lu. */
     calendrier: Calendrier?,
-    retourDeRaid: () -> Unit,
-    preparerRaid: () -> Unit,
     afficherMiseAJour: () -> Unit,
 ) {
     val donnees = vm.catalogue.donnees
-    val liste = vm.listeDeCourses()
     val heure = LocalTime.now().hour
     val salutation = if (heure >= 18 || heure < 5) "Bonsoir, Raider" else "Bonjour, Raider"
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(salutation, style = MaterialTheme.typography.headlineMedium)
 
@@ -65,7 +65,7 @@ fun EcranAccueil(
             }
         }
 
-        // Accès direct à la question la plus fréquente du jeu.
+        // La question la plus fréquente en jeu.
         Surface(
             onClick = { aller(Onglet.OBJETS) },
             color = Signal.Surface,
@@ -81,74 +81,87 @@ fun EcranAccueil(
             }
         }
 
+        ProchainRaid(vm, aller)
+
         if (calendrier != null) BlocConditions(vm, calendrier, onClick = { aller(Onglet.CARTES) })
 
-        // Avant un raid : où aller pour trouver ce qu'on cherche.
-        Button(
-            onClick = preparerRaid,
-            colors = ButtonDefaults.buttonColors(containerColor = Signal.Cyan, contentColor = Signal.SurCouleur),
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-        ) {
-            Text(
-                if (vm.listeRaid.isEmpty()) "Préparer mon raid" else "Préparer mon raid (${pluriel(vm.listeRaid.size, "objet", "objets")})",
-                style = MaterialTheme.typography.titleSmall,
-            )
-        }
-
-        // Après chaque raid : saisie rapide de ce qu'on rapporte.
-        Button(
-            onClick = retourDeRaid,
-            colors = ButtonDefaults.buttonColors(containerColor = Signal.Or, contentColor = Signal.SurCouleur),
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-        ) {
-            Text("Retour de raid\u00a0: ajouter mon butin", style = MaterialTheme.typography.titleSmall)
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Tuile(
-                titre = "À trouver",
-                chiffre = liste.objetsManquants.toString(),
-                legende = if (vm.objectifs.isEmpty()) "aucun objectif suivi" else pluriel(liste.lignes.count { !it.complet }, "objet différent", "objets différents"),
-                couleur = Signal.Or,
-                onClick = { aller(Onglet.PROGRESSION) },
-                modifier = Modifier.weight(1f),
-            )
-            Tuile(
-                titre = "Objectifs",
-                chiffre = vm.objectifs.size.toString(),
-                legende = "suivis",
-                couleur = Signal.Vert,
-                onClick = { aller(Onglet.PROGRESSION) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Tuile(
-                titre = "Cartes",
-                chiffre = donnees.cartes.size.toString(),
-                legende = "plans et conditions",
-                couleur = Signal.Cyan,
-                onClick = { aller(Onglet.CARTES) },
-                modifier = Modifier.weight(1f),
-            )
-            Tuile(
-                titre = "Objets",
-                chiffre = donnees.objets.size.toString(),
-                legende = "dans le catalogue",
-                couleur = Signal.Releve,
-                contenu = Signal.Texte,
-                onClick = { aller(Onglet.OBJETS) },
-                modifier = Modifier.weight(1f),
-            )
-        }
+        MesObjectifs(vm, onClick = { aller(Onglet.OBJECTIFS) })
 
         Text(
             "Données du jeu ${donnees.versionJeu}, noms français officiels uniquement.",
             style = MaterialTheme.typography.bodySmall,
             color = Signal.TexteDiscret,
         )
+    }
+}
+
+/** Où aller au prochain raid pour trouver ce qui manque (ou, s'il ne manque rien, choisir ses objectifs). */
+@Composable
+private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
+    val restants = vm.aTrouver().filter { !it.trouve }
+    val conseil = remember(restants.map { it.objetId }) { vm.conseilRaid() }
+    val premiere = conseil.cartes.firstOrNull()
+    Surface(
+        onClick = { aller(if (restants.isEmpty()) Onglet.OBJECTIFS else Onglet.RAID) },
+        color = if (premiere != null) Signal.Rouge else Signal.Surface,
+        contentColor = if (premiere != null) Signal.SurCouleur else Signal.Texte,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("TON PROCHAIN RAID", style = MaterialTheme.typography.labelSmall)
+            when {
+                premiere != null -> {
+                    Text("Va sur ${vm.catalogue.carte(premiere.carteId)?.nom ?: Catalogue.NOM_A_VERIFIER}", style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        buildString {
+                            append("${premiere.objets.size} de tes ${pluriel(restants.size, "objet", "objets")} à trouver")
+                            premiere.zones.firstOrNull()?.let { append(" · surtout ${it.zone}") }
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    if (conseil.parcours.size > 1) {
+                        Text(
+                            "Puis " + conseil.parcours.drop(1).joinToString(", ") { vm.catalogue.carte(it.carteId)?.nom ?: Catalogue.NOM_A_VERIFIER } + " pour tout trouver.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                restants.isNotEmpty() -> {
+                    Text("Rien dans le butin des cartes", style = MaterialTheme.typography.titleMedium)
+                    Text("Ce qu'il te faut s'obtient autrement\u00a0: regarde l'onglet Raid.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+                }
+                else -> {
+                    Text("Rien à chercher pour l'instant", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Choisis ce que tu veux faire avancer (établis, quêtes, projets)\u00a0: l'appli te dira où aller.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Signal.TexteDoux,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Où en sont les objectifs suivis. */
+@Composable
+private fun MesObjectifs(vm: CarnetViewModel, onClick: () -> Unit) {
+    val liste = vm.listeDeCourses()
+    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Objectifs", style = MaterialTheme.typography.titleSmall, color = Signal.Vert)
+            if (vm.objectifs.isEmpty()) {
+                Text("Aucun objectif suivi. Touche ici pour suivre tes établis, tes quêtes ou un projet.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+            } else {
+                Text(
+                    "${pluriel(vm.objectifs.size, "objectif suivi", "objectifs suivis")} · ${pluriel(liste.objetsATrouver, "objet", "objets")} à trouver",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Barre(liste.progression.toFloat(), Signal.Vert)
+            }
+        }
     }
 }
 

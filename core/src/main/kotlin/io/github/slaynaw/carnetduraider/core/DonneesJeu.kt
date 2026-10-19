@@ -54,7 +54,47 @@ data class Objet(
     /** Types de lieux où on le trouve (« Mécanique », « ARC »…). */
     val lieux: List<String> = emptyList(),
     val obtention: Obtention = Obtention(),
+    /** Description officielle du jeu (« Déverrouille certaines portes… »), si le jeu la traduit. */
+    val description: String? = null,
+    val utilisations: Utilisations = Utilisations(),
 )
+
+/**
+ * À quoi sert un objet, d'après les fichiers du jeu (les établis, quêtes et projets qui le demandent
+ * sont calculés à part, voir [Usages]).
+ */
+@Serializable
+data class Utilisations(
+    /** Ce qu'il sert à fabriquer (il fait partie des ingrédients), et où. */
+    val fabrication: List<UsageFabrication> = emptyList(),
+    /** Recherches de la Station de recherche qui le demandent (noms officiels). */
+    val recherches: List<String> = emptyList(),
+    /** Meubles de l'Avant-poste qui le demandent. */
+    val avantPoste: List<String> = emptyList(),
+    /** Échanges chez les commerçants : on le donne contre un autre objet. */
+    val echanges: List<UsageEchange> = emptyList(),
+    /** Commerçants qui l'acceptent dans leurs échanges, au prix de sa valeur. */
+    val echangesValeur: List<String> = emptyList(),
+    /** Armes qu'il sert à amplifier. */
+    val amplification: List<String> = emptyList(),
+    /** Schéma ou design à apprendre ; [debloque] : objets dont il débloque la fabrication ; [meubles] : meubles. */
+    val aApprendre: Boolean = false,
+    val debloque: List<String> = emptyList(),
+    val meubles: List<String> = emptyList(),
+    /** Apparence à débloquer. */
+    val apparence: Boolean = false,
+    /** Clé : elle ouvre une porte ou une salle (voir la description). */
+    val cle: Boolean = false,
+    /** Équipement qui s'utilise en raid (arme, module, bouclier, utilitaire, mod, munitions). */
+    val equipement: Boolean = false,
+)
+
+@Serializable
+data class UsageFabrication(val objet: String, val etabli: String? = null, val niveau: Int? = null)
+
+/** On donne [donne] exemplaires de l'objet à [commercant] contre [quantite] × [objet]. */
+@Serializable
+data class UsageEchange(val commercant: String, val objet: String, val quantite: Int = 1, val donne: Int = 1)
 
 /**
  * Comment obtenir un objet, d'après les fichiers du jeu. [cartes] et [zones] : où il y en a le plus dans le
