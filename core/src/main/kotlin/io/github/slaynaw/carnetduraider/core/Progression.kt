@@ -113,16 +113,47 @@ class SuiviProgression(private val catalogue: Catalogue) {
         progression.copy(etablisSuivis = if (suivi) catalogue.donnees.etablis.map { it.id }.toSet() else emptySet())
 
     /**
-     * Retire de la réserve ce que le jeu a consommé (amélioration construite, objets livrés), dans la
-     * limite de ce qui y est noté : valider ne demande pas d'avoir d'abord saisi tous les objets.
+     * Vrai si l'objectif est la prochaine chose à faire : prochain niveau de l'établi, quête disponible
+     * (pas terminée, ses prérequis le sont), prochaine étape du projet. Un objectif plus lointain ne l'est pas.
      */
-    fun retirer(reserve: Map<String, Int>, cout: List<Quantite>): Map<String, Int> {
-        val resultat = reserve.toMutableMap()
-        for ((id, quantite) in cout) {
-            val reste = (resultat[id] ?: 0) - quantite
-            if (reste > 0) resultat[id] = reste else resultat.remove(id)
+    fun atteignable(progression: Progression, objectif: Objectif): Boolean = when (objectif) {
+        is Objectif.NiveauDEtabli ->
+            catalogue.etabli(objectif.etabliId)?.let { prochainNiveau(progression, it)?.niveau == objectif.niveau } ?: false
+        is Objectif.QueteATerminer -> catalogue.quete(objectif.queteId)?.let { q ->
+            q.id !in progression.quetesTerminees && q.requiert.all { it in progression.quetesTerminees }
+        } ?: false
+        is Objectif.EtapeDeProjet ->
+            catalogue.projet(objectif.projetId)?.let { prochaineEtape(progression, it) == objectif.etape } ?: false
+    }
+
+    /** L'objectif est fait : niveau construit, quête terminée (et celles qui y mènent), étape de projet faite. */
+    fun terminer(progression: Progression, objectif: Objectif): Progression = when (objectif) {
+        is Objectif.NiveauDEtabli -> catalogue.etabli(objectif.etabliId)
+            ?.let { changerNiveau(progression, it, maxOf(niveau(progression, it), objectif.niveau)) } ?: progression
+        is Objectif.QueteATerminer -> terminerQuete(progression, objectif.queteId)
+        is Objectif.EtapeDeProjet -> catalogue.projet(objectif.projetId)
+            ?.let { changerEtapes(progression, it, maxOf(progression.etapesProjets[it.id] ?: 0, objectif.etape + 1)) } ?: progression
+    }
+
+    /**
+     * Termine d'eux-mêmes les objectifs dont tout a été rapporté ([complet]) quand ils sont la prochaine chose
+     * à faire, puis ceux qui le deviennent (le niveau suivant peut être déjà complet, s'il avait été ajouté à
+     * la main). [manuels] : objectifs ajoutés à la main. Renvoie la progression et les objectifs terminés.
+     */
+    fun terminerLesComplets(
+        progression: Progression,
+        manuels: List<Objectif>,
+        complet: (Objectif) -> Boolean,
+    ): Pair<Progression, List<Objectif>> {
+        var p = progression
+        val termines = mutableListOf<Objectif>()
+        while (true) {
+            val suivant = (objectifsAutomatiques(p) + manuels)
+                .firstOrNull { it !in termines && atteignable(p, it) && complet(it) } ?: break
+            p = terminer(p, suivant)
+            termines += suivant
         }
-        return resultat
+        return p to termines
     }
 
     /** Toutes les quêtes qui mènent à [queteId] (prérequis, de proche en proche). */

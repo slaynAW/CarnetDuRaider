@@ -103,7 +103,7 @@ fun SectionSauvegarde(vm: CarnetViewModel) {
             } else {
                 Text("Retrouve tes données après une réinstallation", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Ta réserve, ta progression et tes listes sont sauvegardées automatiquement dans un fichier chiffré " +
+                    "Ta progression, tes objectifs et ce que tu as rapporté sont sauvegardés automatiquement dans un fichier chiffré " +
                         "avec ton mot de passe. Range-le dans Google Drive pour le retrouver sur un autre téléphone.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Signal.TexteDoux,

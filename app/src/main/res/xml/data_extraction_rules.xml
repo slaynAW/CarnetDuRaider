@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pas de sauvegarde automatique pour l'instant : la réserve et les objectifs restent sur le téléphone. -->
+<!-- Pas de sauvegarde automatique d'Android : la progression et les objectifs restent sur le téléphone. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="root" />

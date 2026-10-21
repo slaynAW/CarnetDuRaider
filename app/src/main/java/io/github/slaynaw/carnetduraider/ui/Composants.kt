@@ -109,12 +109,9 @@ fun Barre(progression: Float, couleur: Color, modifier: Modifier = Modifier, epa
     }
 }
 
-/**
- * Compteur « − n + » pour saisir en une touche ce qu'on a dans sa réserve (ou, avec [suffixe], ce qu'on
- * veut trouver).
- */
+/** Compteur « − n + » pour changer un nombre en une touche ; [suffixe] dit ce qu'il compte (« à trouver… »). */
 @Composable
-fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, modifier: Modifier = Modifier, suffixe: String = "dans ta réserve") {
+fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, suffixe: String, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         FilledIconButton(
             onClick = { onChange(-1) },

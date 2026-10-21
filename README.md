@@ -21,16 +21,18 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
 - **Objectifs et progression automatique.** Tu choisis ce que tu veux faire avancer (« Suivre tous
   mes établis » en un geste) et tu indiques une fois tes quêtes en cours : l'appli suit d'elle-même le
   prochain niveau de chaque établi et les quêtes disponibles (d'après l'enchaînement des quêtes du
-  jeu), ainsi que les projets que tu suis (Expéditions…). Un seul bouton valide un niveau construit,
-  une quête terminée ou une étape de projet : la suite apparaît et ce que le jeu a pris est retiré de
-  ta réserve, sans rien saisir (« Annuler » pour revenir en arrière). Des objectifs plus lointains
-  peuvent s'ajouter à la main.
+  jeu), ainsi que les projets que tu suis (Expéditions…). Chacun montre ce qui a déjà été rapporté ;
+  dès qu'il a tout, il se termine tout seul et la suite apparaît. Un bouton valide aussi ce que tu as
+  fini autrement (« Annuler » pour revenir en arrière). Des objectifs plus lointains peuvent s'ajouter
+  à la main.
 - **Préparer mon raid.** Rien à préparer : l'onglet Raid se remplit tout seul avec ce qui manque pour
   tes objectifs, plus ce que tu ajoutes toi-même (et combien). L'appli dit sur quelle carte aller, où
   chercher sur chacune et les cartes à faire pour tout trouver (d'après les tables de butin du jeu).
-- **Retour de raid.** Après un raid, un écran pour ajouter vite ce que tu rapportes (« +1 », « +5 ») :
-  ce que tu cherches se décompte. À la validation, une animation montre les objets qui ont atteint le
-  nombre demandé, puis « Raid terminé, objets trouvés » quand toute la liste est trouvée.
+- **Retour de raid, sans réserve à tenir.** L'appli ne te demande jamais ce que tu as en stock : tu
+  notes seulement ce que tu rapportes (« +1 », « +5 »), et seulement ce qu'il te faut. Chaque objet va
+  aux objectifs qui le demandent (le plus près d'être terminé d'abord) et s'additionne d'un raid à
+  l'autre. À la validation, ce qui est complet se termine tout seul, et une animation montre ce qui a
+  été trouvé, puis « Raid terminé, objets trouvés » quand toute la liste est trouvée.
 - **Conditions de la carte.** Le calendrier officiel d'Embark
   ([arcraiders.com/map-conditions](https://arcraiders.com/map-conditions)) dans l'appli, avec les noms
   français officiels : ce qui est en cours sur chaque carte, les prochaines heures et la prochaine fois

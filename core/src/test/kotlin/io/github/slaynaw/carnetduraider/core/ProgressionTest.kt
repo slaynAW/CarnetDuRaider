@@ -86,10 +86,41 @@ class ProgressionTest {
     }
 
     @Test
-    fun `retirer de la reserve ce qui est consomme`() {
-        val reserve = mapOf("metal_parts" to 30, "fabric" to 5)
-        val apres = suivi.retirer(reserve, listOf(Quantite("metal_parts", 25), Quantite("fabric", 9), Quantite("rubber_parts", 1)))
-        assertEquals(mapOf("metal_parts" to 5), apres)
+    fun `objectifs complets termines d'eux-memes`() {
+        val planificateur = Planificateur(catalogue)
+        val station = catalogue.etabli("utility_bench")!!
+        val suit = suivi.suivreEtabli(depart, station.id, true)
+        val niveau1 = Objectif.NiveauDEtabli(station.id, 1)
+        val niveau2 = Objectif.NiveauDEtabli(station.id, 2)
+        // Tout le niveau 1 rapporté, et tout le niveau 2 aussi (ajouté à la main comme objectif plus lointain).
+        val apports = listOf(niveau1, niveau2).associate { o -> o.cle to planificateur.besoins(o).associate { it.id to it.quantite } }
+        val (apres, termines) = suivi.terminerLesComplets(suit, listOf(niveau2)) { planificateur.complet(it, apports) }
+        assertEquals(listOf(niveau1, niveau2), termines)
+        assertEquals(2, suivi.niveau(apres, station))
+        assertEquals(listOf(Objectif.NiveauDEtabli(station.id, 3)), suivi.objectifsAutomatiques(apres))
+        // Rien de complet : rien ne change.
+        assertEquals(suit to emptyList<Objectif>(), suivi.terminerLesComplets(suit, emptyList()) { false })
+    }
+
+    @Test
+    fun `un objectif lointain complet attend son tour`() {
+        val niveau3 = Objectif.NiveauDEtabli("utility_bench", 3)
+        assertFalse(suivi.atteignable(depart, niveau3))
+        assertEquals(depart to emptyList<Objectif>(), suivi.terminerLesComplets(depart, listOf(niveau3)) { it == niveau3 })
+    }
+
+    @Test
+    fun `quete terminee d'elle-meme quand ses objets sont rapportes`() {
+        val avant = suivi.indiquerQuetesEnCours(depart, listOf("clearer_skies"))
+        val quete = Objectif.QueteATerminer("clearer_skies")
+        assertTrue(suivi.atteignable(avant, quete))
+        val (apres, termines) = suivi.terminerLesComplets(avant, emptyList()) { it == quete }
+        assertEquals(listOf(quete), termines)
+        assertTrue("clearer_skies" in apres.quetesTerminees)
+        assertFalse(Objectif.QueteATerminer("clearer_skies") in suivi.objectifsAutomatiques(apres))
+        // Sa suite arrive dès que tous ses prérequis sont faits (« off_the_radar » demande aussi « trash_into_treasure »).
+        val apres2 = suivi.terminer(apres, Objectif.QueteATerminer("trash_into_treasure"))
+        assertTrue(suivi.quetesEnCours(apres2).any { it.id == "off_the_radar" })
     }
 
     @Test
@@ -107,12 +138,5 @@ class ProgressionTest {
         assertNull(suivi.prochaineEtape(p, projet))
         assertFalse(suivi.objectifsAutomatiques(p).any { it is Objectif.EtapeDeProjet })
         assertEquals(projet.etapes.size, suivi.terminerEtape(p, projet).etapesProjets[projet.id], "jamais au-delà de la dernière étape")
-    }
-
-    @Test
-    fun `valider sans avoir saisi tous les objets`() {
-        // Seul ce qui est noté dans la réserve est retiré, sans jamais passer sous zéro.
-        val apres = suivi.retirer(mapOf("metal_parts" to 3), listOf(Quantite("metal_parts", 25), Quantite("fabric", 30)))
-        assertTrue(apres.isEmpty())
     }
 }

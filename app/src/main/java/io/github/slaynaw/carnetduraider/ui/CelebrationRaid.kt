@@ -2,6 +2,7 @@ package io.github.slaynaw.carnetduraider.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.BilanRaid
+import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.ObjetATrouver
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import kotlin.math.PI
@@ -53,13 +55,15 @@ import kotlin.math.sin
 import kotlin.random.Random
 import kotlinx.coroutines.delay
 
-/** Au plus autant d'objets affichés dans l'animation ; les autres sont comptés. */
-private const val OBJETS_AFFICHES = 6
+/** Au plus autant d'objectifs et d'objets affichés dans l'animation ; les autres sont comptés. */
+private const val OBJECTIFS_AFFICHES = 3
+private const val OBJETS_AFFICHES = 5
 
 /**
- * Animation du retour de raid validé : les objets qui ont atteint le nombre demandé apparaissent un à un.
- * Quand toute la liste est trouvée : « Raid terminé, objets trouvés », avec une gerbe de bandes aux
- * couleurs de l'appli. Une touche (ou « Retour ») la ferme.
+ * Animation du retour de raid validé : les objectifs terminés d'eux-mêmes (tout a été rapporté) et les
+ * objets qui ont atteint le nombre demandé apparaissent un à un. Quand toute la liste est trouvée :
+ * « Raid terminé, objets trouvés », avec une gerbe de bandes aux couleurs de l'appli. Une touche (ou
+ * « Retour ») la ferme.
  */
 @Composable
 fun CelebrationRaid(vm: CarnetViewModel, bilan: BilanRaid, onFin: () -> Unit) {
@@ -94,6 +98,15 @@ fun CelebrationRaid(vm: CarnetViewModel, bilan: BilanRaid, onFin: () -> Unit) {
                 Bandes(echelle, hauteur = 40.dp, largeurBande = 10.dp)
                 Text("Raid terminé", style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center, modifier = echelle)
                 Text("Objets trouvés\u00a0!", style = MaterialTheme.typography.headlineSmall, color = Signal.Vert, textAlign = TextAlign.Center)
+            } else if (bilan.objectifsTermines.isNotEmpty()) {
+                Text(
+                    if (bilan.objectifsTermines.size > 1) "Objectifs terminés" else "Objectif terminé",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = Signal.Vert,
+                    textAlign = TextAlign.Center,
+                    modifier = echelle,
+                )
+                Text("Tout est rapporté. La suite s'ajoute à tes objectifs.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux, textAlign = TextAlign.Center)
             } else {
                 Text("Objets trouvés", style = MaterialTheme.typography.headlineLarge, color = Signal.Vert, textAlign = TextAlign.Center, modifier = echelle)
                 Text(
@@ -103,17 +116,48 @@ fun CelebrationRaid(vm: CarnetViewModel, bilan: BilanRaid, onFin: () -> Unit) {
                     textAlign = TextAlign.Center,
                 )
             }
+            val objectifs = bilan.objectifsTermines.take(OBJECTIFS_AFFICHES)
+            val objets = bilan.atteints.take(OBJETS_AFFICHES)
             Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                bilan.atteints.take(OBJETS_AFFICHES).forEachIndexed { rang, a -> ObjetAtteint(vm, a, rang) }
+                objectifs.forEachIndexed { rang, o -> ObjectifTermine(vm, o, rang) }
+                objets.forEachIndexed { rang, a -> ObjetAtteint(vm, a, objectifs.size + rang) }
             }
-            if (bilan.atteints.size > OBJETS_AFFICHES) {
-                Text(
-                    "Et ${pluriel(bilan.atteints.size - OBJETS_AFFICHES, "autre objet", "autres objets")}.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Signal.TexteDoux,
-                )
+            val autres = bilan.objectifsTermines.size - objectifs.size + bilan.atteints.size - objets.size
+            if (autres > 0) {
+                Text("Et ${pluriel(autres, "autre", "autres")}.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
             Text("Touche l'écran pour continuer", style = MaterialTheme.typography.labelMedium, color = Signal.TexteDiscret, modifier = Modifier.padding(top = 8.dp))
+        }
+    }
+}
+
+/** Arrivée d'un élément (de 0 à 1, avec un petit rebond), après les précédents ([rang]). */
+@Composable
+private fun arrivee(rang: Int): Animatable<Float, AnimationVector1D> {
+    val apparition = remember(rang) { Animatable(0f) }
+    LaunchedEffect(rang) {
+        delay(350L + rang * 150L)
+        apparition.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow))
+    }
+    return apparition
+}
+
+private fun Modifier.rebond(apparition: Animatable<Float, AnimationVector1D>): Modifier = graphicsLayer {
+    alpha = apparition.value.coerceIn(0f, 1f)
+    scaleX = 0.7f + 0.3f * apparition.value
+    scaleY = 0.7f + 0.3f * apparition.value
+}
+
+/** Un objectif dont tout a été rapporté : il s'est terminé tout seul, la suite apparaît. */
+@Composable
+private fun ObjectifTermine(vm: CarnetViewModel, objectif: Objectif, rang: Int) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().rebond(arrivee(rang))) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Signal.Vert, modifier = Modifier.size(36.dp))
+            Column(Modifier.weight(1f)) {
+                Text(vm.planificateur.libelle(objectif), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text("Tout est rapporté", style = MaterialTheme.typography.labelMedium, color = Signal.Vert)
+            }
         }
     }
 }
@@ -121,20 +165,7 @@ fun CelebrationRaid(vm: CarnetViewModel, bilan: BilanRaid, onFin: () -> Unit) {
 /** Un objet qui a atteint son nombre : il arrive avec un petit rebond, coché en vert. */
 @Composable
 private fun ObjetAtteint(vm: CarnetViewModel, a: ObjetATrouver, rang: Int) {
-    val apparition = remember(a.objetId) { Animatable(0f) }
-    LaunchedEffect(a.objetId) {
-        delay(350L + rang * 150L)
-        apparition.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow))
-    }
-    Surface(
-        color = Signal.Surface,
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth().graphicsLayer {
-            alpha = apparition.value.coerceIn(0f, 1f)
-            scaleX = 0.7f + 0.3f * apparition.value
-            scaleY = 0.7f + 0.3f * apparition.value
-        },
-    ) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().rebond(arrivee(rang))) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box {
                 IconeObjet(a.objetId, vm.catalogue.objet(a.objetId)?.rarete, 44.dp)
@@ -148,7 +179,7 @@ private fun ObjetAtteint(vm: CarnetViewModel, a: ObjetATrouver, rang: Int) {
             Column(Modifier.weight(1f)) {
                 Text(vm.catalogue.nomObjet(a.objetId), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${minOf(a.trouves, a.voulu)}/${a.voulu} · " + if (a.ajouteParLeJoueur) "trouvé${if (a.trouves > 1) "s" else ""}" else a.pour.joinToString(" · ") { it.libelle },
+                    "${minOf(a.trouves, a.voulu)}/${a.voulu} · " + (a.pour.map { it.libelle } + listOfNotNull("ajouté par toi".takeIf { a.ajouteParLeJoueur })).joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium,
                     color = Signal.TexteDoux,
                     maxLines = 1,

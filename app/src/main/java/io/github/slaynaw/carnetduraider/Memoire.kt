@@ -1,26 +1,36 @@
 package io.github.slaynaw.carnetduraider
 
 import android.content.Context
+import io.github.slaynaw.carnetduraider.core.Apports
 import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.Progression
 import io.github.slaynaw.carnetduraider.core.calendrier.Region
+import io.github.slaynaw.carnetduraider.core.cle
 
 /**
- * Ce que le joueur a saisi (sa réserve, sa progression, ses objectifs en plus), gardé sur le téléphone
- * uniquement.
+ * Ce que le joueur a saisi (sa progression, ses objectifs en plus, ce qu'il a rapporté de raid pour eux),
+ * gardé sur le téléphone uniquement.
  * Format texte simple, une entrée par ligne, lisible et stable d'une version à l'autre.
  */
 class Memoire(context: Context) {
     private val prefs = context.getSharedPreferences("carnet", Context.MODE_PRIVATE)
 
-    fun lireReserve(): Map<String, Int> =
-        prefs.getString(RESERVE, "").orEmpty().lines().mapNotNull { ligne ->
-            val (id, quantite) = ligne.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
-            quantite.toIntOrNull()?.takeIf { it > 0 }?.let { id to it }
-        }.toMap()
+    /** Il n'y a plus de réserve : ce qui y était noté par une version précédente est oublié. */
+    fun oublierReserve() {
+        if (prefs.contains(RESERVE)) prefs.edit().remove(RESERVE).apply()
+    }
 
-    fun ecrireReserve(reserve: Map<String, Int>) {
-        prefs.edit().putString(RESERVE, reserve.entries.joinToString("\n") { "${it.key}=${it.value}" }).apply()
+    /** Ce qui a été rapporté de raid pour chaque objectif : une ligne « clé de l'objectif|objet=quantité ». */
+    fun lireApports(): Apports =
+        lignes(APPORTS).mapNotNull { ligne ->
+            val (cle, objet) = ligne.split('|').takeIf { it.size == 2 } ?: return@mapNotNull null
+            val (id, quantite) = objet.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
+            quantite.toIntOrNull()?.takeIf { it > 0 }?.let { Triple(cle, id, it) }
+        }.groupBy({ it.first }, { it.second to it.third }).mapValues { it.value.toMap() }
+
+    fun ecrireApports(apports: Apports) {
+        val lignes = apports.flatMap { (cle, objets) -> objets.map { (id, n) -> "$cle|$id=$n" } }
+        prefs.edit().putString(APPORTS, lignes.joinToString("\n")).apply()
     }
 
     /** Objets ajoutés à la main dans l'onglet Raid (identifiant → quantité voulue), dans l'ordre où ils ont été ajoutés. */
@@ -49,7 +59,7 @@ class Memoire(context: Context) {
         prefs.getString(OBJECTIFS, "").orEmpty().lines().mapNotNull(::decoder)
 
     fun ecrireObjectifs(objectifs: List<Objectif>) {
-        prefs.edit().putString(OBJECTIFS, objectifs.joinToString("\n", transform = ::encoder)).apply()
+        prefs.edit().putString(OBJECTIFS, objectifs.joinToString("\n") { it.cle }).apply()
     }
 
     fun lireProgression(): Progression = Progression(
@@ -86,12 +96,6 @@ class Memoire(context: Context) {
 
     private fun lignes(cle: String): List<String> = prefs.getString(cle, "").orEmpty().lines().filter { it.isNotBlank() }
 
-    private fun encoder(o: Objectif): String = when (o) {
-        is Objectif.NiveauDEtabli -> "etabli:${o.etabliId}:${o.niveau}"
-        is Objectif.QueteATerminer -> "quete:${o.queteId}"
-        is Objectif.EtapeDeProjet -> "projet:${o.projetId}:${o.etape}"
-    }
-
     private fun decoder(ligne: String): Objectif? {
         val parties = ligne.split(':')
         return when {
@@ -106,6 +110,7 @@ class Memoire(context: Context) {
 
     private companion object {
         const val RESERVE = "reserve"
+        const val APPORTS = "apports"
         const val RAID = "raid"
         const val TROUVES_RAID = "raidTrouves"
         const val OBJECTIFS = "objectifs"

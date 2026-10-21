@@ -33,7 +33,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -51,13 +50,13 @@ import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
 import io.github.slaynaw.carnetduraider.core.Quete
+import io.github.slaynaw.carnetduraider.core.cle
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
-import kotlinx.coroutines.delay
 
 /**
- * Onglet Objectifs : ce que le joueur veut faire avancer (établis, quêtes, projets). Rien n'est suivi à
- * l'installation ; un geste suffit pour suivre, et un geste pour valider ce qui est fait en jeu. Ce qu'il
- * faut trouver pour tout ça s'affiche dans l'onglet Raid.
+ * Onglet Objectifs : ce que le joueur veut faire avancer (établis, quêtes, projets), avec ce qui a déjà été
+ * rapporté pour chacun. Rien n'est suivi à l'installation ; un geste suffit pour suivre. Un objectif dont
+ * tout a été rapporté se termine tout seul au retour de raid ; un geste le valide s'il est fait autrement.
  */
 @Composable
 fun EcranObjectifs(
@@ -82,8 +81,8 @@ fun EcranObjectifs(
                     Bandeau("Objectifs", Signal.Vert)
                     Text("Objectifs", style = MaterialTheme.typography.headlineLarge)
                     Text(
-                        "Choisis ce que tu veux faire avancer. Quand c'est fait en jeu, valide-le d'un geste\u00a0: " +
-                            "ce que le jeu a pris est retiré de ta réserve et la suite s'ajoute toute seule.",
+                        "Choisis ce que tu veux faire avancer. Ce que tu rapportes de raid s'y ajoute, et tout ce qui est " +
+                            "complet se termine tout seul. Fait autrement en jeu\u00a0? Valide-le d'un geste.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Signal.TexteDoux,
                     )
@@ -185,8 +184,6 @@ fun EcranObjectifs(
                 }
             }
         }
-
-        BandeauValidation(vm, Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -197,6 +194,14 @@ private fun SousTitre(texte: String) {
 
 private fun detailCout(cout: List<Quantite>, catalogue: Catalogue): String =
     cout.joinToString(" · ") { "${it.quantite} × ${catalogue.nomObjet(it.id)}" }
+
+/** Ce que demande l'objectif, avec ce qui a déjà été rapporté : « Composants plastiques 20/50 · Alliage ARC 6/6 ». */
+private fun detailAvancement(vm: CarnetViewModel, objectif: Objectif): String {
+    val apporte = vm.apports[objectif.cle].orEmpty()
+    return vm.planificateur.besoins(objectif).joinToString(" · ") {
+        "${vm.catalogue.nomObjet(it.id)} ${minOf(apporte[it.id] ?: 0, it.quantite)}/${it.quantite}"
+    }
+}
 
 /** Bouton « Valider » : l'action est faite en jeu, sans avoir à saisir d'abord les objets. */
 @Composable
@@ -234,13 +239,13 @@ private fun CarteEtabli(vm: CarnetViewModel, etabli: Etabli) {
                 FilledIconButton(
                     onClick = { vm.changerNiveau(etabli, niveau + 1) },
                     enabled = prochain != null,
-                    modifier = Modifier.semantics { contentDescription = "Corriger\u00a0: ${etabli.nom} un niveau plus haut, sans toucher à la réserve" },
+                    modifier = Modifier.semantics { contentDescription = "Corriger\u00a0: ${etabli.nom} un niveau plus haut" },
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Texte),
                 ) { Text("+", style = MaterialTheme.typography.titleLarge) }
             }
             if (prochain != null) {
                 Text(
-                    "Niveau ${prochain.niveau}\u00a0: ${detailCout(prochain.cout, vm.catalogue)}",
+                    "Niveau ${prochain.niveau}\u00a0: ${detailAvancement(vm, Objectif.NiveauDEtabli(etabli.id, prochain.niveau))}",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (suivi) Signal.TexteDoux else Signal.TexteDiscret,
                 )
@@ -265,7 +270,7 @@ private fun CarteQuete(vm: CarnetViewModel, quete: Quete) {
             Text(quete.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             quete.commercant?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
             if (quete.objets.isNotEmpty()) {
-                Text(detailCout(quete.objets, vm.catalogue), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
+                Text(detailAvancement(vm, Objectif.QueteATerminer(quete.id)), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
             }
             BoutonValider("Terminée", "Valider\u00a0: quête ${quete.nom} terminée") { vm.validerQuete(quete.id) }
         }
@@ -299,7 +304,9 @@ private fun CarteProjet(vm: CarnetViewModel, projet: Projet) {
             }
             if (suivi && etape != null) {
                 val e = projet.etapes[etape]
-                if (e.cout.isNotEmpty()) Text(detailCout(e.cout, vm.catalogue), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
+                if (e.cout.isNotEmpty()) {
+                    Text(detailAvancement(vm, Objectif.EtapeDeProjet(projet.id, etape)), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
+                }
                 if (e.autresObjectifs > 0) {
                     Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
                 }
@@ -317,40 +324,21 @@ private fun CarteProjet(vm: CarnetViewModel, projet: Projet) {
     }
 }
 
-/** Après une validation : ce qui a été fait, avec « Annuler » pendant quelques secondes. */
-@Composable
-private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier) {
-    val validation = vm.derniereValidation ?: return
-    LaunchedEffect(validation) {
-        delay(8_000)
-        vm.oublierValidation()
-    }
-    Surface(
-        color = Signal.Releve,
-        shape = RoundedCornerShape(16.dp),
-        shadowElevation = 6.dp,
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
-    ) {
-        Row(Modifier.padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Validé\u00a0: ${validation.titre}", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    if (validation.objetsRetires == 0) "Réserve inchangée." else "${pluriel(validation.objetsRetires, "objet retiré", "objets retirés")} de ta réserve.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Signal.TexteDoux,
-                )
-            }
-            TextButton(onClick = vm::annulerValidation) { Text("Annuler", color = Signal.Or) }
-        }
-    }
-}
-
 @Composable
 private fun LigneObjectif(vm: CarnetViewModel, objectif: Objectif) {
     val libelle = vm.planificateur.libelle(objectif)
+    val complet = vm.planificateur.complet(objectif, vm.apports)
     Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Row(Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    // Objectif lointain : il se termine quand il devient la prochaine étape.
+                    if (complet) "Tout est rapporté\u00a0: il se terminera à son tour." else detailAvancement(vm, objectif),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (complet) Signal.Vert else Signal.TexteDoux,
+                )
+            }
             IconButton(onClick = { vm.retirerObjectif(objectif) }) {
                 Icon(Icons.Filled.Close, contentDescription = "Ne plus suivre\u00a0: $libelle", tint = Signal.TexteDoux)
             }

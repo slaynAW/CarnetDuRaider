@@ -2,8 +2,12 @@ package io.github.slaynaw.carnetduraider.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
@@ -11,11 +15,14 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,14 +30,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
+import kotlinx.coroutines.delay
 
 /**
  * Les cinq onglets, chacun avec sa couleur : ce qui compte maintenant, garder ou vendre un objet, où
@@ -204,10 +214,12 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                         )
                     }
                 }
+                // Après une validation (retour de raid, niveau construit…) : « Annuler » pendant quelques secondes.
+                if (vm.celebration == null) BandeauValidation(vm, Modifier.align(Alignment.BottomCenter))
             }
         }
 
-        // Fin du retour de raid : objets trouvés, raid terminé.
+        // Fin du retour de raid : objets trouvés, objectifs terminés, raid terminé.
         vm.celebration?.let { bilan -> CelebrationRaid(vm, bilan, onFin = vm::finCelebration) }
     }
 
@@ -220,5 +232,36 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
             },
             installer = vm.miseAJour::installer,
         )
+    }
+}
+
+/** Après une validation : ce qui a été fait, avec « Annuler » pendant quelques secondes. */
+@Composable
+private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier) {
+    val validation = vm.derniereValidation ?: return
+    LaunchedEffect(validation) {
+        delay(8_000)
+        vm.oublierValidation()
+    }
+    val detail = when {
+        validation.objetsNotes > 0 -> pluriel(validation.objetsNotes, "objet noté", "objets notés") +
+            if (validation.termines.isEmpty()) "." else ", ${pluriel(validation.termines.size, "objectif terminé", "objectifs terminés")}."
+        validation.termines.isNotEmpty() ->
+            "Tout était rapporté aussi pour\u00a0: ${validation.termines.joinToString(", ") { vm.planificateur.libelle(it) }}."
+        else -> "La suite s'ajoute à tes objectifs."
+    }
+    Surface(
+        color = Signal.Releve,
+        shape = RoundedCornerShape(16.dp),
+        shadowElevation = 6.dp,
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Validé\u00a0: ${validation.titre}", style = MaterialTheme.typography.titleSmall)
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+            }
+            TextButton(onClick = vm::annulerValidation) { Text("Annuler", color = Signal.Or) }
+        }
     }
 }

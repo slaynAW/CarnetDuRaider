@@ -230,8 +230,8 @@ private fun TitreRaid(texte: String) {
 private fun nomCarte(vm: CarnetViewModel, carteId: String): String = vm.catalogue.carte(carteId)?.nom ?: Catalogue.NOM_A_VERIFIER
 
 /**
- * Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien on en a
- * sur combien il en faut, et pour quoi. Un objet ajouté à la main se retire d'un geste.
+ * Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien ont été
+ * rapportés sur combien il en faut, et pour quoi. Ce qu'on a ajouté soi-même se retire d'un geste.
  */
 @Composable
 private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> Unit) {
@@ -242,7 +242,7 @@ private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> 
             Column(Modifier.weight(1f)) {
                 Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${a.trouves}/${a.voulu} · " + if (a.ajouteParLeJoueur) "ajouté par toi" else a.pour.joinToString(" · ") { it.libelle },
+                    "${a.trouves}/${a.voulu} · " + (a.pour.map { it.libelle } + listOfNotNull("ajouté par toi".takeIf { a.ajouteParLeJoueur })).joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (a.trouve) Signal.Vert else Signal.TexteDoux,
                     maxLines = 2,
