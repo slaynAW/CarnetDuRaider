@@ -3,20 +3,21 @@ package io.github.slaynaw.carnetduraider.core
 /**
  * Que faire d'un objet trouvé : la réponse à « je garde, je recycle ou je vends ? ».
  *
- * Un objet que le joueur veut (pour ses objectifs, ou ajouté à sa liste de raid) n'est jamais proposé à
- * la vente. Un objet qui sert à quelque chose (fabrication, établis, quêtes, clé, équipement…) non plus :
- * l'appli dit à quoi il sert, et ce qu'il rapporterait si le joueur n'en a pas l'usage. Seul un objet qui ne
- * sert à rien d'autre est à vendre ou à recycler.
+ * Il n'y a pas de réserve : l'appli sait seulement ce que les objectifs demandent et ce qui a été rapporté
+ * pour eux au retour de raid. Un objet que le joueur veut (pour ses objectifs, ou ajouté à sa liste de
+ * raid) n'est jamais proposé à la vente. Un objet qui sert à quelque chose (fabrication, établis, quêtes,
+ * clé, équipement…) non plus : l'appli dit à quoi il sert, et ce qu'il rapporterait si le joueur n'en a
+ * pas l'usage. Seul un objet qui ne sert à rien d'autre est à vendre ou à recycler.
  */
 sealed interface Verdict {
-    /** Il en manque encore pour les objectifs suivis. */
+    /** Les objectifs suivis en demandent encore [manquant] (sur [besoin]). */
     data class Garder(val manquant: Int, val besoin: Int, val pour: List<Besoin>) : Verdict
 
     /** Le joueur l'a ajouté à sa liste de raid : il en veut [voulu], il en a rapporté [trouves]. */
     data class Cherche(val voulu: Int, val trouves: Int) : Verdict
 
-    /** Les objectifs sont couverts ; [surplus] en plus de ce qu'il faut. */
-    data class Suffisant(val surplus: Int, val besoin: Int, val pour: List<Besoin>) : Verdict
+    /** Tout ce que les objectifs suivis en demandent ([besoin]) a déjà été rapporté. */
+    data class Suffisant(val besoin: Int, val pour: List<Besoin>) : Verdict
 
     /** Aucun objectif ne le demande, mais il sert à autre chose ([usages]). */
     data class Utile(val usages: UsagesObjet, val conseil: Sortie) : Verdict
@@ -32,19 +33,20 @@ class Conseiller(private val catalogue: Catalogue, private val planificateur: Pl
 
     fun verdict(
         objetId: String,
-        possede: Int,
         objectifs: List<Objectif>,
+        apports: Apports = emptyMap(),
         progression: Progression = Progression(),
         listeRaid: Map<String, Int> = emptyMap(),
         trouvesRaid: Map<String, Int> = emptyMap(),
     ): Verdict {
-        val pour = planificateur.besoinsPourObjet(objetId, objectifs)
+        val pour = planificateur.besoinsPourObjet(objetId, objectifs, apports)
         val besoin = pour.sumOf { it.quantite }
+        val manque = pour.sumOf { it.manque }
         val voulu = listeRaid[objetId]
         return when {
-            besoin > possede -> Verdict.Garder(besoin - possede, besoin, pour)
+            manque > 0 -> Verdict.Garder(manque, besoin, pour)
             voulu != null -> Verdict.Cherche(voulu, trouvesRaid[objetId] ?: 0)
-            besoin > 0 -> Verdict.Suffisant(possede - besoin, besoin, pour)
+            besoin > 0 -> Verdict.Suffisant(besoin, pour)
             else -> {
                 val u = usages.pour(objetId, progression)
                 if (u.aucun) Verdict.Inutile(meilleureSortie(objetId)) else Verdict.Utile(u, meilleureSortie(objetId))

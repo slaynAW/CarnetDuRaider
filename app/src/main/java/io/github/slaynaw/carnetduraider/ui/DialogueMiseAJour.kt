@@ -64,7 +64,7 @@ fun DialogueMiseAJour(etat: EtatMiseAJour, plusTard: () -> Unit, installer: () -
                     Icon(Icons.Filled.Lock, contentDescription = null, tint = Signal.Vert, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Version officielle vérifiée. Ta réserve et tes objectifs sont conservés.",
+                        "Version officielle vérifiée. Tes objectifs et ce que tu as rapporté sont conservés.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Signal.TexteDoux,
                     )

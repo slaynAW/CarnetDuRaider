@@ -34,7 +34,7 @@ telle qu'elle apparaît dans le jeu.
 - Un nom identique en français et en anglais n'est accepté que s'il figure, avec sa justification,
   dans `scripts/noms-identiques-verifies.txt`.
 - Les libellés fixes du code qui désignent un élément du jeu (raretés dans `Rarete`, « Atelier »,
-  « Réserve », « Recyclage en », « Conditions de la carte »…) reprennent le texte officiel du jeu.
+  « Recyclage en », « Conditions de la carte »…) reprennent le texte officiel du jeu.
 - Le reste du texte de l'interface (phrases d'aide, boutons propres à l'appli) est en français courant.
 
 Les données sont mises à jour **chaque jour** par le workflow « Données du jeu »
@@ -70,8 +70,10 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   le moins possible (rien à préparer, un geste pour valider ou noter un objet trouvé). Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
   En-tête commun à toutes les sections (`EnTete` : logo, nom, réglages) ; objets affichés avec leur
   icône sur une tuile aux couleurs de leur rareté (`IconeObjet`).
-- La réserve et la progression du joueur sont saisies dans l'appli (`Memoire`) : l'appli ne se connecte
-  jamais au compte Embark et ne touche jamais au jeu (pas de lecture de mémoire, de trafic ou de jeton).
+- **Pas de réserve** (rien de ce que le joueur a « en stock ») : il ne note que ce qu'il rapporte de raid,
+  au retour de raid. Sa progression et ce qui a été rapporté pour chaque objectif sont gardés dans l'appli
+  (`Memoire`) : l'appli ne se connecte jamais au compte Embark et ne touche jamais au jeu (pas de lecture
+  de mémoire, de trafic ou de jeton).
   **À l'installation, tout est à zéro** : aucun établi suivi (`Progression.etablisSuivis`, à choisir),
   aucune quête suivie avant que le joueur les indique (`quetesIndiquees`), aucun projet.
 - Sauvegarde chiffrée (`core/…/sauvegarde`, `app/…/sauvegarde`) : fichiers de réglages « carnet » et
@@ -82,20 +84,24 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   sur GitHub : écrire sur GitHub exige un jeton, qu'on ne peut pas mettre dans un APK public.
 - Progression automatique (`core/Progression.kt`) : le joueur indique le niveau de ses établis et ses
   quêtes en cours ; l'appli en déduit les objectifs (prochain niveau, quêtes disponibles d'après
-  l'enchaînement `requiert` des données du jeu) et retire de la réserve ce que le jeu a consommé.
-  Les projets suivis (Expéditions…) ajoutent leur prochaine étape. Un niveau, une quête ou une étape se
-  valide en un geste (`CarnetViewModel.valider…`), avec « Annuler » : jamais de saisie obligatoire.
+  l'enchaînement `requiert` des données du jeu). Les projets suivis (Expéditions…) ajoutent leur
+  prochaine étape. Un objectif dont tout a été rapporté se termine tout seul quand il est la prochaine
+  chose à faire (`SuiviProgression.terminerLesComplets`) ; un objectif lointain complet attend son tour.
+  Ce qui est fait autrement se valide en un geste (`CarnetViewModel.valider…`), avec « Annuler » :
+  jamais de saisie obligatoire.
 - Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Ce
   qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs suivis, puis les objets
   ajoutés par le joueur (`Memoire`, clé « raid » : nombre voulu) ; cartes classées par la somme des
   indices de butin des objets encore à trouver (chaque objet compte au plus 1 par carte), zones où
   chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la meilleure carte.
-- Retour de raid (`core/RetourDeRaid.kt`, `ui/EcranRetourRaid.kt`) : le butin saisi se décompte (la
-  réserve pour les objets des objectifs ; `Memoire`, clé « raidTrouves », pour les objets ajoutés par
-  le joueur). À la validation (bouton, retour ou autre onglet, jamais une rotation), `RetourDeRaid.bilan`
-  donne les objets qui ont atteint le nombre demandé et si toute la liste est trouvée : animation
-  `ui/CelebrationRaid.kt` (« Raid terminé, objets trouvés »), puis les objets ajoutés et trouvés quittent
-  la liste.
+- Retour de raid (`core/RetourDeRaid.kt`, `ui/EcranRetourRaid.kt`), le seul endroit où le joueur note
+  des objets : seulement ce qui manque, sans pouvoir dépasser. `Planificateur.repartir` donne le butin
+  aux objectifs qui le demandent, le plus près d'être terminé d'abord (`Memoire`, clé « apports » :
+  clé de l'objectif → objets rapportés ; clé « raidTrouves » pour les objets ajoutés par le joueur) ;
+  ce qui dépasse n'est gardé nulle part. À la validation (bouton, retour ou autre onglet, jamais une
+  rotation), les objectifs complets se terminent et `RetourDeRaid.bilan` donne les objectifs terminés,
+  les objets qui ont atteint le nombre demandé et si toute la liste est trouvée : animation
+  `ui/CelebrationRaid.kt` (« Raid terminé, objets trouvés »), puis « Annuler » pendant quelques secondes.
 - Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
   officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).

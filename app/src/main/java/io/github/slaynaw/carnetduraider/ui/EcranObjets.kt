@@ -88,13 +88,13 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
             }
         }
         items(resultats, key = { it.id }) { objet ->
-            LigneObjet(objet, vm.possede(objet.id), vm.verdict(objet.id), onClick = { ouvrir(objet.id) })
+            LigneObjet(objet, vm.verdict(objet.id), onClick = { ouvrir(objet.id) })
         }
     }
 }
 
 @Composable
-private fun LigneObjet(objet: Objet, possede: Int, verdict: Verdict, onClick: () -> Unit) {
+private fun LigneObjet(objet: Objet, verdict: Verdict, onClick: () -> Unit) {
     Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             IconeObjet(objet.id, objet.rarete, 48.dp)
@@ -103,10 +103,7 @@ private fun LigneObjet(objet: Objet, possede: Int, verdict: Verdict, onClick: ()
                 val details = listOfNotNull(objet.rarete?.libelle, objet.categorie).joinToString(" · ")
                 if (details.isNotEmpty()) Text(details, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                PuceVerdict(verdict)
-                if (possede > 0) Text("× $possede", style = MaterialTheme.typography.titleSmall, color = Signal.Or)
-            }
+            PuceVerdict(verdict)
         }
     }
 }
@@ -165,10 +162,6 @@ fun EcranFiche(
         val verdict = vm.verdict(objet.id)
         CarteVerdict(verdict, objet, vm)
 
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Dans ta réserve", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Compteur(vm.possede(objet.id), objet.nom, onChange = { vm.changerQuantite(objet.id, it) })
-        }
         // Le chercher au prochain raid, et combien (inutile s'il l'est déjà pour les objectifs).
         if (verdict !is Verdict.Garder) {
             val voulu = vm.listeRaid[objet.id]
@@ -331,7 +324,7 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
         else -> "vends-le\u00a0: il vaut ${objet.valeur} pièces, plus que ses matériaux ($valeurRecyclage)."
     }
     val c = when (verdict) {
-        is Verdict.Garder -> ContenuVerdict("Garde-le", "Il t'en manque ${verdict.manquant} pour tes objectifs.", Signal.Or, verdict.pour)
+        is Verdict.Garder -> ContenuVerdict("Garde-le", "Il en faut encore ${verdict.manquant} pour tes objectifs.", Signal.Or, verdict.pour)
         is Verdict.Cherche -> ContenuVerdict(
             "Garde-le",
             if (verdict.trouves < verdict.voulu) {
@@ -343,7 +336,7 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
         )
         is Verdict.Suffisant -> ContenuVerdict(
             "Tu en as assez",
-            if (verdict.surplus == 0) "Pile ce qu'il faut pour tes objectifs." else "Tes objectifs sont couverts, avec ${verdict.surplus} en plus.",
+            "Tu as déjà rapporté tout ce qu'il en faut pour tes objectifs en cours.",
             Signal.Vert,
             verdict.pour,
         )
@@ -370,7 +363,7 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
                 c.pour.forEach { besoin ->
                     Row(Modifier.fillMaxWidth()) {
                         Text(besoin.libelle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        Text("× ${besoin.quantite}", style = MaterialTheme.typography.titleSmall)
+                        Text("${minOf(besoin.apporte, besoin.quantite)}/${besoin.quantite}", style = MaterialTheme.typography.titleSmall)
                     }
                 }
             }

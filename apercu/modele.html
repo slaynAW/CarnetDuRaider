@@ -180,7 +180,7 @@ function rechercher(saisie, limite) {
 const valeurRecyclage = o => o.recyclage.reduce((s, q) => s + (objets.get(q.id)?.valeur ?? 0) * q.quantite, 0);
 
 // ---- Mémoire du joueur (comme Memoire.kt), gardée pour ce compte ----
-const M = { reserve: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {}, raidTrouves: {} };
+const M = { apports: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {}, raidTrouves: {} };
 const projets = new Map((D.projets || []).map(p => [p.id, p]));
 const cartes = new Map(D.cartes.map(c => [c.id, c]));
 
@@ -217,59 +217,128 @@ function objectifs() {
   return liste;
 }
 
-// ---- Liste de courses et verdict (core/ListeDeCourses.kt, core/Verdict.kt) ----
+// ---- Liste de courses (core/ListeDeCourses.kt) : pas de réserve, seulement ce qui a été rapporté de raid
+// pour chaque objectif (M.apports : clé de l'objectif → objets rapportés) ----
 const libelle = o => o.type === "etabli" ? `${etablis.get(o.id)?.nom ?? NOM_A_VERIFIER} · niveau ${o.niveau}`
   : o.type === "projet" ? `${projets.get(o.id)?.nom ?? NOM_A_VERIFIER} · ${nomEtape(projets.get(o.id), o.etape)}`
   : `Quête «${NB}${quetes.get(o.id)?.nom ?? NOM_A_VERIFIER}${NB}»`;
 const besoins = o => o.type === "etabli" ? (etablis.get(o.id)?.niveaux.find(n => n.niveau === o.niveau)?.cout ?? [])
   : o.type === "projet" ? (projets.get(o.id)?.etapes[o.etape]?.cout ?? []) : (quetes.get(o.id)?.objets ?? []);
-const besoinsPourObjet = (id, objs) => objs.map(o => ({ o, libelle: libelle(o), quantite: besoins(o).filter(q => q.id === id).reduce((s, q) => s + q.quantite, 0) })).filter(b => b.quantite > 0);
-const possede = id => M.reserve[id] ?? 0;
-function listeDeCourses() {
-  const objs = objectifs();
+const apporteDe = (o, id, apports = M.apports) => apports?.[cleObjectif(o)]?.[id] ?? 0;
+const besoinsPourObjet = (id, objs, apports = M.apports) => objs.map(o => {
+  const quantite = besoins(o).filter(q => q.id === id).reduce((s, q) => s + q.quantite, 0), apporte = apporteDe(o, id, apports);
+  return { o, libelle: libelle(o), quantite, apporte, manque: Math.max(0, quantite - apporte) };
+}).filter(b => b.quantite > 0);
+function listeDeCourses(objs = objectifs(), apports = M.apports) {
   const ids = [...new Set(objs.flatMap(o => besoins(o).map(q => q.id)))];
-  const lignes = ids.map(id => { const pour = besoinsPourObjet(id, objs); const besoin = pour.reduce((s, b) => s + b.quantite, 0); return { id, nom: nomObjet(id), besoin, possede: possede(id), pour }; })
-    .map(l => ({ ...l, manquant: Math.max(0, l.besoin - l.possede), complet: l.possede >= l.besoin }));
+  const lignes = ids.map(id => {
+    const pour = besoinsPourObjet(id, objs, apports), somme = f => pour.reduce((s, b) => s + f(b), 0);
+    const l = { id, nom: nomObjet(id), pour, besoin: somme(b => b.quantite), apporte: somme(b => Math.min(b.apporte, b.quantite)), manquant: somme(b => b.manque) };
+    return { ...l, complet: l.manquant === 0 };
+  });
   lignes.sort((a, b) => a.complet - b.complet || b.manquant - a.manquant || a.nom.localeCompare(b.nom));
   const total = lignes.reduce((s, l) => s + l.besoin, 0);
-  return { lignes, manquants: lignes.reduce((s, l) => s + l.manquant, 0), progression: total ? lignes.reduce((s, l) => s + Math.min(l.possede, l.besoin), 0) / total : 1 };
+  return { lignes, manquants: lignes.reduce((s, l) => s + l.manquant, 0), progression: total ? lignes.reduce((s, l) => s + l.apporte, 0) / total : 1 };
 }
-// Tout ce qu'il reste à trouver, avec son décompte : ce qui manque pour les objectifs (trouvés = réserve),
-// puis les objets ajoutés par le joueur (M.raid : voulus ; M.raidTrouves : rapportés depuis).
-function aTrouver() {
-  const pourObjectifs = listeDeCourses().lignes.filter(x => !x.complet).map(x => ({ id: x.id, trouves: x.possede, voulu: x.besoin, pour: x.pour }));
-  const deja = new Set(pourObjectifs.map(x => x.id));
-  const ajoutes = Object.entries(M.raid || {}).filter(([id]) => !deja.has(id)).map(([id, voulu]) => ({ id, trouves: M.raidTrouves?.[id] ?? 0, voulu, pour: [] }));
-  return [...pourObjectifs, ...ajoutes].map(etatATrouver);
+// Ce qui manque encore à un objectif (identifiant → quantité) ; complet quand il ne lui manque rien.
+function manqueObjectif(o, apports = M.apports) {
+  const m = {};
+  for (const q of besoins(o)) m[q.id] = (m[q.id] ?? 0) + q.quantite;
+  for (const id of Object.keys(m)) { m[id] -= apports?.[cleObjectif(o)]?.[id] ?? 0; if (m[id] <= 0) delete m[id]; }
+  return m;
 }
-const etatATrouver = x => ({ ...x, ajoute: !x.pour.length, reste: Math.max(0, x.voulu - x.trouves), trouve: x.trouves >= x.voulu });
+const complet = (o, apports = M.apports) => besoins(o).length > 0 && !Object.keys(manqueObjectif(o, apports)).length;
+// Toute la liste du raid, trouvés compris : objectifs (avec ce que le joueur en a ajouté lui-même), puis ses autres ajouts.
+function listeDuRaid(apports = M.apports, trouvesRaid = M.raidTrouves || {}) {
+  const raid = M.raid || {}, duJoueur = id => Math.min(trouvesRaid[id] ?? 0, raid[id] ?? 0);
+  const lignes = listeDeCourses(objectifs(), apports).lignes, deja = new Set(lignes.map(l => l.id));
+  return [...lignes.map(l => ({ id: l.id, trouves: l.apporte + duJoueur(l.id), voulu: l.besoin + (raid[l.id] ?? 0), pour: l.pour, ajoute: raid[l.id] ?? 0 })),
+    ...Object.entries(raid).filter(([id]) => !deja.has(id)).map(([id, voulu]) => ({ id, trouves: duJoueur(id), voulu, pour: [], ajoute: voulu }))].map(etatATrouver);
+}
+const etatATrouver = x => ({ ...x, reste: Math.max(0, x.voulu - x.trouves), trouve: x.trouves >= x.voulu });
+const aTrouver = () => listeDuRaid().filter(x => !x.trouve);
+const pourQui = a => [...a.pour.map(b => b.libelle), ...(a.ajoute ? ["ajouté par toi"] : [])].join(" · ");
 
-// ---- Retour de raid (core/RetourDeRaid.kt) : décompte de ce qu'on cherche, bilan à la validation ----
-function compterTrouves(id, ecart) {
-  if (!(id in (M.raid || {})) || !ecart) return;
-  M.raidTrouves = M.raidTrouves || {};
-  const n = Math.max(0, (M.raidTrouves[id] ?? 0) + ecart);
-  if (n) M.raidTrouves[id] = n; else delete M.raidTrouves[id];
+// ---- Répartition du butin (Planificateur.repartir) : d'abord l'objectif le plus près d'être terminé ;
+// ce qui dépasse n'est gardé nulle part ----
+function repartir(objs, ajouts, avant, saisis) {
+  const apports = JSON.parse(JSON.stringify(avant.apports || {})), trouves = { ...(avant.trouves || {}) };
+  const pourObjectifs = [...new Map(objs.map(o => [cleObjectif(o), o])).values()].map(o => ({ cle: cleObjectif(o), manque: manqueObjectif(o, avant.apports) }));
+  const pourJoueur = Object.entries(ajouts).map(([id, voulu]) => ({ cle: null, manque: { [id]: voulu - (avant.trouves?.[id] ?? 0) } })).filter(d => Object.values(d.manque)[0] > 0);
+  const total = d => Object.values(d.manque).reduce((s, n) => s + n, 0);
+  // Ordre fixé avant la répartition : le plus près d'être terminé d'abord, puis l'ordre de la liste.
+  const ordre = [...pourObjectifs, ...pourJoueur].map((d, i) => ({ d, i, t: total(d) })).sort((a, b) => a.t - b.t || a.i - b.i).map(x => x.d);
+  for (const [id, quantite] of Object.entries(saisis)) {
+    let reste = quantite;
+    for (const d of ordre) {
+      if (reste <= 0) break;
+      const pris = Math.min(reste, d.manque[id] ?? 0);
+      if (pris <= 0) continue;
+      d.manque[id] -= pris;
+      reste -= pris;
+      if (d.cle === null) trouves[id] = (trouves[id] ?? 0) + pris;
+      else { apports[d.cle] = apports[d.cle] || {}; apports[d.cle][id] = (apports[d.cle][id] ?? 0) + pris; }
+    }
+  }
+  return { apports, trouves };
 }
-// Butin rapporté (ou retiré) : ajouté à la réserve et décompté de ce qu'on cherche.
-function rapporter(id, d) { const avant = possede(id); changerQte(id, d); compterTrouves(id, possede(id) - avant); }
-// Un objet des objectifs quitte la liste quand il est complet : il compte comme atteint.
-function bilanRaid(avant, apres) {
+
+// ---- Objectifs terminés d'eux-mêmes (SuiviProgression.terminerLesComplets) : tout a été rapporté, et c'est
+// la prochaine chose à faire (prochain niveau, quête disponible, prochaine étape) ----
+function atteignable(o) {
+  if (o.type === "etabli") { const e = etablis.get(o.id); return !!e && prochainNiveau(e)?.niveau === o.niveau; }
+  if (o.type === "projet") { const p = projets.get(o.id); return !!p && prochaineEtape(p) === o.etape; }
+  const q = quetes.get(o.id), t = new Set(M.terminees);
+  return !!q && !t.has(q.id) && q.requiert.every(r => t.has(r));
+}
+function terminerObjectif(o) {
+  if (o.type === "etabli") { const e = etablis.get(o.id); if (e) M.niveaux[o.id] = Math.max(niveau(e), o.niveau); }
+  else if (o.type === "projet") { const p = projets.get(o.id); if (p) M.etapesProjets[o.id] = Math.min(Math.max(M.etapesProjets[o.id] ?? 0, o.etape + 1), p.etapes.length); }
+  else M.terminees = [...new Set([...M.terminees, ...precedentes(o.id), o.id])];
+}
+function terminerLesComplets() {
+  const termines = [];
+  for (;;) {
+    const suivant = [...objectifsAuto(), ...M.manuels].find(o => !termines.some(x => cleObjectif(x) === cleObjectif(o)) && atteignable(o) && complet(o));
+    if (!suivant) break;
+    terminerObjectif(suivant);
+    termines.push(suivant);
+  }
+  if (termines.length) { for (const o of termines) delete M.apports[cleObjectif(o)]; retirerAtteints(); }
+  return termines;
+}
+
+// ---- Retour de raid (core/RetourDeRaid.kt) : le seul endroit où l'on note des objets ----
+function noter(id, d) {
+  const R = S.raid;
+  if (!R) return;
+  const max = R.liste.find(x => x.id === id)?.reste ?? 0, n = Math.min(Math.max((R.saisis[id] ?? 0) + d, 0), max);
+  if (n) R.saisis[id] = n; else delete R.saisis[id];
+  const r = repartir(objectifs(), M.raid || {}, R.avant, R.saisis);
+  M.apports = r.apports;
+  M.raidTrouves = r.trouves;
+}
+function bilanRaid(avant, apres, termines) {
   const maintenant = new Map(apres.map(x => [x.id, x]));
-  const atteints = avant.filter(a => !a.trouve).map(a => maintenant.get(a.id) ?? etatATrouver({ ...a, trouves: Math.max(possede(a.id), a.voulu) })).filter(x => x.trouve);
-  return { atteints, termine: avant.some(a => !a.trouve) && apres.every(x => x.trouve) };
+  const atteints = avant.filter(a => !a.trouve).map(a => maintenant.get(a.id) ?? etatATrouver({ ...a, trouves: a.voulu })).filter(x => x.trouve);
+  return { atteints, termines, termine: avant.some(a => !a.trouve) && apres.every(x => x.trouve) };
 }
-// Retour de raid quitté (Valider, retour, autre onglet) : bilan pour l'animation, puis les objets ajoutés
-// à la main et trouvés quittent la liste.
+// Retour de raid quitté (Valider, retour, autre onglet) : ce qui est complet se termine, les objets ajoutés à
+// la main et trouvés quittent la liste, et l'animation montre le bilan ; « Annuler » remet tout comme avant.
 function validerRetour() {
   const R = S.raid;
   if (!R) return;
   S.raid = null;
-  const bilan = bilanRaid(R.liste, aTrouver());
-  M.raid = M.raid || {}; M.raidTrouves = M.raidTrouves || {};
+  const notes = Object.values(R.saisis).reduce((s, n) => s + n, 0);
+  const avant = JSON.stringify({ ...M, apports: R.avant.apports, raidTrouves: R.avant.trouves });
+  const apres = listeDuRaid(), termines = terminerLesComplets();
+  M.raid = M.raid || {};
+  M.raidTrouves = M.raidTrouves || {};
   for (const [id, voulu] of Object.entries(M.raid)) if ((M.raidTrouves[id] ?? 0) >= voulu) delete M.raid[id];
   for (const id of Object.keys(M.raidTrouves)) if (!(id in M.raid)) delete M.raidTrouves[id];
-  if (bilan.atteints.length) S.celebration = bilan;
+  const bilan = bilanRaid(R.liste, apres, termines);
+  if (bilan.atteints.length || termines.length) S.celebration = bilan;
+  if (notes || termines.length) montrerValidation({ titre: "Retour de raid", avant, objetsNotes: notes, termines });
   enregistrer();
 }
 
@@ -295,13 +364,14 @@ function resumeUsages(u) {
 // Verdict (core/Verdict.kt) : un objet voulu (objectifs ou liste de raid) ou utile n'est jamais proposé à la vente.
 function meilleureSortie(o) { return !o?.recyclage.length ? "VENDRE" : valeurRecyclage(o) > o.valeur ? "RECYCLER" : "VENDRE"; }
 function verdict(id, objs = objectifs()) {
-  const pour = besoinsPourObjet(id, objs), besoin = pour.reduce((s, b) => s + b.quantite, 0), p = possede(id), voulu = M.raid?.[id];
-  if (besoin > p) return { type: "garder", manquant: besoin - p, besoin, pour };
+  const pour = besoinsPourObjet(id, objs), besoin = pour.reduce((s, b) => s + b.quantite, 0), manque = pour.reduce((s, b) => s + b.manque, 0), voulu = M.raid?.[id];
+  if (manque > 0) return { type: "garder", manquant: manque, besoin, pour };
   if (voulu != null) return { type: "cherche", voulu, trouves: M.raidTrouves?.[id] ?? 0 };
-  if (besoin > 0) return { type: "suffisant", surplus: p - besoin, besoin, pour };
+  if (besoin > 0) return { type: "suffisant", besoin, pour };
   const u = usages(id), sortie = meilleureSortie(objets.get(id));
   return u.aucun ? { type: "inutile", sortie } : { type: "utile", usages: u, sortie };
 }
+
 
 // ---- Icônes officielles des objets (chargées à part : icones.json) ----
 let icones = null;
@@ -323,8 +393,9 @@ const S = { onglet: "ACCUEIL", ecran: null, recherche: "", rechercheRaid: "", re
 // ---- Écrans ----
 const bandeau = (texte, c) => `<span class="bandeau" style="--c:var(${c})">${echap(texte)}</span>`;
 const retour = (texte, c) => `<div class="ligne"><button class="retour" data-action="fermer" aria-label="Retour"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg></button>${bandeau(texte, c)}</div>`;
-const compteur = id => `<div class="compteur"><button class="rond" data-action="qte" data-id="${id}" data-d="-1" ${possede(id) ? "" : "disabled"} aria-label="En retirer un${NB}: ${echap(nomObjet(id))}">−</button><b>${possede(id)}</b><button class="rond plein" data-action="qte" data-id="${id}" data-d="1" aria-label="Ajouter un ${echap(nomObjet(id))}">+</button></div>`;
 const detailCout = cout => cout.map(q => `${q.quantite} × ${echap(nomObjet(q.id))}`).join(" · ");
+// Ce que demande l'objectif, avec ce qui a déjà été rapporté : « Composants plastiques 20/50 · Alliage ARC 6/6 ».
+const detailAvancement = o => besoins(o).map(q => `${echap(nomObjet(q.id))} ${Math.min(apporteDe(o, q.id), q.quantite)}/${q.quantite}`).join(" · ");
 
 function ecranAccueil() {
   const h = new Date().getHours();
@@ -376,7 +447,7 @@ function ecranObjets() {
   <p class="doux">${info}</p>
   <div id="liste-objets" style="display:flex;flex-direction:column;gap:8px">${r.map(o => `<button class="carte ligne" style="padding:10px 12px" data-action="fiche" data-id="${o.id}">${icone(o.id, 48)}
     <span class="flex"><span class="nom">${echap(o.nom)}</span><br><span class="petit doux">${echap([RARETES[o.rarete]?.[0], o.categorie].filter(Boolean).join(" · "))}</span></span>
-    <span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${puceVerdict(verdict(o.id, objs))}${possede(o.id) ? `<b style="color:var(--or);font-family:var(--titre)">× ${possede(o.id)}</b>` : ""}</span></button>`).join("")}</div>`;
+    <span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${puceVerdict(verdict(o.id, objs))}</span></button>`).join("")}</div>`;
 }
 
 // Fiche d'un objet, dans l'ordre où le joueur se pose les questions : verdict, à quoi il sert, où le trouver, ce qu'il rapporte.
@@ -384,9 +455,9 @@ function ecranFiche(id) {
   const o = objets.get(id), v = verdict(id), vr = valeurRecyclage(o), rar = RARETES[o.rarete], voulu = M.raid?.[id];
   const sortie = s => s === "RECYCLER" ? `recycle-le${NB}: ses matériaux valent ${vr} pièces, plus que l'objet (${o.valeur}).`
     : !o.recyclage.length ? `vends-le${NB}: il vaut ${o.valeur} pièces et ne se recycle pas.` : `vends-le${NB}: il vaut ${o.valeur} pièces, plus que ses matériaux (${vr}).`;
-  const c = v.type === "garder" ? { titre: "Garde-le", texte: `Il t'en manque ${v.manquant} pour tes objectifs.`, fond: "--or", pour: v.pour }
+  const c = v.type === "garder" ? { titre: "Garde-le", texte: `Il en faut encore ${v.manquant} pour tes objectifs.`, fond: "--or", pour: v.pour }
     : v.type === "cherche" ? { titre: "Garde-le", texte: v.trouves < v.voulu ? `Tu le cherches pour ton raid${NB}: encore ${v.voulu - v.trouves} à trouver.` : `Tu le cherchais pour ton raid${NB}: tu en as trouvé assez.`, fond: "--or" }
-    : v.type === "suffisant" ? { titre: "Tu en as assez", texte: v.surplus === 0 ? "Pile ce qu'il faut pour tes objectifs." : `Tes objectifs sont couverts, avec ${v.surplus} en plus.`, fond: "--vert", pour: v.pour }
+    : v.type === "suffisant" ? { titre: "Tu en as assez", texte: "Tu as déjà rapporté tout ce qu'il en faut pour tes objectifs en cours.", fond: "--vert", pour: v.pour }
     : v.type === "utile" ? { titre: "Il peut servir", texte: `Aucun de tes objectifs n'en demande, mais il sert${NB}: ${resumeUsages(v.usages).join(", ")}. Le détail est plus bas.`, fond: "--cyan", note: `Si tu n'en as pas l'usage, ${sortie(v.sortie)}` }
     : { titre: v.sortie === "VENDRE" ? "Vends-le" : "Recycle-le", texte: `Il ne sert à rien d'autre dans le jeu${NB}: ${sortie(v.sortie)}`, fond: "--releve" };
   return `${retour("Objet", "--or")}
@@ -394,9 +465,8 @@ function ecranFiche(id) {
     <h3>${echap(o.nom)}</h3>${rar ? `<span class="puce" style="--r:var(${rar[1]});align-self:flex-start"><i></i>${rar[0]}</span>` : ""}
     ${o.categorie ? `<span class="puce doux" style="align-self:flex-start">${echap(o.categorie)}</span>` : ""}</div></div>
   <div class="verdict ${c.fond === "--releve" ? "neutre" : ""}" style="--v:var(${c.fond})"><small>VERDICT</small><h3>${c.titre}</h3><b>${c.texte}</b>
-    ${c.pour?.length ? `<hr>${c.pour.map(b => `<div class="ligne"><b class="flex">${echap(b.libelle)}</b><b>× ${b.quantite}</b></div>`).join("")}` : ""}
+    ${c.pour?.length ? `<hr>${c.pour.map(b => `<div class="ligne"><b class="flex">${echap(b.libelle)}</b><b>${Math.min(b.apporte, b.quantite)}/${b.quantite}</b></div>`).join("")}` : ""}
     ${c.note ? `<span class="petit">${c.note}</span>` : ""}</div>
-  <div class="ligne"><span class="flex" style="font:600 14px var(--titre)">Dans ta réserve</span>${compteur(id)}</div>
   ${v.type === "garder" ? "" : voulu == null ? `<button class="lien" style="--c:var(--rouge);align-self:flex-start;padding-left:0" data-action="raid-ajouter" data-id="${id}">Le chercher au prochain raid</button>`
     : `<div class="ligne"><span class="flex" style="font:600 14px var(--titre)">À trouver au prochain raid</span><div class="compteur"><button class="rond" data-action="raid-voulu" data-id="${id}" data-d="-1" aria-label="En chercher un de moins${NB}: ${echap(o.nom)}">−</button><b>${voulu}</b><button class="rond plein" data-action="raid-voulu" data-id="${id}" data-d="1" aria-label="En chercher un de plus${NB}: ${echap(o.nom)}">+</button></div></div>`}
   ${sectionUsages(usages(id))}
@@ -571,7 +641,7 @@ function ecranObjectifs() {
   const l = listeDeCourses(), objs = objectifs(), suivis = M.suivis || [], enCours = quetesEnCours().sort((a, b) => (!a.objets.length) - (!b.objets.length) || a.nom.localeCompare(b.nom));
   const auto = new Set(objectifsAuto().map(cleObjectif)), autres = M.manuels.filter(o => !auto.has(cleObjectif(o)));
   return `${bandeau("Objectifs", "--vert")}<h2>Objectifs</h2>
-  <p class="doux" style="margin:0">Choisis ce que tu veux faire avancer. Quand c'est fait en jeu, valide-le d'un geste${NB}: ce que le jeu a pris est retiré de ta réserve et la suite s'ajoute toute seule.</p>
+  <p class="doux" style="margin:0">Choisis ce que tu veux faire avancer. Ce que tu rapportes de raid s'y ajoute, et tout ce qui est complet se termine tout seul. Fait autrement en jeu${NB}? Valide-le d'un geste.</p>
   ${objs.length ? `<button class="carte" data-action="onglet" data-onglet="RAID" style="display:flex;flex-direction:column;gap:8px;padding:16px">
     <span class="ligne"><b class="flex" style="font:600 14px var(--titre)">${pluriel(objs.length, "objectif suivi", "objectifs suivis")} · ${pluriel(l.lignes.filter(x => !x.complet).length, "objet", "objets")} à trouver</b><b style="font:700 14px var(--titre);color:var(--rouge)">Raid ›</b></span>
     <span class="barre" style="height:8px;--c:var(--vert)"><i style="width:${l.progression * 100}%"></i></span></button>` : ""}
@@ -582,20 +652,20 @@ function ecranObjectifs() {
   ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveau(e), p = prochainNiveau(e), suivi = (M.suivis || []).includes(e.id); return `<div class="carte" style="display:flex;flex-direction:column;gap:4px">
     <div class="ligne"><div class="flex"><span class="nom">${echap(e.nom)}</span><br><span class="petit" style="color:var(${p ? "--texte-doux" : "--vert"});font-weight:600">Niveau ${n} sur ${niveauMax(e)}</span></div>
     <button class="rond" data-action="niveau-moins" data-id="${e.id}" ${n > niveauDepart(e) ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(e.nom)} un niveau plus bas">−</button>
-    <button class="rond" data-action="niveau-plus" data-id="${e.id}" ${p ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(e.nom)} un niveau plus haut, sans toucher à la réserve">+</button></div>
-    ${p ? `<span class="petit" style="color:var(${suivi ? "--texte-doux" : "--texte-discret"})">Niveau ${p.niveau}${NB}: ${detailCout(p.cout)}</span>
+    <button class="rond" data-action="niveau-plus" data-id="${e.id}" ${p ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(e.nom)} un niveau plus haut">+</button></div>
+    ${p ? `<span class="petit" style="color:var(${suivi ? "--texte-doux" : "--texte-discret"})">Niveau ${p.niveau}${NB}: ${detailAvancement({ type: "etabli", id: e.id, niveau: p.niveau })}</span>
     <div class="ligne"><button class="valider" data-action="valider-etabli" data-id="${e.id}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Niveau ${p.niveau} construit</button><span class="flex"></span><button class="lien petit" style="--c:var(${suivi ? "--texte-discret" : "--vert"})" data-action="suivre" data-id="${e.id}">${suivi ? "Ne pas suivre" : "Suivre"}</button></div>` : `<span class="petit discret">Niveau maximum atteint.</span>`}</div>`; }).join("")}
   ${M.quetesIndiquees ? `<div class="ligne" style="margin-top:8px"><h4 class="flex" style="margin:0">Quêtes en cours</h4><button class="lien" style="--c:var(--vert)" data-action="quetes">Modifier</button></div>
-  ${enCours.length ? enCours.map(q => `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="nom">${echap(q.nom)}</span>${q.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}${q.objets.length ? `<span class="petit" style="color:var(--or)">${detailCout(q.objets)}</span>` : ""}
+  ${enCours.length ? enCours.map(q => `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="nom">${echap(q.nom)}</span>${q.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}${q.objets.length ? `<span class="petit" style="color:var(--or)">${detailAvancement({ type: "quete", id: q.id })}</span>` : ""}
     <button class="valider" data-action="valider-quete" data-id="${q.id}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Terminée</button></div>`).join("") : `<p class="petit discret">Aucune quête en cours.</p>`}` : ""}
   <h4>Projets</h4><p class="petit doux" style="margin:0">Expéditions et projets de saison${NB}: suis ceux que tu fais, leur prochaine étape s'ajoute à ce qu'il te faut.</p>
   ${(D.projets || []).map(p => { const suivi = (M.projetsSuivis || []).includes(p.id), e = prochaineEtape(p), faites = M.etapesProjets[p.id] ?? 0, et = e != null ? p.etapes[e] : null; return `<div class="carte" style="display:flex;flex-direction:column;gap:6px">
     <div class="ligne"><div class="flex"><span class="nom">${echap(p.nom)}</span><br><span class="petit" style="font-weight:600;color:var(${e == null ? "--vert" : "--texte-doux"})">${e == null ? "Projet terminé" : `Étape ${e + 1} sur ${p.etapes.length}${NB}: ${echap(nomEtape(p, e))}`}</span></div>
     ${suivi ? `<button class="rond" data-action="etape-moins" data-id="${p.id}" ${faites ? "" : "disabled"} aria-label="Corriger${NB}: ${echap(p.nom)} une étape en arrière">−</button>` : ""}</div>
-    ${suivi && et ? `${et.cout.length ? `<span class="petit" style="color:var(--or)">${detailCout(et.cout)}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}
+    ${suivi && et ? `${et.cout.length ? `<span class="petit" style="color:var(--or)">${detailAvancement({ type: "projet", id: p.id, etape: e })}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}
     <div class="ligne">${suivi && et ? `<button class="valider" data-action="valider-etape" data-id="${p.id}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Étape terminée</button>` : ""}<span class="flex"></span><button class="lien petit" style="--c:var(${suivi ? "--texte-discret" : "--vert"})" data-action="suivre-projet" data-id="${p.id}">${suivi ? "Ne pas suivre" : "Suivre"}</button></div></div>`; }).join("")}
   <h4>Autres objectifs</h4>
-  ${autres.map(o => `<div class="carte ligne"><span class="nom flex">${echap(libelle(o))}</span><button class="retour" data-action="retirer-objectif" data-cle="${cleObjectif(o)}" aria-label="Ne plus suivre${NB}: ${echap(libelle(o))}">✕</button></div>`).join("")}
+  ${autres.map(o => `<div class="carte ligne"><span class="flex"><span class="nom">${echap(libelle(o))}</span><br><span class="petit" style="color:var(${complet(o) ? "--vert" : "--texte-doux"})">${complet(o) ? `Tout est rapporté${NB}: il se terminera à son tour.` : detailAvancement(o)}</span></span><button class="retour" data-action="retirer-objectif" data-cle="${cleObjectif(o)}" aria-label="Ne plus suivre${NB}: ${echap(libelle(o))}">✕</button></div>`).join("")}
   <button class="lien" style="--c:var(--vert);align-self:flex-start" data-action="ajout">+ Ajouter un objectif plus lointain</button>`;
 }
 
@@ -623,32 +693,28 @@ function ecranAjout() {
 }
 
 function ecranRaid() {
-  const R = S.raid, depart = new Map(R.liste.filter(x => !x.trouve).map(x => [x.id, x]));
-  const ids = S.rechercheRaid.trim() ? rechercher(S.rechercheRaid, 50).map(o => o.id) : [...depart.keys()];
-  const actuels = new Map(aTrouver().map(x => [x.id, x]));
-  const etat = id => actuels.get(id) ?? (depart.has(id) ? etatATrouver({ ...depart.get(id), trouves: Math.max(possede(id), depart.get(id).voulu) }) : null);
-  const trouves = [...depart.keys()].filter(id => etat(id)?.trouve).length;
-  const ajoutes = Object.entries(M.reserve).reduce((s, [id, n]) => s + Math.max(0, n - (R.avant[id] ?? 0)), 0);
-  const change = JSON.stringify(M.reserve) !== JSON.stringify(R.avant) || JSON.stringify(M.raidTrouves || {}) !== JSON.stringify(R.trouves);
+  const R = S.raid, depart = R.liste.filter(x => !x.trouve), actuels = new Map(listeDuRaid().map(x => [x.id, x]));
+  const trouves = depart.filter(a => actuels.get(a.id)?.trouve !== false).length, notes = Object.values(R.saisis).reduce((s, n) => s + n, 0);
   return `${retour("Raid", "--rouge")}<h3>Retour de raid</h3>
-  <p class="doux" style="margin:0">Ajoute ce que tu rapportes${NB}: ce que tu cherches est en tête et se décompte. Valide à la fin pour voir ce que tu as trouvé.</p>
-  <label class="recherche"><svg class="ic" viewBox="0 0 24 24" style="color:var(--or)"><path d="${ONGLETS[1][3]}"/></svg><input id="recherche-raid" type="search" placeholder="Chercher un autre objet…" value="${echap(S.rechercheRaid)}" data-champ="rechercheRaid" autocomplete="off"></label>
-  <div class="ligne"><span class="flex">${depart.size ? `<b style="font:600 14px var(--titre);color:var(${trouves ? "--vert" : "--texte-doux"})">${trouves} sur ${depart.size} trouvé${trouves > 1 ? "s" : ""}</b><br>` : ""}<span class="petit" style="color:var(${ajoutes ? "--or" : "--texte-doux"})">${ajoutes ? `${pluriel(ajoutes, "objet ajouté", "objets ajoutés")} à ta réserve.` : "Rien d'ajouté pour l'instant."}</span></span>
-    ${change ? `<button class="lien" style="--c:var(--texte-doux)" data-action="annuler-raid">Annuler</button>` : ""}<button class="bouton" data-action="valider-retour">Valider</button></div>
-  ${!S.rechercheRaid.trim() && !ids.length ? `<p class="doux">Rien à trouver pour l'instant${NB}: cherche les objets rapportés.</p>` : ""}
-  ${ids.map(id => ligneSaisie(id, etat(id), possede(id) - (R.avant[id] ?? 0))).join("")}`;
+  <p class="doux" style="margin:0">Note ce que tu as rapporté${NB}: chaque objet va aux objectifs qui en ont besoin. À la validation, tout ce qui est complet se termine tout seul.</p>
+  <div class="ligne"><span class="flex">${depart.length ? `<b style="font:600 14px var(--titre);color:var(${trouves ? "--vert" : "--texte-doux"})">${trouves} sur ${depart.length} trouvé${trouves > 1 ? "s" : ""}</b><br>` : ""}<span class="petit" style="color:var(${notes ? "--or" : "--texte-doux"})">${notes ? `${pluriel(notes, "objet noté", "objets notés")}.` : "Rien de noté pour l'instant."}</span></span>
+    ${notes ? `<button class="lien" style="--c:var(--texte-doux)" data-action="annuler-raid">Annuler</button>` : ""}<button class="bouton" data-action="valider-retour">Valider</button></div>
+  ${!depart.length ? `<p class="doux">Rien à trouver pour l'instant${NB}: suis un objectif ou ajoute un objet à chercher dans l'onglet Raid.</p>` : ""}
+  ${depart.map(a => ligneSaisie(actuels.get(a.id) ?? a, R.saisis[a.id] ?? 0)).join("")}`;
 }
 
-// Un objet rapporté : son décompte s'il est cherché, sinon ce qu'il y a en réserve (LigneSaisie, EcranRetourRaid.kt).
-function ligneSaisie(id, c, ecart) {
-  const nom = echap(nomObjet(id));
-  const detail = !c ? `${possede(id)} en réserve` : c.trouve ? `Trouvé${NB}! ${c.voulu}/${c.voulu}` : `Encore ${c.reste} à trouver · ${c.trouves}/${c.voulu}`;
+// Un objet à rapporter : son décompte, pour quoi il est demandé, et ce qui a été noté (LigneSaisie, EcranRetourRaid.kt).
+function ligneSaisie(a, note) {
+  const nom = echap(nomObjet(a.id));
+  const detail = a.trouve ? `Trouvé${NB}! ${a.voulu}/${a.voulu}` : `Encore ${a.reste} à trouver · ${a.trouves}/${a.voulu}`;
   return `<div class="carte" style="display:flex;flex-direction:column;gap:8px;padding:10px">
-    <div class="ligne">${icone(id, 52)}<div class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${c?.trouve ? "--vert" : ecart > 0 ? "--or" : "--texte-doux"})">${detail}${ecart ? `  (${ecart > 0 ? "+" : ""}${ecart})` : ""}</span></div>${c?.trouve ? `<span role="img" aria-label="Trouvé" style="color:var(--vert);font:700 24px var(--titre);padding-right:6px">✓</span>` : ""}</div>
-    <div class="ligne" style="justify-content:flex-end;gap:8px"><button class="rond" style="width:48px;height:48px;background:var(--releve)" data-action="rapporter" data-id="${id}" data-d="-1" ${possede(id) ? "" : "disabled"} aria-label="En retirer un${NB}: ${nom}">−</button>
-    <button class="rond" style="width:48px;height:48px;background:var(--releve);color:var(--or);font-size:16px" data-action="rapporter" data-id="${id}" data-d="5" aria-label="En ajouter cinq${NB}: ${nom}">+5</button>
-    <button class="rond plein" style="width:72px;height:48px;border-radius:24px" data-action="rapporter" data-id="${id}" data-d="1" aria-label="En ajouter un${NB}: ${nom}">+1</button></div></div>`;
+    <div class="ligne">${icone(a.id, 52)}<div class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : note ? "--or" : "--texte-doux"})">${detail}${note ? `  (+${note})` : ""}</span><br><span class="petit discret">${echap(pourQui(a))}</span></div>${a.trouve ? `<span role="img" aria-label="Trouvé" style="color:var(--vert);font:700 24px var(--titre);padding-right:6px">✓</span>` : ""}</div>
+    <div class="ligne" style="justify-content:flex-end;gap:8px"><button class="rond" style="width:48px;height:48px;background:var(--releve)" data-action="noter" data-id="${a.id}" data-d="-1" ${note ? "" : "disabled"} aria-label="En retirer un${NB}: ${nom}">−</button>
+    <button class="rond" style="width:48px;height:48px;background:var(--releve);color:var(--or);font-size:16px" data-action="noter" data-id="${a.id}" data-d="5" ${a.trouve ? "disabled" : ""} aria-label="En ajouter cinq${NB}: ${nom}">+5</button>
+    <button class="rond plein" style="width:72px;height:48px;border-radius:24px" data-action="noter" data-id="${a.id}" data-d="1" ${a.trouve ? "disabled" : ""} aria-label="En ajouter un${NB}: ${nom}">+1</button></div></div>`;
 }
+
+
 
 // ---- Où aller pour trouver ce qui manque (PreparationRaid.kt) ----
 function conseilRaid(ids) {
@@ -725,7 +791,7 @@ function ecranOngletRaid() {
 function ligneATrouver(a) {
   const nom = echap(nomObjet(a.id));
   return `<div class="carte ligne" style="padding:8px 4px 8px 10px;gap:10px"><button class="ligne flex" style="text-align:left;gap:10px" data-action="fiche" data-id="${a.id}">${icone(a.id, 40)}
-    <span class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : "--texte-doux"})">${a.trouves}/${a.voulu} · ${echap(a.ajoute ? "ajouté par toi" : a.pour.map(b => b.libelle).join(" · "))}</span></span></button>
+    <span class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : "--texte-doux"})">${a.trouves}/${a.voulu} · ${echap(pourQui(a))}</span></span></button>
     ${a.trouve ? `<span role="img" aria-label="Trouvé" style="color:var(--vert);font:700 22px var(--titre);padding:0 10px">✓</span>`
       : `<span class="reste"><b>${a.reste}</b><small>à trouver</small></span>`}
     ${a.ajoute ? `<button class="retour" data-action="raid-retirer" data-id="${a.id}" aria-label="Ne plus chercher${NB}: ${nom}">✕</button>` : ""}</div>`;
@@ -744,7 +810,7 @@ function ecranReglages() {
   return `${retour("Réglages", "--texte")}<h3>Réglages</h3>
   <div class="note-apercu doux">Ceci est l'<b>aperçu web</b> du Carnet du Raider, tenu à jour avec l'appli Android. Les mises à jour intégrées, le calendrier en direct et les alertes ne fonctionnent que dans l'appli Android.</div>
   <h4>Tes données dans l'aperçu</h4>
-  <p class="petit doux" style="margin:0">${stockage === "compte" ? "Ta réserve et ta progression sont gardées avec ton compte claude.ai, visibles de toi seul." : "Ta réserve et ta progression sont gardées dans ce navigateur."} Elles sont séparées de celles de l'appli sur ton téléphone.</p>
+  <p class="petit doux" style="margin:0">${stockage === "compte" ? "Ta progression et ce que tu as rapporté sont gardés avec ton compte claude.ai, visibles de toi seul." : "Ta progression et ce que tu as rapporté sont gardés dans ce navigateur."} Elles sont séparées de celles de l'appli sur ton téléphone.</p>
   <button class="lien" style="--c:var(--rouge);align-self:flex-start;padding-left:0" data-action="effacer">Effacer mes données de l'aperçu</button>
   <h4>Sauvegarde</h4>
   <p class="petit doux" style="margin:0">Dans l'appli Android, tes données sont sauvegardées automatiquement dans un fichier chiffré avec ton mot de passe, rangé où tu veux (Google Drive pour les retrouver sur un autre téléphone). Propre à l'appli Android.</p>
@@ -766,36 +832,56 @@ const GERBE = (() => {
 function celebration() {
   const b = S.celebration;
   if (!b) return "";
-  const restants = aTrouver().filter(x => !x.trouve).length, montres = b.atteints.slice(0, 6);
+  const restants = aTrouver().length, objectifsMontres = b.termines.slice(0, 3), montres = b.atteints.slice(0, 5);
+  const autres = b.termines.length - objectifsMontres.length + b.atteints.length - montres.length;
+  const nomTitre = b.termine ? "Raid terminé" : b.termines.length ? (b.termines.length > 1 ? "Objectifs terminés" : "Objectif terminé") : "Objets trouvés";
   const titre = b.termine
     ? `<svg class="pop" width="70" height="40" viewBox="0 0 35 20" aria-hidden="true"><path d="M0 20h5l7.2-20h-5z" fill="#3CC4D8"/><path d="M7.5 20h5l7.2-20h-5z" fill="#6CCB5F"/><path d="M15 20h5l7.2-20h-5z" fill="#F2B233"/><path d="M22.5 20h5l7.2-20h-5z" fill="#F0544A"/></svg>
       <h2 class="pop">Raid terminé</h2><p class="sous" style="color:var(--vert)">Objets trouvés${NB}!</p>`
+    : b.termines.length ? `<h2 class="pop" style="color:var(--vert)">${nomTitre}</h2><p class="sous doux">Tout est rapporté. La suite s'ajoute à tes objectifs.</p>`
     : `<h2 class="pop" style="color:var(--vert)">Objets trouvés</h2><p class="sous doux">${restants ? `Encore ${pluriel(restants, "objet", "objets")} à trouver.` : "Tout est trouvé."}</p>`;
-  return `<div class="celebration" data-action="fin-celebration" role="dialog" aria-modal="true" aria-label="${b.termine ? "Raid terminé" : "Objets trouvés"}" tabindex="-1">
+  // Les objectifs terminés d'abord, puis les objets qui ont atteint leur nombre, chacun après le précédent.
+  const lignes = [
+    ...objectifsMontres.map(o => `<span style="color:var(--vert);font:700 30px var(--titre);flex:none;width:44px;text-align:center">✓</span>
+      <span class="flex"><span class="nom">${echap(libelle(o))}</span><br><span class="petit" style="color:var(--vert);font-weight:600">Tout est rapporté</span></span>`),
+    ...montres.map(a => `<span class="coche-icone">${icone(a.id, 44)}<i>✓</i></span>
+      <span class="flex"><span class="nom">${echap(nomObjet(a.id))}</span><br><span class="petit doux">${Math.min(a.trouves, a.voulu)}/${a.voulu} · ${echap(pourQui(a))}</span></span>`),
+  ].map((contenu, i) => `<div class="carte ligne atteint" style="animation-delay:${350 + i * 150}ms">${contenu}</div>`);
+  return `<div class="celebration" data-action="fin-celebration" role="dialog" aria-modal="true" aria-label="${nomTitre}" tabindex="-1">
     ${b.termine ? `<div class="gerbe" aria-hidden="true">${GERBE}</div>` : ""}
     <div class="celebration-in" aria-live="polite">${titre}
-      <div class="atteints">${montres.map((a, i) => `<div class="carte ligne atteint" style="animation-delay:${350 + i * 150}ms"><span class="coche-icone">${icone(a.id, 44)}<i>✓</i></span>
-        <span class="flex"><span class="nom">${echap(nomObjet(a.id))}</span><br><span class="petit doux">${Math.min(a.trouves, a.voulu)}/${a.voulu} · ${echap(a.ajoute ? `trouvé${a.trouves > 1 ? "s" : ""}` : a.pour.map(x => x.libelle).join(" · "))}</span></span></div>`).join("")}</div>
-      ${b.atteints.length > montres.length ? `<p class="petit doux" style="margin:0">Et ${pluriel(b.atteints.length - montres.length, "autre objet", "autres objets")}.</p>` : ""}
+      <div class="atteints">${lignes.join("")}</div>
+      ${autres > 0 ? `<p class="petit doux" style="margin:0">Et ${pluriel(autres, "autre", "autres")}.</p>` : ""}
       <p class="petit discret" style="margin:8px 0 0">Touche l'écran pour continuer</p>
     </div></div>`;
 }
 
-// ---- Validation en une touche, annulable (BandeauValidation) ----
+
+// ---- Validation en une touche, annulable (BandeauValidation, CarnetApp.kt) ----
 function bandeauValidation() {
   const v = S.validation;
-  if (!v) return "";
-  return `<div class="bandeau-validation" role="status"><div><div class="flex" style="min-width:0"><b style="font:600 14px var(--titre)">Validé${NB}: ${echap(v.titre)}</b><br><span class="petit doux">${v.retires ? `${pluriel(v.retires, "objet retiré", "objets retirés")} de ta réserve.` : "Réserve inchangée."}</span></div>
+  if (!v || S.celebration) return "";
+  const detail = v.objetsNotes ? `${pluriel(v.objetsNotes, "objet noté", "objets notés")}${v.termines.length ? `, ${pluriel(v.termines.length, "objectif terminé", "objectifs terminés")}` : ""}.`
+    : v.termines.length ? `Tout était rapporté aussi pour${NB}: ${v.termines.map(libelle).join(", ")}.` : "La suite s'ajoute à tes objectifs.";
+  return `<div class="bandeau-validation" role="status"><div><div class="flex" style="min-width:0"><b style="font:600 14px var(--titre)">Validé${NB}: ${echap(v.titre)}</b><br><span class="petit doux">${echap(detail)}</span></div>
   <button class="lien" data-action="annuler-validation">Annuler</button></div></div>`;
 }
 let minuterieValidation = null;
-function valider(titre, cout, avancer) {
-  const avant = JSON.stringify(M), retires = cout.reduce((s, q) => s + Math.min(possede(q.id), q.quantite), 0);
-  retirer(cout); avancer(); retirerAtteints();
-  S.validation = { titre, retires, avant };
+function montrerValidation(v) {
+  S.validation = { objetsNotes: 0, termines: [], ...v };
   clearTimeout(minuterieValidation);
   minuterieValidation = setTimeout(() => { S.validation = null; rendre(); }, 8000);
 }
+// Objectif fait en jeu (« C'est fait »), même sans tout avoir noté : la suite devient l'objectif, ce qui avait
+// été rapporté pour lui est oublié ; la suite peut être déjà complète et se terminer aussi.
+function valider(titre, o) {
+  const avant = JSON.stringify(M);
+  terminerObjectif(o);
+  delete M.apports[cleObjectif(o)];
+  retirerAtteints();
+  montrerValidation({ titre, avant, termines: terminerLesComplets() });
+}
+
 
 // ---- Rendu ----
 let celebrationAffichee = null;
@@ -821,17 +907,11 @@ function rendre() {
 function ouvrir(ecran) { S.ecran = ecran; rendre(); window.scrollTo(0, 0); }
 
 // ---- Actions ----
-function changerQte(id, d) {
-  const n = Math.min(Math.max(possede(id) + d, 0), 9999);
-  if (n) M.reserve[id] = n; else delete M.reserve[id];
-}
-function retirer(cout) { for (const q of cout) changerQte(q.id, -q.quantite); }
 function retirerAtteints() {
   const t = new Set(M.terminees);
   M.manuels = M.manuels.filter(o => o.type === "etabli" ? niveau(etablis.get(o.id)) < o.niveau
     : o.type === "projet" ? (M.etapesProjets[o.id] ?? 0) <= o.etape : !t.has(o.id));
 }
-function terminerQuete(id) { M.terminees = [...new Set([...M.terminees, ...precedentes(id), id])]; retirerAtteints(); }
 function objectifDepuisCle(cle) { const [t, id, n] = cle.split(":"); return t === "etabli" ? { type: "etabli", id, niveau: +n } : { type: "quete", id }; }
 
 document.addEventListener("click", ev => {
@@ -855,19 +935,18 @@ document.addEventListener("click", ev => {
     case "ajout": return ouvrir("ajout");
     case "raid":
       // État à l'ouverture (bilan, annulation) ; la liste est figée : un objet qui atteint son nombre ne disparaît pas sous le doigt.
-      S.raid = { avant: { ...M.reserve }, trouves: { ...(M.raidTrouves || {}) }, liste: aTrouver() };
+      S.raid = { avant: { apports: JSON.parse(JSON.stringify(M.apports || {})), trouves: { ...(M.raidTrouves || {}) } }, liste: listeDuRaid(), saisis: {} };
       S.rechercheRaid = ""; return ouvrir("raid");
-    case "qte": changerQte(id, +b.dataset.d); break;
-    case "rapporter": rapporter(id, +b.dataset.d); break;
-    case "annuler-raid": M.reserve = { ...S.raid.avant }; M.raidTrouves = { ...S.raid.trouves }; break;
+    case "noter": noter(id, +b.dataset.d); break;
+    case "annuler-raid": M.apports = JSON.parse(JSON.stringify(S.raid.avant.apports)); M.raidTrouves = { ...S.raid.avant.trouves }; S.raid.saisis = {}; break;
     case "valider-retour": S.ecran = null; break;
-    case "fin-celebration": S.celebration = null; rendre(); return;
+    case "fin-celebration": S.celebration = null; if (S.validation) montrerValidation(S.validation); rendre(); return;
     case "region": M.region = b.dataset.region; break;
     case "niveau-moins": { const e = etablis.get(id); M.niveaux[id] = Math.max(niveau(e) - 1, niveauDepart(e)); retirerAtteints(); break; }
     case "niveau-plus": { const e = etablis.get(id); M.niveaux[id] = Math.min(niveau(e) + 1, niveauMax(e)); retirerAtteints(); break; }
-    case "valider-etabli": { const e = etablis.get(id), p = prochainNiveau(e); valider(`${e.nom} · niveau ${p.niveau}`, p.cout, () => { M.niveaux[id] = p.niveau; }); break; }
-    case "valider-quete": { const q = quetes.get(id); valider(q.nom, q.objets, () => terminerQuete(id)); break; }
-    case "valider-etape": { const p = projets.get(id), e = prochaineEtape(p); valider(`${p.nom} · ${nomEtape(p, e)}`, p.etapes[e].cout, () => { M.etapesProjets[id] = e + 1; }); break; }
+    case "valider-etabli": { const e = etablis.get(id), p = prochainNiveau(e); valider(`${e.nom} · niveau ${p.niveau}`, { type: "etabli", id, niveau: p.niveau }); break; }
+    case "valider-quete": { const q = quetes.get(id); valider(q.nom, { type: "quete", id }); break; }
+    case "valider-etape": { const p = projets.get(id), e = prochaineEtape(p); valider(`${p.nom} · ${nomEtape(p, e)}`, { type: "projet", id, etape: e }); break; }
     case "etape-moins": M.etapesProjets[id] = Math.max((M.etapesProjets[id] ?? 0) - 1, 0); retirerAtteints(); break;
     case "suivre-projet": M.projetsSuivis = (M.projetsSuivis || []).includes(id) ? M.projetsSuivis.filter(x => x !== id) : [...(M.projetsSuivis || []), id]; break;
     case "annuler-validation": if (S.validation) { charger(S.validation.avant); S.validation = null; } break;
@@ -887,7 +966,7 @@ document.addEventListener("click", ev => {
     }
     case "ajouter-objectif": M.manuels.push(objectifDepuisCle(b.dataset.cle)); S.ecran = null; break;
     case "retirer-objectif": M.manuels = M.manuels.filter(o => cleObjectif(o) !== b.dataset.cle); break;
-    case "effacer": Object.assign(M, { reserve: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {}, raidTrouves: {} }); break;
+    case "effacer": Object.assign(M, { apports: {}, niveaux: {}, terminees: [], suivis: [], manuels: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], raid: {}, raidTrouves: {} }); break;
     default: return;
   }
   enregistrer();
@@ -914,7 +993,8 @@ function enregistrer() {
   clearTimeout(minuterie);
   minuterie = setTimeout(() => { ecriture = ecriture.then(() => docCompte.set({ etat: JSON.stringify(copie) })).catch(() => {}); }, 700);
 }
-function charger(texte) { try { Object.assign(M, JSON.parse(texte)); } catch (_) {} }
+// Plus de réserve : ce qu'une version précédente y avait noté est oublié, on repart de zéro.
+function charger(texte) { try { Object.assign(M, JSON.parse(texte)); } catch (_) {} delete M.reserve; M.apports = M.apports || {}; }
 try { const t = localStorage.getItem("carnet"); if (t) charger(t); } catch (_) {}
 rendre();
 

@@ -5,6 +5,13 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.9.0
+
+- **Plus de réserve à tenir** : l'appli ne te demande plus ce que tu as en stock. Tu notes seulement ce que tu rapportes, dans « Retour de raid ». Ta réserve d'avant est effacée : on repart de zéro.
+- **Retour de raid** : il ne montre que ce qu'il te faut. Chaque objet noté va directement à tes établis, quêtes, projets et à ta liste, en commençant par ce qui est le plus près d'être terminé, et s'additionne d'un raid à l'autre.
+- **Tout s'enlève quand c'est complet** : dès qu'un objectif a tout ce qu'il lui faut, il se termine tout seul à la validation et la suite apparaît (niveau suivant, quête suivante, étape suivante). « Annuler » remet tout comme avant.
+- **Objectifs** : chaque établi, quête et projet montre ce qui a déjà été rapporté (« Alliage ARC 4/6 »). « Niveau construit », « Terminée » et « Étape terminée » restent pour ce que tu as fini autrement.
+
 ## 0.8.0
 
 - **Plus simple** : cinq onglets, Accueil, Objets, Raid, Cartes et Objectifs. L'accueil te dit tout de suite sur quelle carte aller à ton prochain raid.
