@@ -1944,6 +1944,19 @@
    }
   },
   {
+   "id": "amplified_fragments",
+   "nom": "Amplified Fragments",
+   "rarete": "EPIQUE",
+   "categorie": "Matériau de la Surface",
+   "valeur": 500,
+   "pile": 50,
+   "recyclage": [],
+   "recuperation": [],
+   "lieux": [
+    "ARC"
+   ]
+  },
+  {
    "id": "ancient_fort_security_code",
    "nom": "Code de sécurité du Fort antique",
    "rarete": null,
@@ -4382,6 +4395,12 @@
       "objet": "voltage_converter",
       "quantite": 1,
       "donne": 10
+     },
+     {
+      "commercant": "Celeste",
+      "objet": "sheet_metal",
+      "quantite": 1,
+      "donne": 3
      },
      {
       "commercant": "Celeste",
@@ -48677,6 +48696,287 @@
    }
   },
   {
+   "id": "sheet_metal",
+   "nom": "Sheet Metal",
+   "rarete": "COMMUN",
+   "categorie": "Matériau de base",
+   "valeur": 100,
+   "pile": 50,
+   "recyclage": [],
+   "recuperation": [],
+   "lieux": [],
+   "description": "Sert à la fabrication.",
+   "utilisations": {
+    "recherches": [
+     "Design de Canapé de bureau robuste",
+     "Design de la Commode d'entrepôt",
+     "Design de la Table de la station météo"
+    ],
+    "avantPoste": [
+     "Armoire de laboratoire abîmée",
+     "Armoire de laboratoire abîmée (large)",
+     "Armoire de laboratoire bleue",
+     "Armoire de laboratoire robuste",
+     "Armoire de laboratoire robuste (large)",
+     "Bureau d'entrepôt",
+     "Canapé d'étude rouge",
+     "Canapé de bureau robuste",
+     "Canapé de laboratoire imprimé",
+     "Canapé géométrique multicolore",
+     "Canapé géométrique vert",
+     "Canapé vert de laboratoire",
+     "Chaise d'entrepôt",
+     "Chaise de bureau abîmée",
+     "Chaise de bureau robuste",
+     "Chaise de diner abîmée",
+     "Chaise de diner polie",
+     "Chaise de la station météo",
+     "Chaise de laboratoire abîmée",
+     "Chaise de laboratoire robuste",
+     "Chaise de sécurité",
+     "Chaise en tissu géométrique",
+     "Chaise en tissu imprimé",
+     "Chaise géométrique verte",
+     "Chaise verte unie",
+     "Commode d'entrepôt",
+     "Fauteuil d'étude",
+     "Garde-robe polie",
+     "Garde-robe robuste",
+     "Lampadaire",
+     "Lampadaire d'archives",
+     "Lampe de chambre",
+     "Lampe de travail",
+     "Lit de Raider abîmé",
+     "Lit de Raider robuste",
+     "Lustre",
+     "Meuble TV d'étude",
+     "Petite armoire de laboratoire",
+     "Placard de la faculté",
+     "Plafonnier d'étude",
+     "Plafonnier du bureau",
+     "Plafonnier du diner",
+     "Plafonnier du laboratoire",
+     "Plafonnier en verre",
+     "Râtelier d'armes abîmé",
+     "Râtelier d'armes poli",
+     "Râtelier d'armes robuste",
+     "Réserve abîmée",
+     "Réserve ornée",
+     "Réserve polie",
+     "Réserve robuste",
+     "Table de bar",
+     "Table de diner",
+     "Table de la cafétéria",
+     "Table de la faculté abîmée",
+     "Table de la faculté robuste",
+     "Table de la station météo",
+     "Table de volière robuste",
+     "Tabouret de bar",
+     "Tabouret de diner",
+     "Tabouret de laboratoire",
+     "Étagère abîmée",
+     "Étagère de chambre",
+     "Étagère robuste"
+    ]
+   },
+   "obtention": {
+    "cartes": [
+     {
+      "carte": "buried-city",
+      "indice": 100
+     },
+     {
+      "carte": "dam-battleground",
+      "indice": 85
+     },
+     {
+      "carte": "the-spaceport",
+      "indice": 80
+     },
+     {
+      "carte": "pendola-pass",
+      "indice": 76
+     },
+     {
+      "carte": "riven-tides",
+      "indice": 63
+     },
+     {
+      "carte": "stella-montis",
+      "indice": 55
+     },
+     {
+      "carte": "blue-gate",
+      "indice": 1
+     }
+    ],
+    "zones": [
+     {
+      "carte": "riven-tides",
+      "zone": "Hôtel Panorama Azzurro",
+      "indice": 100
+     },
+     {
+      "carte": "pendola-pass",
+      "zone": "Vieille ville",
+      "indice": 90
+     },
+     {
+      "carte": "dam-battleground",
+      "zone": "Crête de la victoire",
+      "indice": 65
+     },
+     {
+      "carte": "dam-battleground",
+      "zone": "Le Barrage",
+      "indice": 45
+     },
+     {
+      "carte": "the-spaceport",
+      "zone": "Plaines orientales",
+      "indice": 45
+     },
+     {
+      "carte": "pendola-pass",
+      "zone": "Piazza Mercato",
+      "indice": 43
+     },
+     {
+      "carte": "pendola-pass",
+      "zone": "Village d'Almatera",
+      "indice": 33
+     },
+     {
+      "carte": "stella-montis",
+      "zone": "Salle de contrôle",
+      "indice": 31
+     },
+     {
+      "carte": "the-spaceport",
+      "zone": "La Chiesa",
+      "indice": 30
+     },
+     {
+      "carte": "the-spaceport",
+      "zone": "Collines d'Alberi",
+      "indice": 28
+     },
+     {
+      "carte": "the-spaceport",
+      "zone": "Port spatial",
+      "indice": 28
+     },
+     {
+      "carte": "pendola-pass",
+      "zone": "Supermarché militaire",
+      "indice": 28
+     },
+     {
+      "carte": "stella-montis",
+      "zone": "Laboratoire de recherche médicale",
+      "indice": 25
+     },
+     {
+      "carte": "buried-city",
+      "zone": "Galleria",
+      "indice": 23
+     },
+     {
+      "carte": "buried-city",
+      "zone": "Ville enfouie",
+      "indice": 23
+     },
+     {
+      "carte": "dam-battleground",
+      "zone": "Collines de Formicai",
+      "indice": 23
+     },
+     {
+      "carte": "pendola-pass",
+      "zone": "Farmacia",
+      "indice": 23
+     },
+     {
+      "carte": "dam-battleground",
+      "zone": "Marécage",
+      "indice": 22
+     },
+     {
+      "carte": "dam-battleground",
+      "zone": "Immeuble résidentiel",
+      "indice": 22
+     },
+     {
+      "carte": "the-spaceport",
+      "zone": "Bâtiment annexe",
+      "indice": 22
+     },
+     {
+      "carte": "riven-tides",
+      "zone": "Camp de Raiders",
+      "indice": 22
+     },
+     {
+      "carte": "buried-city",
+      "zone": "Périphérie",
+      "indice": 20
+     },
+     {
+      "carte": "buried-city",
+      "zone": "Ruines du marché",
+      "indice": 18
+     },
+     {
+      "carte": "riven-tides",
+      "zone": "Complexe hôtelier",
+      "indice": 17
+     },
+     {
+      "carte": "riven-tides",
+      "zone": "Dunes est",
+      "indice": 17
+     },
+     {
+      "carte": "stella-montis",
+      "zone": "Archives culturelles",
+      "indice": 17
+     },
+     {
+      "carte": "buried-city",
+      "zone": "Résidences Santa Maria",
+      "indice": 15
+     },
+     {
+      "carte": "riven-tides",
+      "zone": "Bureau de la grue",
+      "indice": 15
+     },
+     {
+      "carte": "stella-montis",
+      "zone": "Couloir",
+      "indice": 14
+     },
+     {
+      "carte": "stella-montis",
+      "zone": "Intérieur (hall)",
+      "indice": 12
+     }
+    ],
+    "achats": [
+     {
+      "commercant": "Celeste",
+      "quantite": 1,
+      "objets": [
+       {
+        "id": "assorted_seeds",
+        "quantite": 3
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
    "id": "shield_recharger",
    "nom": "Chargeur de bouclier",
    "rarete": "INHABITUEL",
@@ -62627,7 +62927,6 @@
    "commercant": "Apollo",
    "histoire": true,
    "requiert": [
-    "blue_gate_content_unlock",
     "off_the_radar"
    ],
    "objets": []
@@ -62784,7 +63083,6 @@
    "commercant": "Tian Wen",
    "histoire": true,
    "requiert": [
-    "blue_gate_content_unlock",
     "celestes_journals",
     "eyes_in_the_sky",
     "the_majors_footlocker"
@@ -62843,19 +63141,6 @@
     {
      "id": "wires",
      "quantite": 1
-    }
-   ]
-  },
-  {
-   "id": "blue_gate_content_unlock",
-   "nom": "Déverrouillage de contenu du Portail bleu",
-   "commercant": null,
-   "histoire": true,
-   "requiert": [],
-   "objets": [
-    {
-     "id": "rounds_played",
-     "quantite": 18
     }
    ]
   },
@@ -62963,7 +63248,6 @@
    "commercant": "Shani",
    "histoire": true,
    "requiert": [
-    "blue_gate_content_unlock",
     "dormant_barons"
    ],
    "objets": []

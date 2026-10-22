@@ -143,7 +143,14 @@ fun EcranFiche(
             Bandeau("Objet", Signal.Or)
         }
         if (objet == null) {
-            Text("Objet introuvable dans les données du jeu.", style = MaterialTheme.typography.bodyLarge)
+            // Nom français officiel pas encore vérifié : l'objet est exclu des données, jamais affiché avec un nom inventé.
+            Text(Catalogue.NOM_A_VERIFIER, style = MaterialTheme.typography.headlineMedium)
+            Text(
+                "Le nom français officiel de cet objet n'est pas encore vérifié\u00a0: l'appli ne l'affiche pas, " +
+                    "pour ne jamais inventer de nom. Il le sera dès qu'il aura été vérifié dans le jeu en français.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Signal.TexteDoux,
+            )
             return@Column
         }
 

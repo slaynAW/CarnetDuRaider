@@ -5,6 +5,12 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.10.2
+
+- **Quêtes cachées retirées** : « Déverrouillage de contenu du Portail bleu » n'est pas une vraie quête, mais un déblocage que le jeu fait tout seul après quelques manches. Elle ne s'affiche plus, et les quêtes qui la suivent arrivent directement. Si tu l'avais en cours, ses suites prennent sa place.
+- **Plus de « Nom à vérifier en jeu » dans tes objectifs** : les objectifs ne demandent plus que de vrais objets. « Sheet Metal » (étape 2 de « À l'abri ») et « Amplified Fragments » (recyclage des modules d'amplification) s'affichent avec leur nom, tel qu'il apparaît dans le jeu en français.
+- La fiche d'un objet dont le nom n'est pas encore vérifié explique pourquoi, au lieu de « Objet introuvable ».
+
 ## 0.10.1
 
 - **Mes objectifs dans l'onglet Raid** : ce que tu indiques en cours dans Objectifs s'affiche aussi dans Raid, avec les mêmes cartes, le même avancement et le même bouton « C'est fait ». Ce sont les mêmes objectifs.

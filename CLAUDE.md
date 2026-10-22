@@ -33,6 +33,9 @@ telle qu'elle apparaît dans le jeu.
   (`Catalogue.NOM_A_VERIFIER`), jamais avec un nom inventé.
 - Un nom identique en français et en anglais n'est accepté que s'il figure, avec sa justification,
   dans `scripts/noms-identiques-verifies.txt`.
+- Les quêtes cachées du jeu (`hidden` : déblocages de contenu après quelques manches, un niveau, une
+  carte visitée) ne sont pas importées : faites d'office, leurs suites ne les attendent pas. Les
+  objectifs ne demandent que de vrais objets, jamais un compteur (« Manches disputées »).
 - Les libellés fixes du code qui désignent un élément du jeu (raretés dans `Rarete`, « Atelier »,
   « Recyclage en », « Conditions de la carte »…) reprennent le texte officiel du jeu.
 - Le reste du texte de l'interface (phrases d'aide, boutons propres à l'appli) est en français courant.

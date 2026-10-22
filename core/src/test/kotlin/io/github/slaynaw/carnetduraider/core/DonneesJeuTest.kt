@@ -47,9 +47,27 @@ class DonneesJeuTest {
     @Test
     fun `un nom non traduit dans les donnees n'entre pas dans l'appli`() {
         // Exclus par l'import (docs/NOMS-A-VERIFIER.md) : texte français identique à l'anglais.
-        assertNull(catalogue.objet("sheet_metal"))
+        assertNull(catalogue.objet("pressure_regulator"))
         assertTrue(donnees.projets.none { it.id == "community_event" })
-        assertEquals(Catalogue.NOM_A_VERIFIER, catalogue.nomObjet("sheet_metal"))
+        assertEquals(Catalogue.NOM_A_VERIFIER, catalogue.nomObjet("pressure_regulator"))
+        // Vérifié en jeu par le joueur : « Sheet Metal » s'affiche ainsi dans le jeu en français.
+        assertEquals("Sheet Metal", catalogue.objet("sheet_metal")?.nom)
+        assertEquals("Amplified Fragments", catalogue.objet("amplified_fragments")?.nom)
+    }
+
+    @Test
+    fun `quetes cachees et compteurs ecartes`() {
+        // Déblocage de contenu après 18 manches disputées : fait par le jeu, jamais une quête à cocher.
+        assertNull(catalogue.quete("blue_gate_content_unlock"))
+        val ids = donnees.quetes.map { it.id }.toSet()
+        donnees.quetes.forEach { q -> assertTrue(ids.containsAll(q.requiert), "prérequis connus pour ${q.id}") }
+        // Ses suites ne l'attendent pas.
+        assertEquals(listOf("off_the_radar"), catalogue.quete("a_first_foothold")?.requiert)
+        // Ce que demandent les objectifs, ce sont de vrais objets, tous avec leur nom (pas de compteur
+        // comme « Manches disputées »).
+        val besoins = donnees.quetes.flatMap { it.objets } + donnees.etablis.flatMap { e -> e.niveaux.flatMap { it.cout } } +
+            donnees.projets.flatMap { p -> p.etapes.flatMap { it.cout } }
+        assertTrue(besoins.all { catalogue.objet(it.id) != null }, besoins.filter { catalogue.objet(it.id) == null }.toString())
     }
 
     @Test

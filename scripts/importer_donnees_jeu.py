@@ -663,7 +663,13 @@ def main():
     quests_fr, quests_en = charger(src, "quests.text.fr.json"), charger(src, "quests.text.en.json")
     quetes = []
     for ident, q in sorted(quests.items()):
-        requis = objets_de_quete(q.get("objective", {}), {})
+        # Quête cachée : déblocage de contenu (nombre de manches disputées, niveau, carte visitée…), que le jeu
+        # fait tout seul. Jamais affichée, et considérée comme faite par l'appli (ses suites ne l'attendent pas).
+        if q.get("hidden"):
+            continue
+        # Seuls de vrais objets se rapportent de raid : pas les compteurs (« Manches disputées »…).
+        requis = {i: n for i, n in objets_de_quete(q.get("objective", {}), {}).items()
+                  if items["items"].get(i, {}).get("group") in GROUPES}
         # Quêtes de l'histoire (principales et secondaires) : toutes gardées, pour suivre leur
         # enchaînement ; les autres (quotidiennes, hebdomadaires…) seulement si elles demandent des objets.
         histoire = q.get("category") in CATEGORIES_HISTOIRE
