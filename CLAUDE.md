@@ -105,11 +105,12 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   suivant, quêtes suivantes d'après l'enchaînement `requiert`, étape suivante). Ce qui est fait autrement
   se valide en un geste (« C'est fait », `CarnetViewModel.valider`), avec « Annuler » : jamais de saisie
   obligatoire.
-- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build, le build choisi
-  dessous, ses cases en grille), un nom et un objet par case (Module, Bouclier, Arme 1, Arme 2, Soins,
-  Grenades, Divers ; la fiche et « Vider la case » sont dans le choix de l'objet), d'après `Objet.emplacement` (famille de l'objet
-  dans le jeu, produit par le script) ; matériaux d'après les recettes et `Obtention.amelioration`
-  (arme du niveau d'avant et coût de l'amélioration). `Memoire`, clé « builds » (JSON).
+- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build, en deux lignes de
+  trois, le build choisi dessous, ses cases en grille), un nom et un objet par case (Module, Bouclier,
+  Arme 1, Arme 2, Soins, Grenades, Divers ; la fiche et « Vider la case » sont dans le choix de l'objet),
+  d'après `Objet.emplacement` (famille de l'objet dans le jeu, produit par le script) ; matériaux d'après
+  les recettes et `Obtention.amelioration` (arme du niveau d'avant et coût de l'amélioration). `Memoire`,
+  clé « builds » (JSON).
 - Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Il
   reprend les objectifs en cours, avec la même carte que l'onglet Objectifs (`CarteObjectif`) : ce sont
   les mêmes objectifs, y compris ceux qui ne demandent aucun objet. Ce

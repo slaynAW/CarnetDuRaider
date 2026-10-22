@@ -32,6 +32,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.core.Rarete
@@ -74,17 +76,24 @@ fun Puce(texte: String, modifier: Modifier = Modifier, fond: Color = Signal.Surf
     }
 }
 
-/** Puce de filtre ou de choix : pleine de [couleur] quand elle est choisie. */
+/** Puce de filtre ou de choix : pleine de [couleur] quand elle est choisie. Un texte trop long est coupé (« … »). */
 @Composable
-fun PuceFiltre(texte: String, choisie: Boolean, couleur: Color, onClick: () -> Unit) {
+fun PuceFiltre(texte: String, choisie: Boolean, couleur: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
         color = if (choisie) couleur else Signal.Releve,
         contentColor = if (choisie) Signal.SurCouleur else Signal.Texte,
         shape = RoundedCornerShape(50),
-        modifier = Modifier.semantics { selected = choisie },
+        modifier = modifier.semantics { selected = choisie },
     ) {
-        Text(texte, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
+        Text(
+            texte,
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+        )
     }
 }
 
