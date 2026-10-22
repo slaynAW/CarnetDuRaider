@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.11.1
+
+- **Builds** : les six builds s'affichent en deux lignes de trois, sans défiler. Un nom trop long est coupé.
+- **Six cases « Autres »** à la place de la case « Divers », regroupées sous leur titre. Ce que tu avais choisi en « Divers » passe en « Autre 1 ».
+
 ## 0.11.0
 
 - **Une signature par section** : chaque onglet s'ouvre sur un grand bandeau de sa couleur, avec son code et son motif, à la manière d'ARC Raiders. Accueil (01 / BASE, les quatre bandes du logo), Objets (02 / INVENTAIRE, or, rayures et caisse), Raid (03 / OPÉRATION, rouge, réticule), Cartes (04 / TERRAIN, cyan, courbes de niveau), Objectifs (05 / MISSIONS, vert, chevrons) et Builds (06 / ARSENAL, violet, plan technique). L'onglet actif, en bas, prend la même couleur.
@@ -12,7 +17,7 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 - **Raid** : la meilleure carte en tête, puis ce qu'il te faut, le bouton « Retour de raid », tes objectifs et où chercher.
 - **Cartes** : chaque carte avec ses conditions en cours et leur minuteur, puis les plans, les prochaines heures et la prochaine fois.
 - **Objectifs** : les quatre boutons sur deux lignes, et pour chaque objectif ce qui a été rapporté sur ce qu'il faut, avec une barre d'avancement.
-- **Builds** : une puce par build pour passer de l'un à l'autre, en deux lignes de trois, et ses cases en grille. La case « Divers » devient six cases « Autres » (ce que tu y avais choisi passe en « Autre 1 »). Touche une case pour choisir l'objet, voir sa fiche ou vider la case.
+- **Builds** : une puce par build pour passer de l'un à l'autre, et ses sept cases en grille. Touche une case pour choisir l'objet, voir sa fiche ou vider la case.
 - Un objectif validé s'annonce sur une bande verte « Objectif terminé », avec « Annuler ».
 
 ## 0.10.2
