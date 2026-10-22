@@ -1,6 +1,8 @@
 package io.github.slaynaw.carnetduraider.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +30,11 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.Besoin
 import io.github.slaynaw.carnetduraider.core.Catalogue
+import io.github.slaynaw.carnetduraider.core.FiltreVerdict
 import io.github.slaynaw.carnetduraider.core.Objet
 import io.github.slaynaw.carnetduraider.core.Sortie
 import io.github.slaynaw.carnetduraider.core.UsageBuild
@@ -47,27 +54,28 @@ import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
 @Composable
 fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) -> Unit, ouvrir: (String) -> Unit) {
+    var filtre by rememberSaveable { mutableStateOf(FiltreVerdict.TOUS) }
     // Sans recherche : tout le catalogue, par ordre alphabétique.
     val resultats = remember(recherche) {
         if (recherche.isBlank()) vm.catalogue.tous else vm.catalogue.rechercher(recherche, limite = 200)
     }
+    val affiches = if (filtre == FiltreVerdict.TOUS) resultats else resultats.filter { filtre.accepte(vm.verdict(it.id)) }
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 6.dp)) {
-                Bandeau("Objets", Signal.Or)
-                Text("Garder, recycler ou vendre\u00a0?", style = MaterialTheme.typography.headlineMedium)
+                BandeauSection(Onglet.OBJETS, "Garder, vendre ou recycler")
                 OutlinedTextField(
                     value = recherche,
                     onValueChange = onRecherche,
                     placeholder = { Text("Cherche un objet…") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Or) },
                     singleLine = true,
-                    shape = RoundedCornerShape(26.dp),
+                    shape = RoundedCornerShape(6.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Signal.Or,
                         unfocusedBorderColor = Signal.Trait,
@@ -76,47 +84,68 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    vm.filtresObjets.forEach { f ->
+                        PuceFiltre(f.libelle, choisie = f == filtre, couleur = Signal.Or, onClick = { filtre = f })
+                    }
+                }
                 Text(
                     when {
-                        recherche.isBlank() -> "${pluriel(resultats.size, "objet", "objets")} par ordre alphabétique. Touche un objet pour savoir à quoi il sert et où le trouver."
-                        resultats.isEmpty() -> "Aucun objet ne correspond."
-                        else -> pluriel(resultats.size, "objet trouvé", "objets trouvés")
+                        affiches.isEmpty() -> "Aucun objet ne correspond."
+                        recherche.isBlank() && filtre == FiltreVerdict.TOUS ->
+                            "${pluriel(affiches.size, "objet", "objets")} par ordre alphabétique. Touche un objet pour savoir à quoi il sert et où le trouver."
+                        else -> pluriel(affiches.size, "objet trouvé", "objets trouvés")
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
                 )
             }
         }
-        items(resultats, key = { it.id }) { objet ->
-            LigneObjet(objet, vm.verdict(objet.id), onClick = { ouvrir(objet.id) })
+        items(affiches, key = { it.id }) { objet ->
+            LigneObjet(vm, objet, vm.verdict(objet.id), onClick = { ouvrir(objet.id) })
         }
     }
 }
 
 @Composable
-private fun LigneObjet(objet: Objet, verdict: Verdict, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+private fun LigneObjet(vm: CarnetViewModel, objet: Objet, verdict: Verdict, onClick: () -> Unit) {
+    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             IconeObjet(objet.id, objet.rarete, 48.dp)
             Column(Modifier.weight(1f)) {
                 Text(objet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                val details = listOfNotNull(objet.rarete?.libelle, objet.categorie).joinToString(" · ")
-                if (details.isNotEmpty()) Text(details, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                Text(raisonVerdict(vm, objet, verdict), style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, maxLines = 2)
             }
             PuceVerdict(verdict)
         }
     }
 }
 
-/** Le verdict en un mot, pour la liste : Garder (objectifs), Build, Vendre ou Recycler. */
+/** Pourquoi ce verdict, en une ligne : pour quel objectif ou quel build, ou ce qu'il rapporte. */
+private fun raisonVerdict(vm: CarnetViewModel, objet: Objet, verdict: Verdict): String = when (verdict) {
+    is Verdict.Garder -> verdict.pour.firstOrNull()?.let { b ->
+        "Pour ${b.libelle}" + if (verdict.pour.size > 1) " et ${pluriel(verdict.pour.size - 1, "autre", "autres")}" else ""
+    } ?: "Pour tes objectifs en cours"
+    is Verdict.PourBuild -> "Pour le build «\u00a0${verdict.builds.first().build}\u00a0»"
+    is Verdict.Inutile ->
+        if (verdict.conseil == Sortie.RECYCLER) "Ses matériaux valent ${vm.catalogue.valeurRecyclage(objet)} pièces" else "Se vend ${objet.valeur} pièces"
+}
+
+/** Le verdict en un mot, pour la liste : Garder (objectifs), Build, Vendre ou Recycler, encadré de sa couleur. */
 @Composable
 fun PuceVerdict(verdict: Verdict) {
-    val (texte, fond, couleur) = when (verdict) {
-        is Verdict.Garder -> Triple("Garder", Signal.Or, Signal.SurCouleur)
-        is Verdict.PourBuild -> Triple("Build", Signal.Violet, Signal.SurCouleur)
-        is Verdict.Inutile -> Triple(if (verdict.conseil == Sortie.VENDRE) "Vendre" else "Recycler", Signal.Releve, Signal.TexteDoux)
+    val (texte, couleur) = when (verdict) {
+        is Verdict.Garder -> "Garder" to Signal.Vert
+        is Verdict.PourBuild -> "Build" to Signal.Violet
+        is Verdict.Inutile -> if (verdict.conseil == Sortie.VENDRE) "Vendre" to Signal.Or else "Recycler" to Signal.Cyan
     }
-    Puce(texte, fond = fond, couleur = couleur)
+    Etiquette(
+        texte,
+        couleur,
+        Modifier
+            .border(1.5.dp, couleur, RoundedCornerShape(3.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
 }
 
 /**
@@ -251,7 +280,7 @@ private fun CommentLObtenir(vm: CarnetViewModel, objet: Objet, ouvrir: (String) 
     if (recyclage.isNotEmpty()) {
         Section("En recyclant") {
             recyclage.take(6).forEach { q ->
-                Surface(onClick = { ouvrir(q.id) }, color = Signal.Fond, shape = RoundedCornerShape(10.dp)) {
+                Surface(onClick = { ouvrir(q.id) }, color = Signal.Fond, shape = RoundedCornerShape(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         IconeObjet(q.id, vm.catalogue.objet(q.id)?.rarete, 32.dp)
                         Text(vm.catalogue.nomObjet(q.id), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
@@ -279,7 +308,7 @@ private fun SousTitreFiche(texte: String) {
 /** Un endroit et son indice (1 à 100), avec une barre ; cliquable pour ouvrir le plan. */
 @Composable
 private fun LigneIndice(nom: String, sousTitre: String?, indice: Int, onClick: (() -> Unit)? = null) {
-    Surface(onClick = { onClick?.invoke() }, enabled = onClick != null, color = Signal.Fond, shape = RoundedCornerShape(10.dp)) {
+    Surface(onClick = { onClick?.invoke() }, enabled = onClick != null, color = Signal.Fond, shape = RoundedCornerShape(4.dp)) {
         Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -326,7 +355,7 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, usages: UsagesObjet, vm
         is Verdict.Garder -> ContenuVerdict(
             "Garde-le",
             "Il en faut encore ${verdict.manquant} pour tes objectifs en cours.",
-            Signal.Or,
+            Signal.Vert,
             verdict.pour,
             verdict.builds,
         )
@@ -344,9 +373,9 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, usages: UsagesObjet, vm
         )
     }
     val texte = if (c.fond == Signal.Releve) Signal.Texte else Signal.SurCouleur
-    Surface(color = c.fond, contentColor = texte, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = c.fond, contentColor = texte, shape = FormeCoupee, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("VERDICT", style = MaterialTheme.typography.labelSmall)
+            Etiquette("Verdict", texte)
             Text(c.titre, style = MaterialTheme.typography.headlineLarge)
             Text(c.texte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             if (c.pour.isNotEmpty() || c.builds.isNotEmpty()) {
@@ -393,7 +422,7 @@ private fun SectionUsages(vm: CarnetViewModel, u: UsagesObjet, ouvrir: (String) 
         if (ut.fabrication.isNotEmpty()) {
             SousTitreFiche("Sert à fabriquer")
             ut.fabrication.take(6).forEach { f ->
-                Surface(onClick = { ouvrir(f.objet) }, color = Signal.Fond, shape = RoundedCornerShape(10.dp)) {
+                Surface(onClick = { ouvrir(f.objet) }, color = Signal.Fond, shape = RoundedCornerShape(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         IconeObjet(f.objet, vm.catalogue.objet(f.objet)?.rarete, 32.dp)
                         Text(vm.catalogue.nomObjet(f.objet), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))

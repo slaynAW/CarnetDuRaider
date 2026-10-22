@@ -6,13 +6,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +30,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.core.Rarete
@@ -69,6 +71,20 @@ fun Puce(texte: String, modifier: Modifier = Modifier, fond: Color = Signal.Surf
     ) {
         if (point != null) Box(Modifier.size(8.dp).clip(CircleShape).background(point))
         Text(texte, style = MaterialTheme.typography.labelMedium, color = couleur)
+    }
+}
+
+/** Puce de filtre ou de choix : pleine de [couleur] quand elle est choisie. */
+@Composable
+fun PuceFiltre(texte: String, choisie: Boolean, couleur: Color, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = if (choisie) couleur else Signal.Releve,
+        contentColor = if (choisie) Signal.SurCouleur else Signal.Texte,
+        shape = RoundedCornerShape(50),
+        modifier = Modifier.semantics { selected = choisie },
+    ) {
+        Text(texte, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp))
     }
 }
 

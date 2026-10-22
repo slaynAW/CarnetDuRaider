@@ -156,5 +156,25 @@ class ListeDeCoursesEtVerdictTest {
         val conseil = Conseiller(c, Planificateur(c))
         assertEquals(Sortie.RECYCLER, conseil.meilleureSortie("boite"))
         assertEquals(Sortie.VENDRE, conseil.meilleureSortie("vis"))
+        assertEquals(FiltreVerdict.entries, conseil.filtres)
+    }
+
+    @Test
+    fun `pas de filtre Recycler quand aucun objet ne se recycle mieux qu'il ne se vend`() {
+        // Données du jeu actuelles : les matériaux ne valent jamais plus que l'objet.
+        assertEquals(listOf(FiltreVerdict.TOUS, FiltreVerdict.GARDER, FiltreVerdict.VENDRE), conseiller.filtres)
+    }
+
+    @Test
+    fun `filtres de la liste des objets d'apres le verdict`() {
+        val garder = Verdict.Garder(1, 1, emptyList())
+        val build = Verdict.PourBuild(listOf(UsageBuild("Assaut", "ferro_i", direct = true)))
+        val vendre = Verdict.Inutile(Sortie.VENDRE)
+        val recycler = Verdict.Inutile(Sortie.RECYCLER)
+        val tous = listOf(garder, build, vendre, recycler)
+        assertEquals(tous, tous.filter(FiltreVerdict.TOUS::accepte))
+        assertEquals(listOf(garder, build), tous.filter(FiltreVerdict.GARDER::accepte))
+        assertEquals(listOf<Verdict>(vendre), tous.filter(FiltreVerdict.VENDRE::accepte))
+        assertEquals(listOf<Verdict>(recycler), tous.filter(FiltreVerdict.RECYCLER::accepte))
     }
 }

@@ -12,11 +12,12 @@
   --commun: #B4B4B4; --rare: #4FA3F7; --epique: #D46BE0;
   --titre: "Prompt", "Segoe UI", system-ui, sans-serif;
   --corps: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --coupee: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { background: var(--fond); color: var(--texte); }
-body { font-family: var(--corps); font-size: 15px; line-height: 1.4; }
+body { margin: 0; font-family: var(--corps); font-size: 15px; line-height: 1.4; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--fond); }
 button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
@@ -32,23 +33,36 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--or); outlin
   padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
 .nav button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 12px; color: var(--texte-doux); font-size: 12px; white-space: nowrap; }
 .nav .pastille { width: 48px; height: 30px; border-radius: 15px; display: grid; place-items: center; }
-.nav button[aria-current="page"] { color: var(--texte); }
+.nav button[aria-current="page"] { color: var(--c); }
 .nav button[aria-current="page"] .pastille { background: var(--c); color: var(--sur-couleur); }
 svg.ic { width: 22px; height: 22px; fill: currentColor; }
 h2 { font: 800 30px/1.1 var(--titre); margin: 0; text-wrap: balance; }
 h3 { font: 700 26px/1.15 var(--titre); margin: 0; text-wrap: balance; }
 h4 { font: 700 16px/1.3 var(--titre); margin: 8px 0 0; }
 .doux { color: var(--texte-doux); } .discret { color: var(--texte-discret); } .petit { font-size: 13px; }
+/* Bandeau en tête de chaque onglet (BandeauSection.kt) : couleur de la section, code, nom, motif. */
+.section { position: relative; flex: none; height: 132px; overflow: hidden; background: var(--c); color: var(--sur-couleur);
+  margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 34px), calc(100% - 34px) 100%, 0 100%); }
+.section svg { position: absolute; right: 0; top: 0; height: 132px; }
+.section > div { position: relative; padding: 18px 20px 0; display: flex; flex-direction: column; gap: 2px; }
+.section .code { font: 700 12px/1.2 var(--titre); letter-spacing: 3px; }
+.section h2 { font: 800 40px/1.1 var(--titre); letter-spacing: 1px; white-space: nowrap; }
+.section .sous { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.etiquette { font: 700 11px/1.3 var(--titre); letter-spacing: 2px; text-transform: uppercase; color: var(--c, var(--texte)); margin: 0; }
+h4.etiquette { margin-top: 12px; }
+.pf { flex: none; border-radius: 99px; padding: 8px 14px; font: 600 14px/1 var(--titre); white-space: nowrap; background: var(--releve); color: var(--texte); }
+.pf[aria-pressed="true"] { background: var(--c, var(--or)); color: var(--sur-couleur); }
 .bandeau { align-self: flex-start; font: 700 11px/1 var(--titre); letter-spacing: 1.5px; text-transform: uppercase;
   color: var(--sur-couleur); background: var(--c, var(--texte)); padding: 6px 10px; border-radius: 99px; }
-.carte { background: var(--surface); border-radius: 18px; padding: 12px 14px; }
+.carte { background: var(--surface); border-radius: 6px; padding: 12px 14px; }
 .ligne { display: flex; align-items: center; gap: 12px; }
 .ligne > .flex { flex: 1; min-width: 0; }
 .nom { font-weight: 600; font-size: 16px; }
 button.carte { text-align: left; width: 100%; }
 button.carte:hover { background: var(--releve); }
 .recherche { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--trait);
-  border-radius: 26px; padding: 12px 16px; }
+  border-radius: 6px; padding: 12px 16px; }
 .recherche:focus-within { border-color: var(--f, var(--or)); }
 .recherche input { flex: 1; min-width: 0; background: none; border: 0; color: var(--texte); font: inherit; font-size: 16px; outline: none; }
 .icone { flex: none; display: grid; place-items: center; border-radius: 22%; overflow: hidden;
@@ -58,7 +72,8 @@ button.carte:hover { background: var(--releve); }
 .puce { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border-radius: 99px; padding: 5px 10px; font-size: 13px; font-weight: 600; }
 .puce i { width: 8px; height: 8px; border-radius: 50%; background: var(--r); }
 .bouton { border-radius: 99px; padding: 11px 18px; font: 700 15px/1 var(--titre); background: var(--c, var(--or)); color: var(--sur-couleur); }
-.bouton.large { width: 100%; border-radius: 20px; padding: 17px; }
+.bouton.large { width: 100%; border-radius: 6px; padding: 17px; }
+.bouton.contour { background: none; color: var(--c, var(--or)); border: 2px solid var(--c, var(--or)); }
 .lien { color: var(--c, var(--or)); font-weight: 600; padding: 8px 6px; }
 .rond { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font: 700 20px/1 var(--titre); background: var(--surface); flex: none; }
 .rond.plein { background: var(--c, var(--or)); color: var(--sur-couleur); }
@@ -67,17 +82,17 @@ button.carte:hover { background: var(--releve); }
 .compteur b { width: 44px; text-align: center; font: 700 20px var(--titre); font-variant-numeric: tabular-nums; }
 .barre { height: 6px; border-radius: 99px; background: var(--trait); overflow: hidden; }
 .barre i { display: block; height: 100%; border-radius: 99px; background: var(--c, var(--or)); }
-.prochain { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; border-radius: 24px; padding: 16px 18px; background: var(--surface); }
+.prochain { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; border-radius: 6px; padding: 16px 18px; background: var(--surface); }
+.prochain.plein { border-radius: 0; clip-path: var(--coupee); }
 .prochain.plein { background: var(--rouge); color: var(--sur-couleur); }
 .prochain:hover { filter: brightness(1.08); }
-.prochain small { font: 700 11px var(--titre); letter-spacing: 1.5px; }
+.prochain small { font: 700 11px var(--titre); letter-spacing: 2px; }
 .prochain strong { font: 700 22px/1.2 var(--titre); }
-.verdict { background: var(--v, var(--or)); color: var(--sur-couleur); border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+.verdict { background: var(--v, var(--or)); color: var(--sur-couleur); clip-path: var(--coupee); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
 .verdict.neutre { color: var(--texte); }
 .verdict small { font: 700 11px var(--titre); letter-spacing: 1.5px; }
 .verdict h3 { font-size: 30px; } .verdict hr { border: 0; border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent); margin: 6px 0; width: 100%; }
-.pv { font: 700 12px/1 var(--titre); padding: 5px 9px; border-radius: 99px; white-space: nowrap; background: var(--p); color: var(--sur-couleur); }
-.pv.neutre { color: var(--texte-doux); }
+.pv { font: 700 11px/1 var(--titre); letter-spacing: 1px; text-transform: uppercase; padding: 4px 8px; border-radius: 3px; white-space: nowrap; border: 1.5px solid var(--p); color: var(--p); }
 .usage b { font: 600 14px var(--titre); color: var(--cyan); }
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
 .chip { border: 1px solid var(--trait); border-radius: 8px; padding: 7px 12px; color: var(--texte-doux); white-space: nowrap; font-weight: 600; }
@@ -90,9 +105,10 @@ button.carte:hover { background: var(--releve); }
 .valider { display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; padding: 9px 14px; font: 700 14px/1 var(--titre); background: var(--vert); color: var(--sur-couleur); align-self: flex-start; }
 .bandeau-validation { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 6; pointer-events: none;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.bandeau-validation > div { pointer-events: auto; max-width: 428px; margin: 0 auto; background: var(--releve); border-radius: 16px; padding: 8px 8px 8px 16px; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+.bandeau-validation > div { pointer-events: auto; max-width: 428px; margin: 0 auto; background: var(--vert); color: var(--sur-couleur); clip-path: var(--coupee); padding: 8px 8px 8px 16px; display: flex; align-items: center; gap: 8px; }
+.bandeau-validation .lien { color: var(--sur-couleur); font-weight: 700; }
 .apercus { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
-.apercus button { flex: none; width: 132px; background: var(--surface); border-radius: 16px; overflow: hidden; text-align: left; }
+.apercus button { flex: none; width: 132px; background: var(--surface); border-radius: 6px; overflow: hidden; text-align: left; }
 .apercus img { display: block; width: 132px; height: 96px; object-fit: cover; background: var(--releve); }
 .apercus span { display: block; padding: 8px 10px; font-size: 13px; font-weight: 600; }
 .plan-vue { position: relative; width: min(100%, 70vh); aspect-ratio: 1; margin: 0 auto; border-radius: 16px; overflow: hidden; background: var(--fond); touch-action: none; cursor: grab; user-select: none; }
@@ -125,12 +141,13 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .pop { animation: rebond .6s .3s cubic-bezier(.34, 1.56, .64, 1) both; }
 .gerbe { position: absolute; left: 50%; top: 30%; width: 0; height: 0; }
 .gerbe i { position: absolute; width: 8px; height: 22px; margin: -11px 0 0 -4px; background: var(--c); animation: gerbe 1.8s cubic-bezier(.2, .7, .4, 1) both; }
-.choix-en-cours { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: var(--releve); border-radius: 18px; padding: 14px 10px 14px 16px; }
+.choix-en-cours { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: var(--releve); border-radius: 6px; padding: 12px 6px 12px 14px; }
+.grille-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .choix-en-cours:hover { filter: brightness(1.1); }
-.choix-en-cours b { font: 700 16px/1.3 var(--titre); }
-.case-build { display: flex; align-items: center; gap: 10px; background: var(--releve); border-radius: 14px; padding: 6px 4px 6px 10px; min-height: 52px; }
-.case-build > button.flex { display: flex; align-items: center; gap: 10px; text-align: left; min-height: 40px; }
-.case-build .etiquette { width: 76px; flex: none; font: 700 14px var(--titre); color: var(--violet); }
+.choix-en-cours b { font: 600 14px/1.3 var(--titre); }
+.case-build { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 6px; padding: 8px; text-align: left; min-width: 0; }
+.case-build:hover { background: var(--releve); }
+.case-build .vide { width: 44px; height: 44px; flex: none; border: 1.5px solid var(--trait); border-radius: 4px; }
 .champ { width: 100%; background: var(--fond); color: var(--texte); border: 1px solid var(--trait); border-radius: 10px; padding: 12px 14px; font: inherit; font-size: 16px; }
 .champ:focus { outline: none; border-color: var(--violet); }
 .banniere { position: relative; width: 100%; height: 88px; display: grid; place-items: center; overflow: hidden; }
@@ -438,16 +455,34 @@ function icone(id, taille) {
 
 // ---- État de l'écran ----
 const ONGLETS = [
-  ["ACCUEIL", "Accueil", "--texte", "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"],
-  ["OBJETS", "Objets", "--or", "M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"],
-  ["RAID", "Raid", "--rouge", "M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42a.25.25 0 0 1-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"],
-  ["CARTES", "Cartes", "--cyan", "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"],
-  ["OBJECTIFS", "Objectifs", "--vert", "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"],
-  ["BUILDS", "Builds", "--violet", "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"],
+  ["ACCUEIL", "Accueil", "--texte", "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z", "01 / BASE"],
+  ["OBJETS", "Objets", "--or", "M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z", "02 / INVENTAIRE"],
+  ["RAID", "Raid", "--rouge", "M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42a.25.25 0 0 1-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z", "03 / OPÉRATION"],
+  ["CARTES", "Cartes", "--cyan", "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z", "04 / TERRAIN"],
+  ["OBJECTIFS", "Objectifs", "--vert", "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", "05 / MISSIONS"],
+  ["BUILDS", "Builds", "--violet", "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z", "06 / ARSENAL"],
 ];
-const S = { onglet: "ACCUEIL", ecran: null, recherche: "", rechercheQuetes: "", recherchePlan: "", rechercheBuild: "", choix: null, validation: null, raid: null, caseBuild: null };
+const S = { onglet: "ACCUEIL", filtre: "TOUS", build: 0, ecran: null, recherche: "", rechercheQuetes: "", recherchePlan: "", rechercheBuild: "", choix: null, validation: null, raid: null, caseBuild: null };
 
 // ---- Écrans ----
+// Motif de chaque section, à droite de son bandeau (BandeauSection.kt), dans une grille de largeur × 132.
+const ENCRE = "#141417";
+const MOTIFS = {
+  ACCUEIL: [210, `<path d="M40 132h26L118 0H92z" fill="#3CC4D8"/><path d="M80 132h26L158 0h-26z" fill="#6CCB5F"/><path d="M120 132h26L198 0h-26z" fill="#F2B233"/><path d="M160 132h26L238 0h-26z" fill="#F0544A"/>`],
+  OBJETS: [200, `<defs><pattern id="motif-danger" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="11" height="22" fill="${ENCRE}"/></pattern></defs><rect x="60" width="140" height="132" fill="url(#motif-danger)" opacity=".9"/><rect x="96" y="30" width="72" height="72" fill="#F2B233" stroke="${ENCRE}" stroke-width="4"/><path d="M96 54h72M120 30v72M144 30v72M96 78h72" stroke="${ENCRE}" stroke-width="2"/>`],
+  RAID: [200, `<defs><pattern id="motif-balayage" width="4" height="6" patternUnits="userSpaceOnUse"><rect width="4" height="2" fill="${ENCRE}" opacity=".18"/></pattern></defs><rect width="200" height="132" fill="url(#motif-balayage)"/><g fill="none" stroke="${ENCRE}" stroke-width="3"><circle cx="130" cy="62" r="46"/><circle cx="130" cy="62" r="26"/></g><path d="M130 0v30M130 94v38M70 62h34M156 62h44" stroke="${ENCRE}" stroke-width="3"/><circle cx="130" cy="62" r="5" fill="${ENCRE}"/>`],
+  CARTES: [210, `<g stroke="${ENCRE}" stroke-width="1" opacity=".35"><path d="M30 0v132M70 0v132M110 0v132M150 0v132M190 0v132M0 33h210M0 66h210M0 99h210"/></g><g fill="none" stroke="${ENCRE}" stroke-width="2.5"><path d="M60 110c10-40 50-60 90-50s40 50 10 60-90 20-100-10z"/><path d="M85 95c8-22 35-32 58-26s22 28 5 34-55 12-63-8z"/><path d="M108 84c4-10 18-14 28-10s9 13 1 16-25 4-29-6z"/><path d="M40 20c30-16 80-18 120-4"/></g><path d="M178 26l-8 14h16z" fill="${ENCRE}"/>`],
+  OBJECTIFS: [200, `<g fill="${ENCRE}"><path d="M60 0h22l40 66-40 66H60l40-66z" opacity=".25"/><path d="M100 0h22l40 66-40 66h-22l40-66z" opacity=".5"/><path d="M140 0h22l40 66-40 66h-22l40-66z"/></g>`],
+  BUILDS: [210, `<g stroke="${ENCRE}" stroke-width=".8" opacity=".3"><path d="M20 0v132M40 0v132M60 0v132M80 0v132M100 0v132M120 0v132M140 0v132M160 0v132M180 0v132M200 0v132M0 20h210M0 40h210M0 60h210M0 80h210M0 100h210M0 120h210"/></g><g fill="none" stroke="${ENCRE}" stroke-width="2.5"><rect x="70" y="40" width="96" height="30"/><path d="M166 50h30M70 70l-14 34h22l10-34M110 70v16h22"/><circle cx="150" cy="55" r="7"/></g><path d="M70 24h96M70 18v12M166 18v12" stroke="${ENCRE}" stroke-width="1.5"/>`],
+};
+// Bandeau en tête de chaque onglet : on sait d'un coup d'œil sur quelle section on est.
+function bandeauSection(k, sous) {
+  const [, titre, c, , code] = ONGLETS.find(o => o[0] === k), [l, motif] = MOTIFS[k];
+  return `<header class="section" style="--c:var(${c})"><svg width="${l}" height="132" viewBox="0 0 ${l} 132" aria-hidden="true">${motif}</svg>
+  <div><span class="code">${code}</span><h2>${titre.toUpperCase()}</h2><span class="sous">${echap(sous)}</span></div></header>`;
+}
+const etiquette = (texte, c, balise = "span") => `<${balise} class="etiquette" style="--c:var(${c})">${echap(texte)}</${balise}>`;
+const pf = (texte, choisie, c, action, id) => `<button class="pf" style="--c:var(${c})" aria-pressed="${choisie}" data-action="${action}" data-id="${id}">${echap(texte)}</button>`;
 const bandeau = (texte, c) => `<span class="bandeau" style="--c:var(${c})">${echap(texte)}</span>`;
 const retour = (texte, c) => `<div class="ligne"><button class="retour" data-action="fermer" aria-label="Retour"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg></button>${bandeau(texte, c)}</div>`;
 const detailCout = cout => cout.map(q => `${q.quantite} × ${echap(nomObjet(q.id))}`).join(" · ");
@@ -456,8 +491,8 @@ const detailAvancement = o => besoins(o).map(q => `${echap(nomObjet(q.id))} ${Ma
 
 function ecranAccueil() {
   const h = new Date().getHours();
-  return `<h3>${h >= 18 || h < 5 ? "Bonsoir" : "Bonjour"}, Raider</h3>
-  <button class="carte ligne" data-action="onglet" data-onglet="OBJETS" style="border-radius:26px;padding:15px 18px">
+  return `${bandeauSection("ACCUEIL", `${h >= 18 || h < 5 ? "Bonsoir" : "Bonjour"}, Raider`)}
+  <button class="carte ligne" data-action="onglet" data-onglet="OBJETS" style="padding:15px 18px">
     <svg class="ic" viewBox="0 0 24 24" style="color:var(--or)"><path d="${ONGLETS[1][3]}"/></svg>
     <span class="flex"><span class="nom" style="font:600 14px var(--titre)">Garder, recycler ou vendre${NB}?</span><br><span class="doux">Cherche un objet…</span></span></button>
   ${prochainRaid()}
@@ -488,24 +523,37 @@ function mesObjectifs() {
       : `<span class="doux">Rien en cours. Touche ici pour indiquer tes quêtes, ateliers, projets ou expéditions en cours.</span>`}</button>`;
 }
 
-// Le verdict en un mot, pour la liste (PuceVerdict, EcranObjets.kt) : Garder (objectifs), Build, Vendre ou Recycler.
+// Le verdict en un mot, pour la liste (PuceVerdict, EcranObjets.kt) : Garder (objectifs), Build, Vendre ou Recycler, encadré de sa couleur.
 function puceVerdict(v) {
-  if (v.type === "inutile") return `<span class="pv neutre" style="--p:var(--releve)">${v.sortie === "VENDRE" ? "Vendre" : "Recycler"}</span>`;
-  const [texte, c] = { garder: ["Garder", "--or"], build: ["Build", "--violet"] }[v.type];
+  const [texte, c] = v.type === "garder" ? ["Garder", "--vert"] : v.type === "build" ? ["Build", "--violet"] : v.sortie === "VENDRE" ? ["Vendre", "--or"] : ["Recycler", "--cyan"];
   return `<span class="pv" style="--p:var(${c})">${texte}</span>`;
 }
+// Pourquoi ce verdict, en une ligne : pour quel objectif ou quel build, ou ce qu'il rapporte.
+function raisonVerdict(o, v) {
+  if (v.type === "garder") return v.pour.length ? `Pour ${v.pour[0].libelle}${v.pour.length > 1 ? ` et ${pluriel(v.pour.length - 1, "autre", "autres")}` : ""}` : "Pour tes objectifs en cours";
+  if (v.type === "build") return `Pour le build «${NB}${v.builds[0].build}${NB}»`;
+  return v.sortie === "RECYCLER" ? `Ses matériaux valent ${valeurRecyclage(o)} pièces` : `Se vend ${o.valeur} pièces`;
+}
+// Filtres de la liste d'après le verdict (FiltreVerdict, Verdict.kt) : « Garder » compte aussi les objets des builds.
+const FILTRES = [["TOUS", "Tous"], ["GARDER", "Garder"], ["VENDRE", "Vendre"], ["RECYCLER", "Recycler"]];
+// « Recycler » seulement si au moins un objet rapporte plus recyclé que vendu (Conseiller.filtres) : jamais de filtre vide.
+const filtresObjets = () => FILTRES.filter(([k]) => k !== "RECYCLER" || tous.some(o => meilleureSortie(o) === "RECYCLER"));
+const accepte = (f, v) => f === "TOUS" || (f === "GARDER" ? v.type !== "inutile" : v.type === "inutile" && v.sortie === (f === "VENDRE" ? "VENDRE" : "RECYCLER"));
 
 function ecranObjets() {
-  const r = S.recherche.trim() ? rechercher(S.recherche, 200) : tous, objs = objectifs(), pourBuilds = aGarderBuilds();
-  const info = !S.recherche.trim() ? `${pluriel(r.length, "objet", "objets")} par ordre alphabétique. Touche un objet pour savoir à quoi il sert et où le trouver.`
-    : r.length ? pluriel(r.length, "objet trouvé", "objets trouvés") : "Aucun objet ne correspond.";
-  return `${bandeau("Objets", "--or")}<h3>Garder, recycler ou vendre${NB}?</h3>
+  const objs = objectifs(), pourBuilds = aGarderBuilds();
+  const r = (S.recherche.trim() ? rechercher(S.recherche, 200) : tous).map(o => [o, verdict(o.id, objs, pourBuilds)]).filter(([, v]) => accepte(S.filtre, v));
+  const info = !r.length ? "Aucun objet ne correspond."
+    : !S.recherche.trim() && S.filtre === "TOUS" ? `${pluriel(r.length, "objet", "objets")} par ordre alphabétique. Touche un objet pour savoir à quoi il sert et où le trouver.`
+    : pluriel(r.length, "objet trouvé", "objets trouvés");
+  return `${bandeauSection("OBJETS", "Garder, vendre ou recycler")}
   <label class="recherche"><svg class="ic" viewBox="0 0 24 24" style="color:var(--or)"><path d="${ONGLETS[1][3]}"/></svg>
   <input id="recherche-objets" type="search" placeholder="Cherche un objet…" value="${echap(S.recherche)}" data-champ="recherche" autocomplete="off"></label>
-  <p class="doux">${info}</p>
-  <div id="liste-objets" style="display:flex;flex-direction:column;gap:8px">${r.map(o => `<button class="carte ligne" style="padding:10px 12px" data-action="fiche" data-id="${o.id}">${icone(o.id, 48)}
-    <span class="flex"><span class="nom">${echap(o.nom)}</span><br><span class="petit doux">${echap([RARETES[o.rarete]?.[0], o.categorie].filter(Boolean).join(" · "))}</span></span>
-    <span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${puceVerdict(verdict(o.id, objs, pourBuilds))}</span></button>`).join("")}</div>`;
+  <div class="chips">${filtresObjets().map(([k, t]) => pf(t, S.filtre === k, "--or", "filtre", k)).join("")}</div>
+  <p class="doux" style="margin:0">${info}</p>
+  <div id="liste-objets" style="display:flex;flex-direction:column;gap:8px">${r.map(([o, v]) => `<button class="carte ligne" style="padding:10px 12px" data-action="fiche" data-id="${o.id}">${icone(o.id, 48)}
+    <span class="flex"><span class="nom">${echap(o.nom)}</span><br><span class="petit doux">${echap(raisonVerdict(o, v))}</span></span>
+    ${puceVerdict(v)}</button>`).join("")}</div>`;
 }
 
 // Fiche d'un objet, dans l'ordre où le joueur se pose les questions : verdict, à quoi il peut servir, où le trouver, ce qu'il rapporte.
@@ -516,7 +564,7 @@ function ecranFiche(id) {
   const o = objets.get(id), v = verdict(id), u = usages(id), vr = valeurRecyclage(o), rar = RARETES[o.rarete];
   const sortie = s => s === "RECYCLER" ? `recycle-le${NB}: ses matériaux valent ${vr} pièces, plus que l'objet (${o.valeur}).`
     : !o.recyclage.length ? `vends-le${NB}: il vaut ${o.valeur} pièces et ne se recycle pas.` : `vends-le${NB}: il vaut ${o.valeur} pièces, plus que ses matériaux (${vr}).`;
-  const c = v.type === "garder" ? { titre: "Garde-le", texte: `Il en faut encore ${v.manquant} pour tes objectifs en cours.`, fond: "--or", pour: v.pour, builds: v.builds }
+  const c = v.type === "garder" ? { titre: "Garde-le", texte: `Il en faut encore ${v.manquant} pour tes objectifs en cours.`, fond: "--vert", pour: v.pour, builds: v.builds }
     : v.type === "build" ? { titre: "Garde-le", texte: v.builds.every(b => b.direct) ? "Il fait partie de tes builds." : "Il sert à fabriquer ce qu'il y a dans tes builds.", fond: "--violet", builds: v.builds }
     : { titre: v.sortie === "VENDRE" ? "Vends-le" : "Recycle-le", texte: `Aucun objectif en cours ni aucun build n'en a besoin${NB}: ${sortie(v.sortie)}`, fond: "--releve",
       note: u.aucun ? null : `Il peut quand même servir${NB}: ${resumeUsages(u).join(", ")}. Le détail est plus bas.` };
@@ -592,14 +640,18 @@ function commentLObtenir(o) {
   return h;
 }
 
+// Une carte pliée, en traits (IconeCarte, EcranCartes.kt).
+const iconeCarte = c => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(${c})" stroke-width="2" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>`;
 function ecranCartes() {
   const regions = [["EUROPE", "Europe"], ["AMERIQUE_DU_NORD", "Amérique du Nord"], ["AMERIQUE_DU_SUD", "Amérique du Sud"], ["ASIE", "Asie"], ["OCEANIE", "Océanie"]];
-  return `${bandeau("Cartes", "--cyan")}<h2>Conditions de la carte</h2>
-  <div class="chips">${regions.map(([k, n]) => `<button class="chip" aria-pressed="${M.region === k}" data-action="region" data-region="${k}">${n}</button>`).join("")}</div>
-  <div class="note-apercu petit doux">Dans l'appli Android, cet onglet lit le calendrier officiel d'Embark (en cours, prochaines heures, prochaine fois, alertes). L'aperçu web ne peut pas joindre le site d'Embark${NB}: ouvre-le directement.</div>
+  return `${bandeauSection("CARTES", "Plans, zones et conditions")}
+  <div class="chips">${regions.map(([k, n]) => pf(n, M.region === k, "--cyan", "region", k)).join("")}</div>
+  <div class="note-apercu petit doux">Dans l'appli Android, cet onglet lit le calendrier officiel d'Embark${NB}: chaque carte avec ses conditions en cours et leur minuteur, les prochaines heures, la prochaine fois et les alertes. L'aperçu web ne peut pas joindre le site d'Embark${NB}: ouvre-le directement.</div>
   <a class="lien" style="--c:var(--cyan)" href="https://arcraiders.com/map-conditions" target="_blank" rel="noopener">Ouvrir le calendrier officiel</a>
-  <h4>Plans des cartes</h4><div class="apercus">${D.cartes.map(c => `<button data-action="plan" data-id="${c.id}"><img src="cartes/${c.id}.webp" alt="" loading="lazy"><span>${echap(c.nom)}</span></button>`).join("")}</div>
-  <h4>Conditions</h4>${[...D.conditions].sort((a, b) => b.majeure - a.majeure || a.nom.localeCompare(b.nom)).map(c => `<div class="carte ligne"><span class="puce" style="--r:var(${c.majeure ? "--rouge" : "--cyan"});background:none;padding:0"><i></i></span><span class="nom flex">${echap(c.nom)}</span></div>`).join("")}`;
+  ${etiquette("Conditions de la carte", "--cyan", "h4")}
+  ${D.cartes.map(c => `<button class="carte ligne" data-action="plan" data-id="${c.id}">${iconeCarte("--texte-discret")}<span class="flex"><span class="nom">${echap(c.nom)}</span><br><span class="petit discret">En direct dans l'appli Android</span></span><span aria-hidden="true" style="color:var(--texte-discret);font:700 20px var(--titre)">›</span></button>`).join("")}
+  ${etiquette("Plans des cartes", "--cyan", "h4")}<div class="apercus">${D.cartes.map(c => `<button data-action="plan" data-id="${c.id}"><img src="cartes/${c.id}.webp" alt="" loading="lazy"><span>${echap(c.nom)}</span></button>`).join("")}</div>
+  ${etiquette("Toutes les conditions", "--cyan", "h4")}${[...D.conditions].sort((a, b) => b.majeure - a.majeure || a.nom.localeCompare(b.nom)).map(c => `<div class="carte ligne"><span class="puce" style="--r:var(${c.majeure ? "--rouge" : "--cyan"});background:none;padding:0"><i></i></span><span class="nom flex">${echap(c.nom)}</span></div>`).join("")}`;
 }
 
 // ---- Plan interactif d'une carte (EcranPlan.kt) ----
@@ -698,8 +750,8 @@ addEventListener("resize", () => { if (S.ecran === "plan") placerPlan(); });
 
 // ---- Onglet Objectifs (EcranObjectifs.kt) : tout est fait d'office, sauf ce que le joueur indique en cours.
 // Au départ, il n'y a que les quatre boutons ; ce qui est en cours s'affiche dessous ----
-const CHOIX_EN_COURS = [["quetes", "Indiquer mes quêtes en cours", "Mes quêtes en cours"], ["ateliers", "Indiquer mes ateliers en cours", "Mes ateliers en cours"],
-  ["projets", "Indiquer mes projets en cours", "Mes projets en cours"], ["expeditions", "Indiquer mes expéditions en cours", "Mes expéditions en cours"]];
+const CHOIX_EN_COURS = [["quetes", "Indiquer mes quêtes en cours", "Mes quêtes"], ["ateliers", "Indiquer mes ateliers en cours", "Mes ateliers"],
+  ["projets", "Indiquer mes projets en cours", "Mes projets"], ["expeditions", "Indiquer mes expéditions en cours", "Mes expéditions"]];
 function nombreEnCours(choix) {
   if (choix === "quetes") return quetesEnCours().length;
   if (choix === "ateliers") return D.etablis.filter(e => niveauEnCours(e) != null).length;
@@ -708,20 +760,22 @@ function nombreEnCours(choix) {
 const coche = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
 function ecranObjectifs() {
   const l = listeDeCourses(), objs = objectifs();
-  return `${bandeau("Objectifs", "--vert")}<h2>Objectifs</h2>
+  return `${bandeauSection("OBJECTIFS", objs.length ? pluriel(objs.length, "objectif en cours", "objectifs en cours") : "Rien en cours")}
   <p class="doux" style="margin:0">Tout ce que tu n'indiques pas est considéré comme déjà fait. Indique ce que tu as en cours${NB}: ce que tu rapportes de raid s'y ajoute, et tout se valide tout seul.</p>
-  ${CHOIX_EN_COURS.map(([cle, bouton]) => { const n = nombreEnCours(cle); return `<button class="choix-en-cours" data-action="en-cours" data-id="${cle}"><span class="flex"><b>${bouton}</b><br><span class="petit" style="font-weight:600;color:var(${n ? "--vert" : "--texte-discret"})">${n ? `${n} en cours` : "Rien en cours"}</span></span><span aria-hidden="true" style="color:var(--vert);font:700 22px var(--titre)">›</span></button>`; }).join("")}
+  <div class="grille-2">${CHOIX_EN_COURS.map(([cle, bouton, court]) => { const n = nombreEnCours(cle); return `<button class="choix-en-cours" data-action="en-cours" data-id="${cle}" aria-label="${bouton}${NB}: ${n ? `${n} en cours` : "rien en cours"}"><span class="flex"><b>${court}</b><br><span class="petit" style="font-weight:600;color:var(${n ? "--vert" : "--texte-discret"})">${n ? `${n} en cours` : "Rien en cours"}</span></span><span aria-hidden="true" style="color:var(--vert);font:700 22px var(--titre)">›</span></button>`; }).join("")}</div>
   ${objs.length ? `<button class="carte" data-action="onglet" data-onglet="RAID" style="display:flex;flex-direction:column;gap:8px;padding:16px;margin-top:8px">
     <span class="ligne"><b class="flex" style="font:600 14px var(--titre)">${pluriel(objs.length, "objectif en cours", "objectifs en cours")} · ${pluriel(l.lignes.filter(x => !x.complet).length, "objet", "objets")} à trouver</b><b style="font:700 14px var(--titre);color:var(--rouge)">Raid ›</b></span>
     <span class="barre" style="height:8px;--c:var(--vert)"><i style="width:${l.progression * 100}%"></i></span></button>
-  <h4>En cours</h4>
+  ${etiquette("En cours", "--vert", "h4")}
   ${objs.map(carteObjectif).join("")}` : ""}`;
 }
 // Un objectif en cours (CarteObjectif) : la même carte dans l'onglet Objectifs et dans l'onglet Raid.
 function carteObjectif(o) {
-  const q = o.type === "quete" ? quetes.get(o.id) : null, autres = o.type === "projet" ? projets.get(o.id)?.etapes[o.etape]?.autresObjectifs : 0, vide = !besoins(o).length;
-  return `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="nom">${echap(libelle(o))}</span>${q?.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}
-    <span class="petit" style="color:var(${vide ? "--texte-doux" : "--or"})">${vide ? `Rien à rapporter${NB}: valide-le quand c'est fait en jeu.` : detailAvancement(o)}</span>${autres ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}
+  const q = o.type === "quete" ? quetes.get(o.id) : null, autres = o.type === "projet" ? projets.get(o.id)?.etapes[o.etape]?.autresObjectifs : 0, b = besoins(o), vide = !b.length;
+  const voulu = b.reduce((n, x) => n + x.quantite, 0), rapporte = b.reduce((n, x) => n + Math.min(apporteDe(o, x.id), x.quantite), 0);
+  return `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="ligne" style="align-items:flex-start;gap:8px"><span class="nom flex">${echap(libelle(o))}</span>${voulu ? `<b style="font:600 14px var(--titre);color:var(--vert);font-variant-numeric:tabular-nums">${rapporte}/${voulu}</b>` : ""}</span>${q?.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}
+    ${voulu ? `<span class="barre" style="--c:var(--vert)"><i style="width:${rapporte / voulu * 100}%"></i></span>` : ""}
+    <span class="petit doux">${vide ? `Rien à rapporter${NB}: valide-le quand c'est fait en jeu.` : detailAvancement(o)}</span>${autres ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}
     <button class="valider" data-action="valider-objectif" data-cle="${cleObjectif(o)}" aria-label="C'est fait${NB}: ${echap(libelle(o))}">${coche}C'est fait</button></div>`;
 }
 
@@ -831,25 +885,26 @@ function ecranOngletRaid() {
   let detaillees = conseil.parcours.map(e => conseil.cartes.find(c => c.carteId === e.carteId)).filter(Boolean);
   if (!detaillees.length) detaillees = conseil.cartes.slice(0, 1);
   const autres = conseil.cartes.filter(c => !detaillees.includes(c)), avecButin = new Set(conseil.cartes.flatMap(c => c.objets)).size;
-  const couverts = conseil.parcours.reduce((n, e) => n + e.objets.length, 0);
-  return `${bandeau("Raid", "--rouge")}<h2>Préparer mon raid</h2>
-  <p class="doux" style="margin:0">${restants.length ? `${pluriel(restants.length, "objet", "objets")} à trouver pour tes objectifs en cours. Voici où aller.`
-    : objs.length ? `Rien à chercher en raid${NB}: tes objectifs en cours ne demandent aucun objet à rapporter.` : "Rien à chercher pour l'instant."}</p>
-  ${restants.length ? `<button class="bouton large" data-action="raid">Retour de raid${NB}: ajouter mon butin</button>` : ""}
-  ${objs.length ? `<div class="ligne" style="margin-top:8px"><h4 class="flex" style="margin:0">Mes objectifs</h4><button class="lien" style="--c:var(--vert)" data-action="onglet" data-onglet="OBJECTIFS">Modifier</button></div>
+  const couverts = conseil.parcours.reduce((n, e) => n + e.objets.length, 0), meilleure = conseil.cartes[0];
+  return `${bandeauSection("RAID", restants.length ? `${pluriel(restants.length, "objet", "objets")} à trouver` : objs.length ? "Rien à chercher en raid" : "Rien à chercher pour l'instant")}
+  ${restants.length ? "" : `<p class="doux" style="margin:0">${objs.length ? "Tes objectifs en cours ne demandent aucun objet à rapporter." : "Rien à chercher pour l'instant."}</p>`}
+  ${meilleure ? `<div class="prochain plein"><small>MEILLEURE CARTE</small><strong>${echap(nomC(meilleure.carteId))}</strong>
+    <b>${meilleure.objets.length} de tes ${pluriel(restants.length, "objet", "objets")} à trouver${meilleure.zones[0] ? ` · surtout ${echap(meilleure.zones[0].zone)}` : ""}</b></div>` : ""}
+  ${liste.length ? `${etiquette("Ce qu'il te faut", "--rouge", "h4")}
+  ${liste.map(ligneATrouver).join("")}` : ""}
+  ${restants.length ? `<button class="bouton large contour" style="--c:var(--rouge)" data-action="raid">Retour de raid${NB}: ajouter mon butin</button>` : ""}
+  ${objs.length ? `<div class="ligne" style="margin-top:8px"><span class="etiquette flex" style="--c:var(--vert)">Mes objectifs</span><button class="lien" style="--c:var(--vert)" data-action="onglet" data-onglet="OBJECTIFS">Modifier</button></div>
   ${objs.map(carteObjectif).join("")}` : ""}
   ${!objs.length ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:8px;padding:16px"><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira sur quelle carte aller et où chercher.</span>
     <button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="onglet" data-onglet="OBJECTIFS">Indiquer mes objectifs</button></div>` : ""}
-  ${detaillees.length ? `<h4>Où aller</h4>
+  ${detaillees.length ? `${etiquette("Où aller", "--rouge", "h4")}
   ${conseil.parcours.length > 1 ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:4px;padding:14px"><b style="color:var(--rouge);font-family:var(--titre)">Pour tout trouver</b>
     ${conseil.parcours.map((e, i) => `<span>${i + 1}. ${echap(nomC(e.carteId))} · ${i ? "+ " : ""}${pluriel(e.objets.length, "objet", "objets")}</span>`).join("")}
     ${couverts < avecButin ? `<span class="petit doux">${pluriel(avecButin - couverts, "autre objet", "autres objets")} sur d'autres cartes.</span>` : ""}</div>` : ""}
   ${detaillees.map(c => carteRaid(c, avecButin, c === conseil.cartes[0])).join("")}
   ${autres.length ? `<p class="doux" style="margin:0">Aussi${NB}: ${echap(autres.map(c => `${nomC(c.carteId)} (${pluriel(c.objets.length, "objet", "objets")})`).join(" · "))}</p>` : ""}
   <p class="petit discret" style="margin:0">Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs. Les conditions en cours sur chaque carte s'affichent dans l'appli Android.</p>` : ""}
-  ${liste.length ? `<h4>Ce qu'il te faut</h4>
-  ${liste.map(ligneATrouver).join("")}` : ""}
-  ${conseil.sansButin.length ? `<h4>Pas dans le butin</h4>${conseil.sansButin.map(id => `<button class="carte ligne" style="padding:10px;text-align:left" data-action="fiche" data-id="${id}">${icone(id, 36)}<span class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit doux">${echap(autreMoyen(objets.get(id)))}</span></span></button>`).join("")}` : ""}`;
+  ${conseil.sansButin.length ? `${etiquette("Pas dans le butin", "--rouge", "h4")}${conseil.sansButin.map(id => `<button class="carte ligne" style="padding:10px;text-align:left" data-action="fiche" data-id="${id}">${icone(id, 36)}<span class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit doux">${echap(autreMoyen(objets.get(id)))}</span></span></button>`).join("")}` : ""}`;
 }
 
 // Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien on en a sur
@@ -871,20 +926,19 @@ function carteRaid(c, total, meilleure) {
     ${c.zones.length ? `<h5>Où chercher</h5>${c.zones.map(z => `<button class="carte ligne" style="background:var(--releve);padding:8px 10px;text-align:left" data-action="plan-zone" data-id="${c.carteId}" data-zone="${echap(z.zone)}"><span class="flex"><b>${echap(z.zone)}</b><br><span class="petit doux">${echap(z.objets.map(nomObjet).join(" · "))}</span></span><small style="color:var(--cyan)">Plan ›</small></button>`).join("")}` : ""}</div>`;
 }
 
-// ---- Mes builds (EcranBuilds.kt) : six builds, un nom et un objet par case ----
+// ---- Mes builds (EcranBuilds.kt) : six builds, une puce par build, ses cases en grille ----
 function ecranBuilds() {
-  const liste = builds();
-  return `${bandeau("Builds", "--violet")}<h2>Mes builds</h2>
-  <p class="doux" style="margin:0">Prépare jusqu'à six builds. Leurs objets, et tout ce qu'il faut pour les fabriquer, ne sont plus proposés à la vente.</p>
-  ${liste.map((b, i) => {
-    const mat = [...aGarderBuilds([b]).entries()].filter(([, u]) => u.every(x => !x.direct)).map(([id]) => id);
-    return `<div class="carte" style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:20px">
-    <label class="petit doux" style="font-weight:600">Nom du build<input class="champ" type="text" maxlength="30" placeholder="Build ${i + 1}" value="${echap(b.nom)}" data-build-nom="${i}" style="margin-top:4px"></label>
-    ${CASES.map(([cle, nom]) => { const id = b.objets[cle]; return `<div class="case-build"><span class="etiquette">${nom}</span>${id
-      ? `<button class="flex" data-action="build-case" data-id="${i}" data-case="${cle}">${icone(id, 36)}<span class="nom" style="font-size:15px">${echap(nomObjet(id))}</span></button><button class="retour" style="color:var(--violet)" data-action="fiche" data-id="${id}" aria-label="Fiche${NB}: ${echap(nomObjet(id))}">ⓘ</button><button class="retour" data-action="build-vider" data-id="${i}" data-case="${cle}" aria-label="Vider la case ${nom}">✕</button>`
-      : `<button class="flex discret" data-action="build-case" data-id="${i}" data-case="${cle}">Choisir…</button>`}</div>`; }).join("")}
-    ${mat.length ? `<span class="petit" style="color:var(--violet)">À garder pour fabriquer ce build${NB}: ${echap(mat.slice(0, 6).map(nomObjet).join(", "))}${mat.length > 6 ? ` et ${pluriel(mat.length - 6, "autre", "autres")}` : ""}.</span>` : ""}</div>`;
-  }).join("")}`;
+  const liste = builds(), i = Math.min(S.build, liste.length - 1), b = liste[i];
+  const mat = [...aGarderBuilds([b]).entries()].filter(([, u]) => u.every(x => !x.direct)).map(([id]) => id);
+  return `${bandeauSection("BUILDS", `Mes ${liste.length} builds`)}
+  <p class="doux" style="margin:0">Leurs objets, et tout ce qu'il faut pour les fabriquer, ne sont plus proposés à la vente.</p>
+  <div class="chips">${liste.map((x, k) => pf(nomBuild(x, k), k === i, "--violet", "build", k)).join("")}</div>
+  <label class="petit doux" style="font-weight:600">Nom du build<input class="champ" type="text" maxlength="30" placeholder="Build ${i + 1}" value="${echap(b.nom)}" data-build-nom="${i}" style="margin-top:4px"></label>
+  <div class="grille-2">${CASES.map(([cle, nom]) => { const id = b.objets[cle]; return `<button class="case-build" data-action="build-case" data-id="${i}" data-case="${cle}">${id ? icone(id, 44) : `<span class="vide"></span>`}
+    <span class="flex" style="min-width:0">${etiquette(nom, "--violet")}<br><span class="nom" style="font-size:14px;color:var(${id ? "--texte" : "--texte-discret"})">${id ? echap(nomObjet(id)) : "Choisir"}</span></span></button>`; }).join("")}</div>
+  ${mat.length ? `<div class="carte" style="display:flex;flex-direction:column;gap:6px;padding:14px 16px">${etiquette("Pour le fabriquer", "--violet")}
+    <span>${echap(mat.slice(0, 6).map(nomObjet).join(" · "))}${mat.length > 6 ? ` et ${pluriel(mat.length - 6, "autre", "autres")}` : ""}</span>
+    <span class="petit doux">À garder${NB}: ils ne sont plus proposés à la vente.</span></div>` : ""}`;
 }
 // Choix de l'objet d'une case : seulement les objets de son emplacement (EcranChoixObjetBuild).
 function ecranChoixBuild() {
@@ -892,7 +946,7 @@ function ecranChoixBuild() {
   const k = normaliser(S.rechercheBuild), liste = choixCase(cle).filter(o => !k || normaliser(o.nom).includes(k));
   return `${retour("Builds", "--violet")}<h3>${echap(nomBuild(b, rang))} · ${nomCase}</h3>
   <label class="recherche" style="--f:var(--violet)"><svg class="ic" viewBox="0 0 24 24" style="color:var(--violet)"><path d="${ONGLETS[1][3]}"/></svg><input id="recherche-build" type="search" placeholder="Chercher…" value="${echap(S.rechercheBuild)}" data-champ="rechercheBuild" autocomplete="off"></label>
-  ${actuel ? `<button class="carte" style="background:var(--releve)" data-action="build-choisir" data-id="">Vider la case</button>` : ""}
+  ${actuel ? `<div class="grille-2"><button class="carte" style="background:var(--releve)" data-action="fiche" data-id="${actuel}"><span style="color:var(--violet)">ⓘ</span> Voir la fiche</button><button class="carte doux" style="background:var(--releve)" data-action="build-choisir" data-id="">✕ Vider la case</button></div>` : ""}
   ${liste.length ? "" : `<p class="doux">Aucun objet ne correspond.</p>`}
   ${liste.map(o => `<button class="carte ligne" style="padding:10px;${o.id === actuel ? "background:var(--releve)" : ""}" data-action="build-choisir" data-id="${o.id}">${icone(o.id, 44)}
     <span class="flex"><span class="nom">${echap(o.nom)}</span><br><span class="petit doux">${echap([RARETES[o.rarete]?.[0], o.categorie].filter(Boolean).join(" · "))}</span></span>${o.id === actuel ? `<span role="img" aria-label="Choisi" style="color:var(--violet);font:700 22px var(--titre)">✓</span>` : ""}</button>`).join("")}`;
@@ -955,7 +1009,7 @@ function bandeauValidation() {
   if (!v || S.celebration) return "";
   const detail = v.objetsNotes ? `${pluriel(v.objetsNotes, "objet noté", "objets notés")}${v.termines.length ? `, ${pluriel(v.termines.length, "objectif terminé", "objectifs terminés")}` : ""}.`
     : v.termines.length ? `Tout était rapporté aussi pour${NB}: ${v.termines.map(libelle).join(", ")}.` : "La suite s'ajoute à tes objectifs.";
-  return `<div class="bandeau-validation" role="status"><div><div class="flex" style="min-width:0"><b style="font:600 14px var(--titre)">Validé${NB}: ${echap(v.titre)}</b><br><span class="petit doux">${echap(detail)}</span></div>
+  return `<div class="bandeau-validation" role="status"><div><div class="flex" style="min-width:0">${etiquette(v.objetsNotes && !v.termines.length ? "Validé" : "Objectif terminé", "--sur-couleur")}<br><b style="font:600 14px var(--titre)">${echap(v.titre)}</b><br><span class="petit">${echap(detail)}</span></div>
   <button class="lien" data-action="annuler-validation">Annuler</button></div></div>`;
 }
 let minuterieValidation = null;
@@ -1028,12 +1082,13 @@ document.addEventListener("click", ev => {
     case "annuler-raid": M.apports = JSON.parse(JSON.stringify(S.raid.avant)); S.raid.saisis = {}; break;
     case "valider-retour": S.ecran = null; break;
     case "fin-celebration": S.celebration = null; if (S.validation) montrerValidation(S.validation); rendre(); return;
-    case "region": M.region = b.dataset.region; break;
+    case "region": M.region = id; break;
+    case "filtre": S.filtre = id; rendre(); return;
+    case "build": S.build = +id; rendre(); return;
     case "niveau-en-cours": indiquerNiveau(etablis.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
     case "etape-en-cours": indiquerEtape(projets.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
     case "valider-objectif": valider(objectifDepuisCle(b.dataset.cle)); break;
     case "build-case": S.caseBuild = { rang: +id, cle: b.dataset.case }; S.rechercheBuild = ""; return ouvrir("choix-build");
-    case "build-vider": changerBuild(+id, x => { delete x.objets[b.dataset.case]; }); break;
     case "build-choisir": { const { rang, cle } = S.caseBuild; changerBuild(rang, x => { if (id) x.objets[cle] = id; else delete x.objets[cle]; }); S.ecran = null; break; }
     case "annuler-validation": if (S.validation) { charger(S.validation.avant); S.validation = null; } break;
     case "plan": Object.assign(P, { id, e: 1, dx: 0, dy: 0, depuis: null }); S.recherchePlan = ""; return ouvrir("plan");

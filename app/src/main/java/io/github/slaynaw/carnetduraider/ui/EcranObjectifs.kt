@@ -51,11 +51,11 @@ import io.github.slaynaw.carnetduraider.core.cle
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
 /** Ce que le joueur peut indiquer en cours, chacun avec sa liste complète. */
-enum class ChoixEnCours(val bouton: String, val titre: String) {
-    QUETES("Indiquer mes quêtes en cours", "Mes quêtes en cours"),
-    ATELIERS("Indiquer mes ateliers en cours", "Mes ateliers en cours"),
-    PROJETS("Indiquer mes projets en cours", "Mes projets en cours"),
-    EXPEDITIONS("Indiquer mes expéditions en cours", "Mes expéditions en cours"),
+enum class ChoixEnCours(val bouton: String, val court: String, val titre: String) {
+    QUETES("Indiquer mes quêtes en cours", "Mes quêtes", "Mes quêtes en cours"),
+    ATELIERS("Indiquer mes ateliers en cours", "Mes ateliers", "Mes ateliers en cours"),
+    PROJETS("Indiquer mes projets en cours", "Mes projets", "Mes projets en cours"),
+    EXPEDITIONS("Indiquer mes expéditions en cours", "Mes expéditions", "Mes expéditions en cours"),
 }
 
 /** Nombre d'éléments indiqués en cours pour ce choix. */
@@ -78,13 +78,15 @@ fun EcranObjectifs(vm: CarnetViewModel, choisir: (ChoixEnCours) -> Unit, voirRai
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 96.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Bandeau("Objectifs", Signal.Vert)
-                Text("Objectifs", style = MaterialTheme.typography.headlineLarge)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                BandeauSection(
+                    Onglet.OBJECTIFS,
+                    if (objectifs.isEmpty()) "Rien en cours" else pluriel(objectifs.size, "objectif en cours", "objectifs en cours"),
+                )
                 Text(
                     "Tout ce que tu n'indiques pas est considéré comme déjà fait. Indique ce que tu as en cours\u00a0: " +
                         "ce que tu rapportes de raid s'y ajoute, et tout se valide tout seul.",
@@ -93,13 +95,18 @@ fun EcranObjectifs(vm: CarnetViewModel, choisir: (ChoixEnCours) -> Unit, voirRai
                 )
             }
         }
-        items(ChoixEnCours.entries, key = { "choix-${it.name}" }) { choix ->
-            BoutonEnCours(choix, nombreEnCours(vm, choix), onClick = { choisir(choix) })
+        // Les quatre boutons, deux par ligne.
+        items(ChoixEnCours.entries.chunked(2), key = { "choix-${it.first().name}" }) { ligne ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ligne.forEach { choix ->
+                    BoutonEnCours(choix, nombreEnCours(vm, choix), onClick = { choisir(choix) }, modifier = Modifier.weight(1f))
+                }
+            }
         }
 
         if (objectifs.isNotEmpty()) {
             item {
-                Surface(onClick = voirRaid, color = Signal.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Surface(onClick = voirRaid, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -113,7 +120,7 @@ fun EcranObjectifs(vm: CarnetViewModel, choisir: (ChoixEnCours) -> Unit, voirRai
                     }
                 }
             }
-            item { Text("En cours", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
+            item { Etiquette("En cours", Signal.Vert, Modifier.padding(top = 8.dp)) }
             items(objectifs, key = { "objectif-${it.cle}" }) { objectif -> CarteObjectif(vm, objectif) }
         }
     }
@@ -121,11 +128,16 @@ fun EcranObjectifs(vm: CarnetViewModel, choisir: (ChoixEnCours) -> Unit, voirRai
 
 /** Un des quatre boutons : vers la liste complète, avec le nombre d'éléments en cours. */
 @Composable
-private fun BoutonEnCours(choix: ChoixEnCours, enCours: Int, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = Signal.Releve, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun BoutonEnCours(choix: ChoixEnCours, enCours: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        color = Signal.Releve,
+        shape = RoundedCornerShape(6.dp),
+        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = choix.bouton },
+    ) {
+        Row(Modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(choix.bouton, style = MaterialTheme.typography.titleMedium)
+                Text(choix.court, style = MaterialTheme.typography.titleSmall, maxLines = 1)
                 Text(
                     if (enCours == 0) "Rien en cours" else "$enCours en cours",
                     style = MaterialTheme.typography.labelMedium,
@@ -160,14 +172,23 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
     val autres = (objectif as? Objectif.EtapeDeProjet)
         ?.let { vm.catalogue.projet(it.projetId)?.etapes?.getOrNull(it.etape)?.autresObjectifs } ?: 0
     val commercant = (objectif as? Objectif.QueteATerminer)?.let { vm.catalogue.quete(it.queteId)?.commercant }
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+    val apporte = vm.apports[objectif.cle].orEmpty()
+    val voulu = besoins.sumOf { it.quantite }
+    val rapporte = besoins.sumOf { minOf(apporte[it.id] ?: 0, it.quantite) }
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (voulu > 0) {
+                    Text("$rapporte/$voulu", style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.Vert)
+                }
+            }
             commercant?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
+            if (voulu > 0) Barre(rapporte.toFloat() / voulu, Signal.Vert)
             Text(
                 if (besoins.isEmpty()) "Rien à rapporter\u00a0: valide-le quand c'est fait en jeu." else detailAvancement(vm, objectif),
                 style = MaterialTheme.typography.bodySmall,
-                color = if (besoins.isEmpty()) Signal.TexteDoux else Signal.Or,
+                color = Signal.TexteDoux,
             )
             if (autres > 0) {
                 Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
@@ -263,7 +284,7 @@ fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
             Surface(
                 onClick = { choix = if (coche) choix - quete.id else choix + quete.id },
                 color = Signal.Surface,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(6.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(Modifier.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -311,7 +332,7 @@ fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
 @Composable
 private fun ChoixEtabli(vm: CarnetViewModel, etabli: Etabli) {
     val enCours = vm.suivi.niveauEnCours(vm.progression, etabli)
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(etabli.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -361,7 +382,7 @@ fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () 
 @Composable
 private fun ChoixProjet(vm: CarnetViewModel, projet: Projet) {
     val enCours = vm.suivi.etapeEnCours(vm.progression, projet)
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(projet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

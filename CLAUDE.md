@@ -69,14 +69,18 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   manque encore) ou à un build du joueur (dans le build, ou pour le fabriquer ou l'améliorer, de proche
   en proche : `Builds.aGarder`). Sinon il est à vendre ou à recycler (ce qui rapporte le plus), et sa
   fiche dit quand même à quoi il peut servir (`Usages`, « À quoi il peut servir »). Le verdict s'affiche
-  aussi dans la liste des objets.
+  aussi dans la liste des objets, avec sa raison et des filtres (`FiltreVerdict`, `Conseiller.filtres` :
+  « Recycler » seulement si un objet rapporte plus recyclé que vendu, aucun avec les données actuelles).
 - `app/` : interface Jetpack Compose, style « Signal » (`ui/theme/Theme.kt`) : fond sombre, et une
   couleur par domaine — or pour les objets, cyan pour les cartes, vert pour les objectifs, rouge pour
   le raid et les ARC, violet pour les builds. Six onglets : Accueil, Objets, Raid, Cartes, Objectifs,
   Builds ; le joueur doit en faire le moins possible (rien à préparer, un geste pour valider ou noter un
   objet trouvé). Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
   En-tête commun à toutes les sections (`EnTete` : logo, nom, réglages) ; objets affichés avec leur
-  icône sur une tuile aux couleurs de leur rareté (`IconeObjet`).
+  icône sur une tuile aux couleurs de leur rareté (`IconeObjet`). Chaque onglet s'ouvre sur un bandeau de
+  sa couleur (`BandeauSection` : code « 0N / … » de `Onglet.code`, nom en capitales, motif propre à la
+  section, coin coupé), l'onglet actif prend la même couleur ; cartes à coins presque droits (6 dp), cartes
+  mises en avant au coin coupé (`FormeCoupee`), petites étiquettes en capitales (`Etiquette`).
 - **Pas de réserve** (rien de ce que le joueur a « en stock ») : il ne note que ce qu'il rapporte de raid,
   au retour de raid. Ce qu'il a en cours, ce qui a été rapporté pour chaque objectif et ses builds sont
   gardés dans l'appli (`Memoire`) : l'appli ne se connecte jamais au compte Embark et ne touche jamais au
@@ -90,8 +94,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   (600 000 tours) + AES-256-GCM, en-tête authentifié ; mot de passe jamais enregistré, clé dérivée gardée
   chiffrée par le Keystore d'Android. L'appli n'ouvre aucune connexion pour cela. Pas de sauvegarde
   sur GitHub : écrire sur GitHub exige un jeton, qu'on ne peut pas mettre dans un APK public.
-- Objectifs (`core/Progression.kt`, `ui/EcranObjectifs.kt`) : quatre boutons seulement au départ,
-  « Indiquer mes quêtes / ateliers / projets / expéditions en cours », chacun vers la liste complète.
+- Objectifs (`core/Progression.kt`, `ui/EcranObjectifs.kt`) : quatre boutons seulement au départ, sur
+  deux lignes (« Mes quêtes / ateliers / projets / expéditions », libellé accessible « Indiquer mes … en
+  cours »), chacun vers la liste complète.
   Le joueur coche ses quêtes en cours (tout le reste est fait d'office, sauf ce qui vient après :
   `SuiviProgression.indiquerQuetesEnCours`), choisit le niveau en cours de chaque établi
   (`indiquerNiveauEnCours`) et l'étape en cours de chaque projet ou Expédition (`indiquerEtapeEnCours`,
@@ -100,8 +105,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   suivant, quêtes suivantes d'après l'enchaînement `requiert`, étape suivante). Ce qui est fait autrement
   se valide en un geste (« C'est fait », `CarnetViewModel.valider`), avec « Annuler » : jamais de saisie
   obligatoire.
-- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds, un nom et un objet par case (Module,
-  Bouclier, Arme 1, Arme 2, Soins, Grenades, Divers), d'après `Objet.emplacement` (famille de l'objet
+- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build, le build choisi
+  dessous, ses cases en grille), un nom et un objet par case (Module, Bouclier, Arme 1, Arme 2, Soins,
+  Grenades, Divers ; la fiche et « Vider la case » sont dans le choix de l'objet), d'après `Objet.emplacement` (famille de l'objet
   dans le jeu, produit par le script) ; matériaux d'après les recettes et `Obtention.amelioration`
   (arme du niveau d'avant et coût de l'amélioration). `Memoire`, clé « builds » (JSON).
 - Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Il

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
@@ -35,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleStartEffect
@@ -46,16 +46,16 @@ import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import kotlinx.coroutines.delay
 
 /**
- * Les six onglets, chacun avec sa couleur : ce qui compte maintenant, garder ou vendre un objet, où
- * aller au prochain raid, les cartes, ce qu'on a en cours, et ses builds.
+ * Les six onglets, chacun avec sa couleur et le code de son bandeau ([BandeauSection]) : ce qui compte
+ * maintenant, garder ou vendre un objet, où aller au prochain raid, les cartes, ce qu'on a en cours, et ses builds.
  */
-enum class Onglet(val titre: String, val icone: ImageVector, val couleur: Color) {
-    ACCUEIL("Accueil", Icons.Filled.Home, Signal.Texte),
-    OBJETS("Objets", Icons.Filled.Search, Signal.Or),
-    RAID("Raid", Icons.Filled.ShoppingCart, Signal.Rouge),
-    CARTES("Cartes", Icons.Filled.Place, Signal.Cyan),
-    OBJECTIFS("Objectifs", Icons.Filled.CheckCircle, Signal.Vert),
-    BUILDS("Builds", Icons.Filled.Build, Signal.Violet),
+enum class Onglet(val titre: String, val code: String, val icone: ImageVector, val couleur: Color) {
+    ACCUEIL("Accueil", "01 / BASE", Icons.Filled.Home, Signal.Texte),
+    OBJETS("Objets", "02 / INVENTAIRE", Icons.Filled.Search, Signal.Or),
+    RAID("Raid", "03 / OPÉRATION", Icons.Filled.ShoppingCart, Signal.Rouge),
+    CARTES("Cartes", "04 / TERRAIN", Icons.Filled.Place, Signal.Cyan),
+    OBJECTIFS("Objectifs", "05 / MISSIONS", Icons.Filled.CheckCircle, Signal.Vert),
+    BUILDS("Builds", "06 / ARSENAL", Icons.Filled.Build, Signal.Violet),
 }
 
 @Composable
@@ -157,7 +157,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                             label = { Text(o.titre, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Signal.SurCouleur,
-                                selectedTextColor = Signal.Texte,
+                                selectedTextColor = o.couleur,
                                 indicatorColor = o.couleur,
                                 unselectedIconColor = Signal.TexteDoux,
                                 unselectedTextColor = Signal.TexteDoux,
@@ -191,7 +191,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                     }
                     choixBuild != null -> {
                         val (rang, case) = choixBuild!!.split(':').let { it[0].toInt() to CaseBuild.valueOf(it[1]) }
-                        EcranChoixObjetBuild(vm, rang, case, onRetour = { choixBuild = null })
+                        EcranChoixObjetBuild(vm, rang, case, onRetour = { choixBuild = null }, ouvrir = { objetOuvert = it })
                     }
                     retourRaid -> EcranRetourRaid(vm, onRetour = { retourRaid = false })
                     reglages -> EcranReglages(
@@ -225,11 +225,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                             planOuvert = it
                         })
                         Onglet.OBJECTIFS -> EcranObjectifs(vm, choisir = { choixEnCours = it }, voirRaid = { aller(Onglet.RAID) })
-                        Onglet.BUILDS -> EcranBuilds(
-                            vm,
-                            choisir = { rang, case -> choixBuild = "$rang:${case.name}" },
-                            ouvrir = { objetOuvert = it },
-                        )
+                        Onglet.BUILDS -> EcranBuilds(vm, choisir = { rang, case -> choixBuild = "$rang:${case.name}" })
                     }
                 }
                 // Après une validation (retour de raid, niveau construit…) : « Annuler » pendant quelques secondes.
@@ -268,18 +264,21 @@ private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier
             "Tout était rapporté aussi pour\u00a0: ${validation.termines.joinToString(", ") { vm.planificateur.libelle(it) }}."
         else -> "La suite s'ajoute à tes objectifs."
     }
+    // Bande verte au coin coupé, comme « OBJECTIF TERMINÉ » dans le jeu.
     Surface(
-        color = Signal.Releve,
-        shape = RoundedCornerShape(16.dp),
+        color = Signal.Vert,
+        contentColor = Signal.SurCouleur,
+        shape = FormeCoupee,
         shadowElevation = 6.dp,
         modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
     ) {
-        Row(Modifier.padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(start = 16.dp, end = 6.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Validé\u00a0: ${validation.titre}", style = MaterialTheme.typography.titleSmall)
-                Text(detail, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                Etiquette(if (validation.objetsNotes > 0 && validation.termines.isEmpty()) "Validé" else "Objectif terminé", Signal.SurCouleur)
+                Text(validation.titre, style = MaterialTheme.typography.titleSmall)
+                Text(detail, style = MaterialTheme.typography.bodySmall)
             }
-            TextButton(onClick = vm::annulerValidation) { Text("Annuler", color = Signal.Or) }
+            TextButton(onClick = vm::annulerValidation) { Text("Annuler", color = Signal.SurCouleur, fontWeight = FontWeight.Bold) }
         }
     }
 }
