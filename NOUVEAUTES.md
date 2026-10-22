@@ -8,7 +8,7 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 ## 0.10.2
 
 - **Quêtes cachées retirées** : « Déverrouillage de contenu du Portail bleu » n'est pas une vraie quête, mais un déblocage que le jeu fait tout seul après quelques manches. Elle ne s'affiche plus, et les quêtes qui la suivent arrivent directement. Si tu l'avais en cours, ses suites prennent sa place.
-- **Plus de « Nom à vérifier en jeu » dans tes objectifs** : les objectifs ne demandent plus que de vrais objets, et « Sheet Metal » (étape 2 de « À l'abri ») s'affiche avec son nom, tel qu'il apparaît dans le jeu en français.
+- **Plus de « Nom à vérifier en jeu » dans tes objectifs** : les objectifs ne demandent plus que de vrais objets. « Sheet Metal » (étape 2 de « À l'abri ») et « Amplified Fragments » (recyclage des modules d'amplification) s'affichent avec leur nom, tel qu'il apparaît dans le jeu en français.
 - La fiche d'un objet dont le nom n'est pas encore vérifié explique pourquoi, au lieu de « Objet introuvable ».
 
 ## 0.10.1

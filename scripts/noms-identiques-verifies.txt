@@ -95,4 +95,5 @@ Riven Tides
 
 # Objets laissés en anglais par la table de traduction française du jeu (items.text.fr, jeu 2.0) ;
 # affichés tels quels dans le jeu en français, vérifié par le joueur le 22/10/2026.
+Amplified Fragments
 Sheet Metal

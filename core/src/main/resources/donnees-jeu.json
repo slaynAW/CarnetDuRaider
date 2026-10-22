@@ -1944,6 +1944,19 @@
    }
   },
   {
+   "id": "amplified_fragments",
+   "nom": "Amplified Fragments",
+   "rarete": "EPIQUE",
+   "categorie": "Matériau de la Surface",
+   "valeur": 500,
+   "pile": 50,
+   "recyclage": [],
+   "recuperation": [],
+   "lieux": [
+    "ARC"
+   ]
+  },
+  {
    "id": "ancient_fort_security_code",
    "nom": "Code de sécurité du Fort antique",
    "rarete": null,

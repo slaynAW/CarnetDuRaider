@@ -9,7 +9,6 @@ rétablir un, vérifie son nom dans le jeu en français : s'il est vraiment iden
 
 | Type | Identifiant | Texte anglais | Raison |
 | --- | --- | --- | --- |
-| Objet | `amplified_fragments` | Amplified Fragments | texte français identique à l'anglais |
 | Objet | `fluted_rotor_core` | Fluted Rotor Core | texte français identique à l'anglais |
 | Objet | `pneumatic_actuator` | Pneumatic Actuator | texte français identique à l'anglais |
 | Objet | `pressure_regulator` | Pressure Regulator | texte français identique à l'anglais |

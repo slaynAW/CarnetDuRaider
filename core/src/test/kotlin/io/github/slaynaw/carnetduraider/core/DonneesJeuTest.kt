@@ -52,6 +52,7 @@ class DonneesJeuTest {
         assertEquals(Catalogue.NOM_A_VERIFIER, catalogue.nomObjet("pressure_regulator"))
         // Vérifié en jeu par le joueur : « Sheet Metal » s'affiche ainsi dans le jeu en français.
         assertEquals("Sheet Metal", catalogue.objet("sheet_metal")?.nom)
+        assertEquals("Amplified Fragments", catalogue.objet("amplified_fragments")?.nom)
     }
 
     @Test
