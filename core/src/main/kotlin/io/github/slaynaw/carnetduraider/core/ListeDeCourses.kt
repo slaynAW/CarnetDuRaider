@@ -52,28 +52,16 @@ data class ListeDeCourses(val lignes: List<LigneDeCourses>) {
 }
 
 /**
- * Un objet à trouver pendant les raids, et son décompte : ce que demandent les objectifs suivis ([pour])
- * plus ce que le joueur a ajouté lui-même ([ajoute], 0 s'il ne l'a pas ajouté). [voulu] : combien il en
- * faut en tout ; [trouves] : combien ont déjà été rapportés.
+ * Un objet à trouver pendant les raids, et son décompte : ce que demandent les objectifs en cours ([pour]).
+ * [voulu] : combien il en faut en tout ; [trouves] : combien ont déjà été rapportés.
  */
-data class ObjetATrouver(
-    val objetId: String,
-    val trouves: Int,
-    val voulu: Int,
-    val pour: List<Besoin>,
-    val ajoute: Int = 0,
-) {
-    val ajouteParLeJoueur: Boolean get() = ajoute > 0
-
+data class ObjetATrouver(val objetId: String, val trouves: Int, val voulu: Int, val pour: List<Besoin>) {
     /** Combien il en reste à trouver. */
     val reste: Int get() = (voulu - trouves).coerceAtLeast(0)
     val trouve: Boolean get() = trouves >= voulu
 }
 
-/** Ce qui a été rapporté : pour les objectifs ([apports]) et pour les objets ajoutés par le joueur ([trouvesRaid]). */
-data class Rapporte(val apports: Apports, val trouvesRaid: Map<String, Int>)
-
-/** Calcule les besoins en objets des objectifs suivis, d'après les données du jeu. */
+/** Calcule les besoins en objets des objectifs en cours, d'après les données du jeu. */
 class Planificateur(private val catalogue: Catalogue) {
 
     /** Libellé d'un objectif, avec les noms officiels du jeu (« Station utilitaire · niveau 1 »). */
@@ -125,70 +113,37 @@ class Planificateur(private val catalogue: Catalogue) {
         return ListeDeCourses(lignes.sortedWith(compareBy({ it.complet }, { -it.manquant }, { it.nom })))
     }
 
-    /**
-     * Toute la liste du raid, objets déjà trouvés compris : ce que demandent les objectifs (les plus en
-     * retard d'abord), avec ce que le joueur en a ajouté lui-même ([ajouts] : identifiant → quantité voulue ;
-     * [trouvesAjouts] : combien il en a rapporté), puis ses autres ajouts.
-     */
-    fun listeDuRaid(
-        objectifs: List<Objectif>,
-        apports: Apports,
-        ajouts: Map<String, Int>,
-        trouvesAjouts: Map<String, Int> = emptyMap(),
-    ): List<ObjetATrouver> {
-        fun trouvesDuJoueur(id: String) = minOf(trouvesAjouts[id] ?: 0, ajouts[id] ?: 0)
-        val lignes = listeDeCourses(objectifs, apports).lignes
-        val pourObjectifs = lignes.map { l ->
-            val ajoute = ajouts[l.objetId] ?: 0
-            ObjetATrouver(l.objetId, l.apporte + trouvesDuJoueur(l.objetId), l.besoin + ajoute, l.pour, ajoute)
-        }
-        val dejaLa = lignes.map { it.objetId }.toSet()
-        val autres = ajouts.filterKeys { it !in dejaLa }
-            .map { (id, voulu) -> ObjetATrouver(id, trouvesDuJoueur(id), voulu, emptyList(), voulu) }
-        return pourObjectifs + autres
-    }
+    /** Toute la liste du raid, objets déjà trouvés compris : ce que demandent les objectifs, les plus en retard d'abord. */
+    fun listeDuRaid(objectifs: List<Objectif>, apports: Apports): List<ObjetATrouver> =
+        listeDeCourses(objectifs, apports).lignes.map { l -> ObjetATrouver(l.objetId, l.apporte, l.besoin, l.pour) }
 
     /** Ce qu'il reste à trouver : la liste du raid sans les objets déjà tous rapportés. */
-    fun aTrouver(
-        objectifs: List<Objectif>,
-        apports: Apports,
-        ajouts: Map<String, Int>,
-        trouvesAjouts: Map<String, Int> = emptyMap(),
-    ): List<ObjetATrouver> = listeDuRaid(objectifs, apports, ajouts, trouvesAjouts).filter { !it.trouve }
+    fun aTrouver(objectifs: List<Objectif>, apports: Apports): List<ObjetATrouver> =
+        listeDuRaid(objectifs, apports).filter { !it.trouve }
 
     /**
-     * Répartit le butin [saisis] (identifiant → quantité rapportée) entre ce qui le demande encore : d'abord
-     * l'objectif le plus près d'être terminé (le moins d'objets qui lui manquent), puis les suivants ; un
-     * objet ajouté par le joueur ([ajouts]) compte comme un objectif. Ce qui dépasse n'est gardé nulle part.
+     * Répartit le butin [saisis] (identifiant → quantité rapportée) entre les objectifs qui le demandent
+     * encore : d'abord le plus près d'être terminé (le moins d'objets qui lui manquent), puis les suivants.
+     * Ce qui dépasse n'est gardé nulle part.
      */
-    fun repartir(objectifs: List<Objectif>, ajouts: Map<String, Int>, avant: Rapporte, saisis: Map<String, Int>): Rapporte {
-        val apports = avant.apports.mapValues { it.value.toMutableMap() }.toMutableMap()
-        val trouvesRaid = avant.trouvesRaid.toMutableMap()
-        val destinataires = objectifs.distinct().map { o -> Destinataire(o.cle, manque(o, avant.apports).toMutableMap()) } +
-            ajouts.mapNotNull { (id, voulu) ->
-                (voulu - (avant.trouvesRaid[id] ?: 0)).takeIf { it > 0 }?.let { Destinataire(null, mutableMapOf(id to it)) }
-            }
+    fun repartir(objectifs: List<Objectif>, avant: Apports, saisis: Map<String, Int>): Apports {
+        val apports = avant.mapValues { it.value.toMutableMap() }.toMutableMap()
         // Ordre fixé avant la répartition : le plus près d'être terminé d'abord, puis l'ordre de la liste.
-        val ordre = destinataires.sortedBy { it.manque.values.sum() }
+        val ordre = objectifs.distinct()
+            .map { o -> o.cle to manque(o, avant).toMutableMap() }
+            .sortedBy { (_, manque) -> manque.values.sum() }
         for ((id, quantite) in saisis) {
             var reste = quantite
-            for (d in ordre) {
+            for ((cle, manque) in ordre) {
                 if (reste <= 0) break
-                val pris = minOf(reste, d.manque[id] ?: 0)
+                val pris = minOf(reste, manque[id] ?: 0)
                 if (pris <= 0) continue
-                d.manque[id] = (d.manque[id] ?: 0) - pris
+                manque[id] = (manque[id] ?: 0) - pris
                 reste -= pris
-                if (d.cle == null) {
-                    trouvesRaid[id] = (trouvesRaid[id] ?: 0) + pris
-                } else {
-                    val apporte = apports.getOrPut(d.cle) { mutableMapOf() }
-                    apporte[id] = (apporte[id] ?: 0) + pris
-                }
+                val apporte = apports.getOrPut(cle) { mutableMapOf() }
+                apporte[id] = (apporte[id] ?: 0) + pris
             }
         }
-        return Rapporte(apports.mapValues { it.value.toMap() }.filterValues { it.isNotEmpty() }, trouvesRaid.toMap())
+        return apports.mapValues { it.value.toMap() }.filterValues { it.isNotEmpty() }
     }
-
-    /** Un objectif ([cle]) ou un objet ajouté par le joueur ([cle] nulle), et ce qui lui manque. */
-    private class Destinataire(val cle: String?, val manque: MutableMap<String, Int>)
 }

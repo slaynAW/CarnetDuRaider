@@ -27,7 +27,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -41,6 +40,7 @@ import io.github.slaynaw.carnetduraider.core.Besoin
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.Objet
 import io.github.slaynaw.carnetduraider.core.Sortie
+import io.github.slaynaw.carnetduraider.core.UsageBuild
 import io.github.slaynaw.carnetduraider.core.UsagesObjet
 import io.github.slaynaw.carnetduraider.core.Verdict
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
@@ -108,21 +108,20 @@ private fun LigneObjet(objet: Objet, verdict: Verdict, onClick: () -> Unit) {
     }
 }
 
-/** Le verdict en un mot, pour la liste : Garder, Assez, Utile, Vendre ou Recycler. */
+/** Le verdict en un mot, pour la liste : Garder (objectifs), Build, Vendre ou Recycler. */
 @Composable
 fun PuceVerdict(verdict: Verdict) {
     val (texte, fond, couleur) = when (verdict) {
-        is Verdict.Garder, is Verdict.Cherche -> Triple("Garder", Signal.Or, Signal.SurCouleur)
-        is Verdict.Suffisant -> Triple("Assez", Signal.Vert, Signal.SurCouleur)
-        is Verdict.Utile -> Triple("Utile", Signal.Cyan, Signal.SurCouleur)
+        is Verdict.Garder -> Triple("Garder", Signal.Or, Signal.SurCouleur)
+        is Verdict.PourBuild -> Triple("Build", Signal.Violet, Signal.SurCouleur)
         is Verdict.Inutile -> Triple(if (verdict.conseil == Sortie.VENDRE) "Vendre" else "Recycler", Signal.Releve, Signal.TexteDoux)
     }
     Puce(texte, fond = fond, couleur = couleur)
 }
 
 /**
- * Fiche d'un objet, dans l'ordre où le joueur se pose les questions : le verdict (garder, utile, vendre…),
- * à quoi il sert, où le trouver, puis ce qu'il rapporte. [ouvrirZone] ouvre le plan sur une zone de butin.
+ * Fiche d'un objet, dans l'ordre où le joueur se pose les questions : le verdict (garder, vendre ou
+ * recycler), à quoi il peut servir, où le trouver, puis ce qu'il rapporte. [ouvrirZone] ouvre le plan sur une zone de butin.
  */
 @Composable
 fun EcranFiche(
@@ -159,23 +158,9 @@ fun EcranFiche(
             }
         }
 
-        val verdict = vm.verdict(objet.id)
-        CarteVerdict(verdict, objet, vm)
-
-        // Le chercher au prochain raid, et combien (inutile s'il l'est déjà pour les objectifs).
-        if (verdict !is Verdict.Garder) {
-            val voulu = vm.listeRaid[objet.id]
-            if (voulu == null) {
-                TextButton(onClick = { vm.ajouterAuRaid(objet.id) }) { Text("Le chercher au prochain raid", color = Signal.Rouge) }
-            } else {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("À trouver au prochain raid", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                    Compteur(voulu, objet.nom, onChange = { vm.changerRaid(objet.id, voulu + it) }, suffixe = "à trouver au prochain raid")
-                }
-            }
-        }
-
-        SectionUsages(vm, vm.usagesDe(objet.id), ouvrir)
+        val usages = vm.usagesDe(objet.id)
+        CarteVerdict(vm.verdict(objet.id), objet, usages, vm)
+        SectionUsages(vm, usages, ouvrir)
         CommentLObtenir(vm, objet, ouvrir, ouvrirZone)
         Section("Vente et recyclage") {
             Text("Se vend ${objet.valeur} pièces l'unité.", style = MaterialTheme.typography.bodyLarge)
@@ -312,11 +297,18 @@ private fun Section(titre: String, contenu: @Composable () -> Unit) {
     }
 }
 
-/** Ce que dit la carte du verdict : titre, explication, couleur, objectifs concernés, conseil de vente. */
-private data class ContenuVerdict(val titre: String, val texte: String, val fond: Color, val pour: List<Besoin> = emptyList(), val note: String? = null)
+/** Ce que dit la carte du verdict : titre, explication, couleur, objectifs et builds concernés, note. */
+private data class ContenuVerdict(
+    val titre: String,
+    val texte: String,
+    val fond: Color,
+    val pour: List<Besoin> = emptyList(),
+    val builds: List<UsageBuild> = emptyList(),
+    val note: String? = null,
+)
 
 @Composable
-private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
+private fun CarteVerdict(verdict: Verdict, objet: Objet, usages: UsagesObjet, vm: CarnetViewModel) {
     val valeurRecyclage = vm.catalogue.valeurRecyclage(objet)
     fun sortie(sortie: Sortie): String = when {
         sortie == Sortie.RECYCLER -> "recycle-le\u00a0: ses matériaux valent $valeurRecyclage pièces, plus que l'objet (${objet.valeur})."
@@ -324,32 +316,24 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
         else -> "vends-le\u00a0: il vaut ${objet.valeur} pièces, plus que ses matériaux ($valeurRecyclage)."
     }
     val c = when (verdict) {
-        is Verdict.Garder -> ContenuVerdict("Garde-le", "Il en faut encore ${verdict.manquant} pour tes objectifs.", Signal.Or, verdict.pour)
-        is Verdict.Cherche -> ContenuVerdict(
+        is Verdict.Garder -> ContenuVerdict(
             "Garde-le",
-            if (verdict.trouves < verdict.voulu) {
-                "Tu le cherches pour ton raid\u00a0: encore ${verdict.voulu - verdict.trouves} à trouver."
-            } else {
-                "Tu le cherchais pour ton raid\u00a0: tu en as trouvé assez."
-            },
+            "Il en faut encore ${verdict.manquant} pour tes objectifs en cours.",
             Signal.Or,
-        )
-        is Verdict.Suffisant -> ContenuVerdict(
-            "Tu en as assez",
-            "Tu as déjà rapporté tout ce qu'il en faut pour tes objectifs en cours.",
-            Signal.Vert,
             verdict.pour,
+            verdict.builds,
         )
-        is Verdict.Utile -> ContenuVerdict(
-            "Il peut servir",
-            "Aucun de tes objectifs n'en demande, mais il sert\u00a0: ${verdict.usages.resume().joinToString(", ")}. Le détail est plus bas.",
-            Signal.Cyan,
-            note = "Si tu n'en as pas l'usage, ${sortie(verdict.conseil)}",
+        is Verdict.PourBuild -> ContenuVerdict(
+            "Garde-le",
+            if (verdict.builds.all { it.direct }) "Il fait partie de tes builds." else "Il sert à fabriquer ce qu'il y a dans tes builds.",
+            Signal.Violet,
+            builds = verdict.builds,
         )
         is Verdict.Inutile -> ContenuVerdict(
             if (verdict.conseil == Sortie.VENDRE) "Vends-le" else "Recycle-le",
-            "Il ne sert à rien d'autre dans le jeu\u00a0: ${sortie(verdict.conseil)}",
+            "Aucun objectif en cours ni aucun build n'en a besoin\u00a0: ${sortie(verdict.conseil)}",
             Signal.Releve,
+            note = if (usages.aucun) null else "Il peut quand même servir\u00a0: ${usages.resume().joinToString(", ")}. Le détail est plus bas.",
         )
     }
     val texte = if (c.fond == Signal.Releve) Signal.Texte else Signal.SurCouleur
@@ -358,7 +342,7 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
             Text("VERDICT", style = MaterialTheme.typography.labelSmall)
             Text(c.titre, style = MaterialTheme.typography.headlineLarge)
             Text(c.texte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            if (c.pour.isNotEmpty()) {
+            if (c.pour.isNotEmpty() || c.builds.isNotEmpty()) {
                 HorizontalDivider(Modifier.padding(vertical = 6.dp), color = texte.copy(alpha = 0.3f))
                 c.pour.forEach { besoin ->
                     Row(Modifier.fillMaxWidth()) {
@@ -366,17 +350,24 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, vm: CarnetViewModel) {
                         Text("${minOf(besoin.apporte, besoin.quantite)}/${besoin.quantite}", style = MaterialTheme.typography.titleSmall)
                     }
                 }
+                c.builds.forEach { b ->
+                    Text(
+                        if (b.direct) "Build «\u00a0${b.build}\u00a0»" else "Build «\u00a0${b.build}\u00a0»\u00a0: pour ${vm.catalogue.nomObjet(b.objetId)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
             c.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         }
     }
 }
 
-/** À quoi sert l'objet : description officielle, puis tout ce qui le demande encore. */
+/** À quoi peut servir l'objet dans le jeu : description officielle, puis tout ce qui le demande. */
 @Composable
 private fun SectionUsages(vm: CarnetViewModel, u: UsagesObjet, ouvrir: (String) -> Unit) {
     val ut = u.utilisations
-    Section("À quoi il sert") {
+    Section("À quoi il peut servir") {
         u.description?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
         if (u.aucun) {
             Text("Rien d'autre que la vente ou le recyclage, d'après les données du jeu.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)

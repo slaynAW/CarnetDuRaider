@@ -37,8 +37,9 @@ telle qu'elle apparaît dans le jeu.
   « Recyclage en », « Conditions de la carte »…) reprennent le texte officiel du jeu.
 - Le reste du texte de l'interface (phrases d'aide, boutons propres à l'appli) est en français courant.
 
-Les données sont mises à jour **chaque jour** par le workflow « Données du jeu »
-(`.github/workflows/donnees.yml`) : import en lecture seule, tests du module core, puis commit sur
+Les données sont mises à jour par le workflow « Données du jeu » (`.github/workflows/donnees.yml`,
+lancé à la main : le dépôt raider-tools n'est plus public depuis le 20/10/2026 ; remettre le lancement
+quotidien s'il le redevient) : import en lecture seule, tests du module core, puis commit sur
 `main` des seuls fichiers de données (refus de tout autre fichier) et relance du build. Bibliothèques
 Python de l'import à versions et empreintes fixées (`scripts/requirements-import.txt`). À la main :
 
@@ -58,54 +59,67 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
 ## Architecture
 
 - `core/` : Kotlin pur, sans Android. Données du jeu (`DonneesJeu`, `Catalogue`), liste de courses et
-  objets à trouver (`Planificateur`), à quoi sert un objet (`Usages`) et verdict « garder, recycler ou
-  vendre » (`Conseiller`). Toute logique métier va ici, avec ses tests JUnit (`./gradlew :core:test`).
-- Verdict (`core/Verdict.kt`) : un objet voulu (objectifs suivis, ou ajouté par le joueur dans l'onglet
-  Raid) n'est **jamais proposé à la vente** ; un objet qui sert encore à quelque chose (`Usages`) est
-  « Utile », avec le détail sur sa fiche (« À quoi il sert ») ; seul un objet qui ne sert à rien est à
-  vendre ou à recycler. Le verdict s'affiche aussi dans la liste des objets.
+  objets à trouver (`Planificateur`), builds (`Builds`), à quoi peut servir un objet (`Usages`) et
+  verdict « garder, recycler ou vendre » (`Conseiller`). Toute logique métier va ici, avec ses tests
+  JUnit (`./gradlew :core:test`).
+- Verdict (`core/Verdict.kt`) : un objet n'est à garder que s'il sert à un objectif en cours (et qu'il en
+  manque encore) ou à un build du joueur (dans le build, ou pour le fabriquer ou l'améliorer, de proche
+  en proche : `Builds.aGarder`). Sinon il est à vendre ou à recycler (ce qui rapporte le plus), et sa
+  fiche dit quand même à quoi il peut servir (`Usages`, « À quoi il peut servir »). Le verdict s'affiche
+  aussi dans la liste des objets.
 - `app/` : interface Jetpack Compose, style « Signal » (`ui/theme/Theme.kt`) : fond sombre, et une
   couleur par domaine — or pour les objets, cyan pour les cartes, vert pour les objectifs, rouge pour
-  le raid et les ARC. Cinq onglets : Accueil, Objets, Raid, Cartes, Objectifs ; le joueur doit en faire
-  le moins possible (rien à préparer, un geste pour valider ou noter un objet trouvé). Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
+  le raid et les ARC, violet pour les builds. Six onglets : Accueil, Objets, Raid, Cartes, Objectifs,
+  Builds ; le joueur doit en faire le moins possible (rien à préparer, un geste pour valider ou noter un
+  objet trouvé). Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
   En-tête commun à toutes les sections (`EnTete` : logo, nom, réglages) ; objets affichés avec leur
   icône sur une tuile aux couleurs de leur rareté (`IconeObjet`).
 - **Pas de réserve** (rien de ce que le joueur a « en stock ») : il ne note que ce qu'il rapporte de raid,
-  au retour de raid. Sa progression et ce qui a été rapporté pour chaque objectif sont gardés dans l'appli
-  (`Memoire`) : l'appli ne se connecte jamais au compte Embark et ne touche jamais au jeu (pas de lecture
-  de mémoire, de trafic ou de jeton).
-  **À l'installation, tout est à zéro** : aucun établi suivi (`Progression.etablisSuivis`, à choisir),
-  aucune quête suivie avant que le joueur les indique (`quetesIndiquees`), aucun projet.
+  au retour de raid. Ce qu'il a en cours, ce qui a été rapporté pour chaque objectif et ses builds sont
+  gardés dans l'appli (`Memoire`) : l'appli ne se connecte jamais au compte Embark et ne touche jamais au
+  jeu (pas de lecture de mémoire, de trafic ou de jeton).
+  **Tout est fait d'office, et à l'installation rien n'est en cours** : aucun établi
+  (`Progression.etablisSuivis`), aucune quête (`quetesIndiquees`), aucun projet ni Expédition. Les
+  objectifs saisis avant la 0.10 repartent de zéro une fois (`Memoire.nouveauDepart`).
 - Sauvegarde chiffrée (`core/…/sauvegarde`, `app/…/sauvegarde`) : fichiers de réglages « carnet » et
   « alertes » écrits automatiquement (quelques secondes après chaque changement) dans un fichier choisi
   par le joueur avec le sélecteur d'Android (Google Drive, dossier du téléphone). PBKDF2-SHA256
   (600 000 tours) + AES-256-GCM, en-tête authentifié ; mot de passe jamais enregistré, clé dérivée gardée
   chiffrée par le Keystore d'Android. L'appli n'ouvre aucune connexion pour cela. Pas de sauvegarde
   sur GitHub : écrire sur GitHub exige un jeton, qu'on ne peut pas mettre dans un APK public.
-- Progression automatique (`core/Progression.kt`) : le joueur indique le niveau de ses établis et ses
-  quêtes en cours ; l'appli en déduit les objectifs (prochain niveau, quêtes disponibles d'après
-  l'enchaînement `requiert` des données du jeu). Les projets suivis (Expéditions…) ajoutent leur
-  prochaine étape. Un objectif dont tout a été rapporté se termine tout seul quand il est la prochaine
-  chose à faire (`SuiviProgression.terminerLesComplets`) ; un objectif lointain complet attend son tour.
-  Ce qui est fait autrement se valide en un geste (`CarnetViewModel.valider…`), avec « Annuler » :
-  jamais de saisie obligatoire.
+- Objectifs (`core/Progression.kt`, `ui/EcranObjectifs.kt`) : quatre boutons seulement au départ,
+  « Indiquer mes quêtes / ateliers / projets / expéditions en cours », chacun vers la liste complète.
+  Le joueur coche ses quêtes en cours (tout le reste est fait d'office, sauf ce qui vient après :
+  `SuiviProgression.indiquerQuetesEnCours`), choisit le niveau en cours de chaque établi
+  (`indiquerNiveauEnCours`) et l'étape en cours de chaque projet ou Expédition (`indiquerEtapeEnCours`,
+  `Projet.expedition`). Ce qui est en cours s'affiche sous les boutons. Un objectif dont tout a été
+  rapporté se valide tout seul (`SuiviProgression.terminerLesComplets`) et la suite s'ajoute (niveau
+  suivant, quêtes suivantes d'après l'enchaînement `requiert`, étape suivante). Ce qui est fait autrement
+  se valide en un geste (« C'est fait », `CarnetViewModel.valider`), avec « Annuler » : jamais de saisie
+  obligatoire.
+- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds, un nom et un objet par case (Module,
+  Bouclier, Arme 1, Arme 2, Soins, Grenades, Divers), d'après `Objet.emplacement` (famille de l'objet
+  dans le jeu, produit par le script) ; matériaux d'après les recettes et `Obtention.amelioration`
+  (arme du niveau d'avant et coût de l'amélioration). `Memoire`, clé « builds » (JSON).
 - Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Ce
-  qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs suivis, puis les objets
-  ajoutés par le joueur (`Memoire`, clé « raid » : nombre voulu) ; cartes classées par la somme des
-  indices de butin des objets encore à trouver (chaque objet compte au plus 1 par carte), zones où
-  chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la meilleure carte.
+  qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs en cours ; cartes classées
+  par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
+  carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la
+  meilleure carte.
 - Retour de raid (`core/RetourDeRaid.kt`, `ui/EcranRetourRaid.kt`), le seul endroit où le joueur note
   des objets : seulement ce qui manque, sans pouvoir dépasser. `Planificateur.repartir` donne le butin
   aux objectifs qui le demandent, le plus près d'être terminé d'abord (`Memoire`, clé « apports » :
-  clé de l'objectif → objets rapportés ; clé « raidTrouves » pour les objets ajoutés par le joueur) ;
-  ce qui dépasse n'est gardé nulle part. À la validation (bouton, retour ou autre onglet, jamais une
-  rotation), les objectifs complets se terminent et `RetourDeRaid.bilan` donne les objectifs terminés,
-  les objets qui ont atteint le nombre demandé et si toute la liste est trouvée : animation
-  `ui/CelebrationRaid.kt` (« Raid terminé, objets trouvés »), puis « Annuler » pendant quelques secondes.
+  clé de l'objectif → objets rapportés) ; ce qui dépasse n'est gardé nulle part. À la validation (bouton,
+  retour ou autre onglet, jamais une rotation), les objectifs complets se terminent et
+  `RetourDeRaid.bilan` donne les objectifs terminés, les objets qui ont atteint le nombre demandé et si
+  toute la liste est trouvée : animation `ui/CelebrationRaid.kt` (objectif terminé à la manière d'ARC
+  Raiders : bande verte, « OBJECTIF TERMINÉ », tampon « VALIDÉ » ; « Raid terminé, objets trouvés »),
+  puis « Annuler » pendant quelques secondes.
 - Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
   officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).
-  Un nom inconnu s'affiche « Nom à vérifier en jeu ». Le workflow « Calendrier officiel » vérifie
+  Un nom inconnu s'affiche « Nom à vérifier en jeu ». Relu à chaque lancement de l'appli (au plus toutes
+  les 5 minutes), comme la recherche de mise à jour. Le workflow « Calendrier officiel » vérifie
   chaque jour que la page est toujours lisible.
 - Alertes (`core/…/calendrier/Alertes.kt`, `app/…/alertes`) : un seul réveil Android programmé à la
   fois (le prochain), calculé sur le calendrier gardé sur le téléphone ; reprogrammé au démarrage du

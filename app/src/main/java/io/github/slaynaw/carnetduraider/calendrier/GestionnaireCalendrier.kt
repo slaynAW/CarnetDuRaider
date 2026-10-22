@@ -28,8 +28,8 @@ data class EtatCalendrier(
 
 /**
  * Calendrier officiel des conditions de la carte, lu sur le site d'Embark puis gardé sur le
- * téléphone : il couvre plusieurs jours, et reste donc utilisable sans connexion. Relu au plus une
- * fois par heure, quand l'onglet Cartes ou l'accueil s'affiche.
+ * téléphone : il couvre plusieurs jours, et reste donc utilisable sans connexion. Relu à chaque lancement
+ * de l'appli (et à chaque retour), sauf s'il vient d'être lu.
  */
 class GestionnaireCalendrier(context: Context, private val portee: CoroutineScope) {
     private val fichier = File(context.applicationContext.filesDir, "calendrier.json")
@@ -47,7 +47,7 @@ class GestionnaireCalendrier(context: Context, private val portee: CoroutineScop
     /** Calendrier connu (en mémoire, sinon celui gardé sur le téléphone), sans connexion. */
     suspend fun donneesDisponibles(): DonneesCalendrier? = _etat.value.donnees ?: withContext(Dispatchers.IO) { lireCache() }
 
-    /** Relit le calendrier s'il date de plus d'une heure (ou s'il n'y en a pas encore). */
+    /** Relit le calendrier s'il date de plus de quelques minutes (ou s'il n'y en a pas encore). */
     fun actualiserSiNecessaire() {
         val e = _etat.value
         if (e.chargement) return
@@ -91,6 +91,6 @@ class GestionnaireCalendrier(context: Context, private val portee: CoroutineScop
 
     private companion object {
         const val JOURNAL = "Calendrier"
-        const val INTERVALLE_MS = 60 * 60 * 1000L
+        const val INTERVALLE_MS = 5 * 60 * 1000L
     }
 }

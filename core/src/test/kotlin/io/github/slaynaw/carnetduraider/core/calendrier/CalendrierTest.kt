@@ -20,13 +20,13 @@ class CalendrierTest {
     private val donneesEmbark = """
         {"title":"Map Conditions","conditionItems":[
           {"name":"ARC Frigate","type":"major"},{"name":"Electromagnetic Storm","type":"major"},
-          {"name":"Matriarch","type":"minor"},{"name":"Hurricane","type":"major"}],
+          {"name":"Matriarch","type":"minor"},{"name":"Unheard Of","type":"major"}],
         "liveEntries":[
           {"conditionName":"ARC Frigate","mapDisplayName":"Dam Battlegrounds","startTimestamp":$t0,"endTimestamp":${t0 + h},
            "durationInSeconds":3600,"regionTimestamps":{"north-america":[${t0 + 7 * h},${t0 + 8 * h}]}},
           {"conditionName":"Electromagnetic Storm","mapDisplayName":"The Blue Gate","startTimestamp":${t0 + 2 * h},"endTimestamp":${t0 + 3 * h}},
           {"conditionName":"Matriarch","mapDisplayName":"Spaceport","startTimestamp":${t0 + 3 * h},"endTimestamp":${t0 + 4 * h}},
-          {"conditionName":"Hurricane","mapDisplayName":"Riven Tides","startTimestamp":${t0 + h},"endTimestamp":${t0 + 2 * h},
+          {"conditionName":"Unheard Of","mapDisplayName":"Nowhere Land","startTimestamp":${t0 + h},"endTimestamp":${t0 + 2 * h},
            "regionTimestamps":"${'$'}undefined","note":"crochets [dans] un \"texte\""},
           {"conditionName":"${'$'}undefined","mapDisplayName":"Spaceport","startTimestamp":${t0 + 5 * h}},
           {"conditionName":"Night Raid","mapDisplayName":"Buried City","startTimestamp":"${'$'}undefined"}]}
@@ -36,6 +36,15 @@ class CalendrierTest {
     private fun page(json: String): String {
         val echappe = json.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "")
         return "<html><script>self.__next_f.push([1,\"5:[\\\"\$\\\",\\\"div\\\",null,$echappe]\"])</script></html>"
+    }
+
+    @Test
+    fun `noms laisses en anglais par le jeu, verifies en jeu`() {
+        val json = donneesEmbark.replace("Unheard Of", "Hurricane").replace("Nowhere Land", "Riven Tides")
+        val calendrier = Calendrier(Calendrier.lirePage(page(json), luLe = t0), catalogue)
+        val creneau = calendrier.creneaux(Region.EUROPE)[1]
+        assertEquals("Hurricane" to "Riven Tides", creneau.condition to creneau.carte)
+        assertTrue(calendrier.cartesInconnues().isEmpty() && calendrier.conditionsInconnues().isEmpty())
     }
 
     @Test
@@ -56,8 +65,8 @@ class CalendrierTest {
         assertEquals(listOf("Frégate ARC"), calendrier.enCours(Region.EUROPE, t0 + 10 * 60_000).map { it.condition })
         assertEquals(listOf("Tempête électromagnétique", "Matriarche"), calendrier.aVenir(Region.EUROPE, t0 + h + 1, 3 * h).map { it.condition })
         assertEquals(t0 + 4 * h, calendrier.connuJusqua(Region.EUROPE))
-        assertEquals(setOf("Riven Tides"), calendrier.cartesInconnues())
-        assertEquals(setOf("Hurricane"), calendrier.conditionsInconnues())
+        assertEquals(setOf("Nowhere Land"), calendrier.cartesInconnues())
+        assertEquals(setOf("Unheard Of"), calendrier.conditionsInconnues())
 
         // Autre région : ses propres horaires, et seulement les créneaux qu'Embark y annonce.
         val amerique = calendrier.creneaux(Region.AMERIQUE_DU_NORD)

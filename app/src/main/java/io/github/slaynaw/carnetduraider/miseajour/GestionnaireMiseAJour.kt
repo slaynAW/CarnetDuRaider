@@ -69,7 +69,7 @@ class GestionnaireMiseAJour(context: Context, private val portee: CoroutineScope
 
     val etat: StateFlow<EtatMiseAJour> = _etat.asStateFlow()
 
-    /** Au retour dans l'appli : recherche automatique si la dernière date d'au moins 12 h. */
+    /** Au lancement de l'appli (et à chaque retour) : recherche automatique, sauf si elle date de quelques minutes. */
     fun rechercherSiNecessaire() {
         val e = _etat.value
         if (client == null || !e.automatique || e.recherche || e.etape != Etape.AUCUNE) return
@@ -242,7 +242,7 @@ class GestionnaireMiseAJour(context: Context, private val portee: CoroutineScope
         const val DERNIERE_RECHERCHE = "derniereRecherche"
         const val REPORT_VERSION = "reportVersion"
         const val REPORT_DATE = "reportDate"
-        const val INTERVALLE_MS = 12 * 60 * 60 * 1000L
+        const val INTERVALLE_MS = 5 * 60 * 1000L
         const val REPORT_MS = 24 * 60 * 60 * 1000L
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
@@ -35,16 +36,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.slaynaw.carnetduraider.CarnetViewModel
+import io.github.slaynaw.carnetduraider.core.CaseBuild
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import kotlinx.coroutines.delay
 
 /**
- * Les cinq onglets, chacun avec sa couleur : ce qui compte maintenant, garder ou vendre un objet, où
- * aller au prochain raid, les cartes, et ce qu'on veut faire avancer.
+ * Les six onglets, chacun avec sa couleur : ce qui compte maintenant, garder ou vendre un objet, où
+ * aller au prochain raid, les cartes, ce qu'on a en cours, et ses builds.
  */
 enum class Onglet(val titre: String, val icone: ImageVector, val couleur: Color) {
     ACCUEIL("Accueil", Icons.Filled.Home, Signal.Texte),
@@ -52,16 +55,18 @@ enum class Onglet(val titre: String, val icone: ImageVector, val couleur: Color)
     RAID("Raid", Icons.Filled.ShoppingCart, Signal.Rouge),
     CARTES("Cartes", Icons.Filled.Place, Signal.Cyan),
     OBJECTIFS("Objectifs", Icons.Filled.CheckCircle, Signal.Vert),
+    BUILDS("Builds", Icons.Filled.Build, Signal.Violet),
 }
 
 @Composable
 fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm: CarnetViewModel = viewModel()) {
     var onglet by rememberSaveable { mutableStateOf(Onglet.ACCUEIL) }
     var objetOuvert by rememberSaveable { mutableStateOf<String?>(null) }
-    var ajoutObjectif by rememberSaveable { mutableStateOf(false) }
     var recherche by rememberSaveable { mutableStateOf("") }
     var reglages by rememberSaveable { mutableStateOf(false) }
-    var choixQuetes by rememberSaveable { mutableStateOf(false) }
+    var choixEnCours by rememberSaveable { mutableStateOf<ChoixEnCours?>(null) }
+    // Case de build à remplir : « rang:CASE ».
+    var choixBuild by rememberSaveable { mutableStateOf<String?>(null) }
     var retourRaid by rememberSaveable { mutableStateOf(false) }
     var planOuvert by rememberSaveable { mutableStateOf<String?>(null) }
     var planRecherche by rememberSaveable { mutableStateOf("") }
@@ -71,8 +76,8 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     var dialogueMiseAJour by rememberSaveable { mutableStateOf(false) }
     var versionProposee by rememberSaveable { mutableStateOf("") }
 
-    // À chaque retour dans l'appli : recherche d'une mise à jour (au plus toutes les 12 h) et
-    // relecture du calendrier officiel des conditions de la carte (au plus toutes les heures).
+    // À chaque lancement de l'appli (et à chaque retour) : recherche d'une mise à jour et relecture du
+    // calendrier officiel des conditions de la carte, sauf si c'est déjà fait depuis quelques minutes.
     LifecycleStartEffect(Unit) {
         vm.miseAJour.rechercherSiNecessaire()
         vm.calendrier.actualiserSiNecessaire()
@@ -90,9 +95,9 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
 
     fun aller(cible: Onglet) {
         objetOuvert = null
-        ajoutObjectif = false
         reglages = false
-        choixQuetes = false
+        choixEnCours = null
+        choixBuild = null
         retourRaid = false
         planOuvert = null
         onglet = cible
@@ -113,12 +118,15 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     }
 
     // Retour : d'abord l'écran ouvert par-dessus l'onglet, puis l'accueil.
-    BackHandler(enabled = objetOuvert != null || ajoutObjectif || choixQuetes || retourRaid || planOuvert != null || reglages || onglet != Onglet.ACCUEIL) {
+    BackHandler(
+        enabled = objetOuvert != null || choixEnCours != null || choixBuild != null || retourRaid || planOuvert != null || reglages ||
+            onglet != Onglet.ACCUEIL,
+    ) {
         when {
             planOuvert != null -> planOuvert = null
             objetOuvert != null -> objetOuvert = null
-            ajoutObjectif -> ajoutObjectif = false
-            choixQuetes -> choixQuetes = false
+            choixEnCours != null -> choixEnCours = null
+            choixBuild != null -> choixBuild = null
             retourRaid -> retourRaid = false
             reglages -> reglages = false
             else -> onglet = Onglet.ACCUEIL
@@ -131,8 +139,8 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
             topBar = {
                 EnTete(reglagesOuverts = reglages) {
                     objetOuvert = null
-                    ajoutObjectif = false
-                    choixQuetes = false
+                    choixEnCours = null
+                    choixBuild = null
                     retourRaid = false
                     planOuvert = null
                     reglages = true
@@ -145,7 +153,8 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                             selected = onglet == o,
                             onClick = { aller(o) },
                             icon = { Icon(o.icone, contentDescription = null) },
-                            label = { Text(o.titre) },
+                            // Six onglets : libellés sur une ligne, un peu plus serrés.
+                            label = { Text(o.titre, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Signal.SurCouleur,
                                 selectedTextColor = Signal.Texte,
@@ -173,8 +182,17 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                             planOuvert = carte
                         },
                     )
-                    ajoutObjectif -> EcranAjoutObjectif(vm, onRetour = { ajoutObjectif = false })
-                    choixQuetes -> EcranQuetesEnCours(vm, onRetour = { choixQuetes = false })
+                    choixEnCours != null -> when (choixEnCours) {
+                        ChoixEnCours.QUETES -> EcranQuetesEnCours(vm, onRetour = { choixEnCours = null })
+                        ChoixEnCours.ATELIERS -> EcranAteliersEnCours(vm, onRetour = { choixEnCours = null })
+                        ChoixEnCours.PROJETS -> EcranProjetsEnCours(vm, expeditions = false, onRetour = { choixEnCours = null })
+                        ChoixEnCours.EXPEDITIONS -> EcranProjetsEnCours(vm, expeditions = true, onRetour = { choixEnCours = null })
+                        null -> Unit
+                    }
+                    choixBuild != null -> {
+                        val (rang, case) = choixBuild!!.split(':').let { it[0].toInt() to CaseBuild.valueOf(it[1]) }
+                        EcranChoixObjetBuild(vm, rang, case, onRetour = { choixBuild = null })
+                    }
                     retourRaid -> EcranRetourRaid(vm, onRetour = { retourRaid = false })
                     reglages -> EcranReglages(
                         vm,
@@ -206,11 +224,11 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                             planRecherche = ""
                             planOuvert = it
                         })
-                        Onglet.OBJECTIFS -> EcranObjectifs(
+                        Onglet.OBJECTIFS -> EcranObjectifs(vm, choisir = { choixEnCours = it }, voirRaid = { aller(Onglet.RAID) })
+                        Onglet.BUILDS -> EcranBuilds(
                             vm,
-                            ajouterObjectif = { ajoutObjectif = true },
-                            choisirQuetes = { choixQuetes = true },
-                            voirRaid = { aller(Onglet.RAID) },
+                            choisir = { rang, case -> choixBuild = "$rang:${case.name}" },
+                            ouvrir = { objetOuvert = it },
                         )
                     }
                 }

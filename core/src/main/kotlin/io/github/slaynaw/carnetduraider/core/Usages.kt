@@ -10,8 +10,9 @@ data class UsageQuete(val quete: Quete, val quantite: Int)
 data class UsageProjet(val projet: Projet, val etape: Int, val quantite: Int)
 
 /**
- * Tout ce à quoi un objet peut encore servir : ce que disent les fichiers du jeu ([utilisations]),
- * plus les améliorations d'établis, quêtes et étapes de projets pas encore faites qui le demandent.
+ * Tout ce à quoi un objet peut servir dans le jeu : ce que disent les fichiers du jeu ([utilisations]), plus
+ * les améliorations d'établis, quêtes et étapes de projets qui le demandent. C'est une explication : seuls
+ * les objectifs en cours et les builds décident s'il faut le garder ([Conseiller]).
  */
 data class UsagesObjet(
     val description: String?,
@@ -42,24 +43,22 @@ data class UsagesObjet(
     }
 }
 
-/** Calcule à quoi sert un objet, compte tenu de la progression du joueur (ce qui est fait ne compte plus). */
-class Usages(private val catalogue: Catalogue, private val suivi: SuiviProgression) {
+/** Calcule à quoi peut servir un objet, d'après les données du jeu. */
+class Usages(private val catalogue: Catalogue) {
 
-    fun pour(objetId: String, progression: Progression = Progression()): UsagesObjet {
+    fun pour(objetId: String): UsagesObjet {
         val objet = catalogue.objet(objetId)
         val donnees = catalogue.donnees
         val ameliorations = donnees.etablis.flatMap { e ->
-            val actuel = suivi.niveau(progression, e)
-            e.niveaux.filter { it.niveau > actuel }.mapNotNull { n ->
+            e.niveaux.mapNotNull { n ->
                 n.cout.filter { it.id == objetId }.sumOf { it.quantite }.takeIf { it > 0 }?.let { UsageAmelioration(e, n.niveau, it) }
             }
         }
-        val quetes = donnees.quetes.filter { it.id !in progression.quetesTerminees }.mapNotNull { q ->
+        val quetes = donnees.quetes.mapNotNull { q ->
             q.objets.filter { it.id == objetId }.sumOf { it.quantite }.takeIf { it > 0 }?.let { UsageQuete(q, it) }
         }
         val projets = donnees.projets.flatMap { p ->
-            val faites = progression.etapesProjets[p.id] ?: 0
-            p.etapes.withIndex().drop(faites).mapNotNull { (i, etape) ->
+            p.etapes.withIndex().mapNotNull { (i, etape) ->
                 etape.cout.filter { it.id == objetId }.sumOf { it.quantite }.takeIf { it > 0 }?.let { UsageProjet(p, i, it) }
             }
         }

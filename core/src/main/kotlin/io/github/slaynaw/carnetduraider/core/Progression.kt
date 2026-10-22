@@ -1,22 +1,22 @@
 package io.github.slaynaw.carnetduraider.core
 
 /**
- * Où en est le joueur dans le jeu : niveau de chaque établi de l'Atelier et quêtes de l'histoire
- * terminées. C'est à partir de là que l'appli choisit elle-même les objectifs à suivre (le prochain
- * niveau des établis suivis, les quêtes en cours), au lieu de les ajouter un par un.
+ * Où en est le joueur dans le jeu. Tout est considéré comme déjà fait, sauf ce qu'il indique en cours :
+ * ses quêtes, le niveau en cours de ses établis, l'étape en cours de ses projets et Expéditions. C'est à
+ * partir de là que l'appli choisit les objectifs ; quand l'un d'eux est terminé, la suite s'ajoute seule
+ * (niveau suivant, quête suivante, étape suivante).
  *
- * À l'installation, rien n'est suivi (liste de courses vide) : le joueur choisit les établis, indique
- * ses quêtes en cours et choisit ses projets.
+ * À l'installation, rien n'est en cours : aucun objectif, l'appli est vide.
  */
 data class Progression(
-    /** Niveau actuel des établis déjà améliorés (les autres sont à leur niveau de départ). */
+    /** Niveau actuel des établis indiqués (les autres ne comptent pas). */
     val niveauxEtablis: Map<String, Int> = emptyMap(),
     val quetesTerminees: Set<String> = emptySet(),
-    /** Établis dont le joueur suit l'amélioration (aucun par défaut). */
+    /** Établis dont un niveau est en cours (aucun par défaut). */
     val etablisSuivis: Set<String> = emptySet(),
     /** Nombre d'étapes terminées de chaque projet. */
     val etapesProjets: Map<String, Int> = emptyMap(),
-    /** Projets suivis (aucun par défaut : les Expéditions et projets de saison se choisissent). */
+    /** Projets et Expéditions en cours (aucun par défaut). */
     val projetsSuivis: Set<String> = emptySet(),
     /** Le joueur a indiqué ses quêtes en cours : elles, puis leurs suites, deviennent des objectifs. */
     val quetesIndiquees: Boolean = false,
@@ -43,78 +43,83 @@ class SuiviProgression(private val catalogue: Catalogue) {
         return etabli.niveaux.filter { it.niveau > actuel }.minByOrNull { it.niveau }
     }
 
-    /** Quêtes de l'histoire disponibles : pas encore terminées, et toutes les précédentes le sont. */
-    fun quetesEnCours(progression: Progression): List<Quete> = histoire.filter { q ->
-        q.id !in progression.quetesTerminees && q.requiert.all { it in progression.quetesTerminees }
-    }
+    /** Niveau en cours de l'établi, ou `null` s'il n'est pas indiqué en cours (ou s'il est au maximum). */
+    fun niveauEnCours(progression: Progression, etabli: Etabli): Int? =
+        if (etabli.id in progression.etablisSuivis) prochainNiveau(progression, etabli)?.niveau else null
 
     /**
-     * Objectifs choisis par l'appli : prochain niveau de chaque établi suivi, quêtes en cours qui
-     * demandent des objets (une fois les quêtes indiquées), prochaine étape des projets suivis.
+     * Le joueur indique le niveau en cours de l'établi (les précédents sont faits), ou `null` : rien en
+     * cours pour cet établi.
      */
-    fun objectifsAutomatiques(progression: Progression): List<Objectif> {
-        val etablis = catalogue.donnees.etablis
-            .filter { it.id in progression.etablisSuivis }
-            .mapNotNull { e -> prochainNiveau(progression, e)?.let { Objectif.NiveauDEtabli(e.id, it.niveau) } }
-        val quetes = if (!progression.quetesIndiquees) {
-            emptyList()
-        } else {
-            quetesEnCours(progression).filter { it.objets.isNotEmpty() }.map { Objectif.QueteATerminer(it.id) }
-        }
-        val projets = catalogue.donnees.projets
-            .filter { it.id in progression.projetsSuivis }
-            .mapNotNull { p -> prochaineEtape(progression, p)?.let { Objectif.EtapeDeProjet(p.id, it) } }
-        return etablis + quetes + projets
+    fun indiquerNiveauEnCours(progression: Progression, etabli: Etabli, niveau: Int?): Progression {
+        if (niveau == null) return progression.copy(etablisSuivis = progression.etablisSuivis - etabli.id)
+        val fait = (niveau - 1).coerceIn(niveauDeDepart(etabli), niveauMax(etabli))
+        return progression.copy(
+            niveauxEtablis = progression.niveauxEtablis + (etabli.id to fait),
+            etablisSuivis = progression.etablisSuivis + etabli.id,
+        )
+    }
+
+    /** Quêtes de l'histoire en cours : pas encore terminées, et toutes les précédentes le sont. */
+    fun quetesEnCours(progression: Progression): List<Quete> = if (!progression.quetesIndiquees) {
+        emptyList()
+    } else {
+        histoire.filter { q -> q.id !in progression.quetesTerminees && q.requiert.all { it in progression.quetesTerminees } }
     }
 
     /** Rang de la prochaine étape du projet, ou `null` s'il est terminé. */
     fun prochaineEtape(progression: Progression, projet: Projet): Int? =
         (progression.etapesProjets[projet.id] ?: 0).takeIf { it < projet.etapes.size }
 
-    /** Étape de projet terminée en jeu : la suivante devient l'objectif. */
-    fun terminerEtape(progression: Progression, projet: Projet): Progression {
-        val faites = ((progression.etapesProjets[projet.id] ?: 0) + 1).coerceAtMost(projet.etapes.size)
-        return progression.copy(etapesProjets = progression.etapesProjets + (projet.id to faites))
+    /** Étape en cours du projet (rang, à partir de 0), ou `null` s'il n'est pas en cours (ou terminé). */
+    fun etapeEnCours(progression: Progression, projet: Projet): Int? =
+        if (projet.id in progression.projetsSuivis) prochaineEtape(progression, projet) else null
+
+    /** Le joueur indique l'étape en cours du projet (les précédentes sont faites), ou `null` : pas en cours. */
+    fun indiquerEtapeEnCours(progression: Progression, projet: Projet, etape: Int?): Progression {
+        if (etape == null) return progression.copy(projetsSuivis = progression.projetsSuivis - projet.id)
+        return progression.copy(
+            etapesProjets = progression.etapesProjets + (projet.id to etape.coerceIn(0, projet.etapes.size)),
+            projetsSuivis = progression.projetsSuivis + projet.id,
+        )
     }
-
-    /** Correction : nombre d'étapes terminées. */
-    fun changerEtapes(progression: Progression, projet: Projet, faites: Int): Progression =
-        progression.copy(etapesProjets = progression.etapesProjets + (projet.id to faites.coerceIn(0, projet.etapes.size)))
-
-    fun suivreProjet(progression: Progression, projetId: String, suivi: Boolean): Progression =
-        progression.copy(projetsSuivis = if (suivi) progression.projetsSuivis + projetId else progression.projetsSuivis - projetId)
 
     /**
-     * Mise en place rapide : le joueur indique les quêtes affichées en cours dans son jeu. Toutes celles
-     * qui mènent à elles sont terminées ; elles-mêmes, et tout ce qui vient après, ne le sont pas.
+     * Les objectifs : niveau en cours de chaque établi indiqué, quêtes en cours (avec ou sans objets à
+     * rapporter), étape en cours de chaque projet et Expédition indiqués.
      */
-    fun indiquerQuetesEnCours(progression: Progression, enCours: Collection<String>): Progression {
-        val avant = enCours.flatMap { precedentes(it) }.toSet()
-        val apres = enCours.flatMap { suivantes(it) + it }.toSet()
-        return progression.copy(quetesTerminees = progression.quetesTerminees + avant - apres, quetesIndiquees = true)
+    fun objectifs(progression: Progression): List<Objectif> {
+        val etablis = catalogue.donnees.etablis.mapNotNull { e ->
+            niveauEnCours(progression, e)?.let { Objectif.NiveauDEtabli(e.id, it) }
+        }
+        val quetes = quetesEnCours(progression).map { Objectif.QueteATerminer(it.id) }
+        val projets = catalogue.donnees.projets.mapNotNull { p ->
+            etapeEnCours(progression, p)?.let { Objectif.EtapeDeProjet(p.id, it) }
+        }
+        return etablis + quetes + projets
     }
 
-    /** Quête terminée : elle, et celles qui y mènent. Les suivantes deviennent disponibles. */
+    /**
+     * Le joueur indique les quêtes en cours dans son jeu. Tout le reste est considéré comme fait, sauf ce
+     * qui vient après elles. Une quête cochée qui mène à une autre quête cochée est faite (l'autre est plus
+     * loin dans l'histoire).
+     */
+    fun indiquerQuetesEnCours(progression: Progression, enCours: Collection<String>): Progression {
+        val cochees = enCours.filter { id -> histoire.any { it.id == id } }.toSet()
+        val faitesAvant = cochees.flatMap { precedentes(it) }.toSet()
+        val enCoursVraiment = cochees - faitesAvant
+        val aVenir = enCoursVraiment.flatMap { suivantes(it) }.toSet()
+        val terminees = histoire.map { it.id }.toSet() - enCoursVraiment - aVenir
+        return progression.copy(quetesTerminees = terminees, quetesIndiquees = true)
+    }
+
+    /** Quête terminée : elle, et celles qui y mènent. Les suivantes deviennent en cours. */
     fun terminerQuete(progression: Progression, queteId: String): Progression =
         progression.copy(quetesTerminees = progression.quetesTerminees + precedentes(queteId) + queteId)
 
-    /** Annule une quête marquée terminée par erreur (et celles qui en dépendent). */
-    fun annulerQuete(progression: Progression, queteId: String): Progression =
-        progression.copy(quetesTerminees = progression.quetesTerminees - suivantes(queteId) - queteId)
-
-    fun changerNiveau(progression: Progression, etabli: Etabli, niveau: Int): Progression =
-        progression.copy(niveauxEtablis = progression.niveauxEtablis + (etabli.id to niveau.coerceIn(niveauDeDepart(etabli), niveauMax(etabli))))
-
-    fun suivreEtabli(progression: Progression, etabliId: String, suivi: Boolean): Progression =
-        progression.copy(etablisSuivis = if (suivi) progression.etablisSuivis + etabliId else progression.etablisSuivis - etabliId)
-
-    /** Suivre (ou ne plus suivre) tous les établis d'un coup. */
-    fun suivreTousLesEtablis(progression: Progression, suivi: Boolean): Progression =
-        progression.copy(etablisSuivis = if (suivi) catalogue.donnees.etablis.map { it.id }.toSet() else emptySet())
-
     /**
-     * Vrai si l'objectif est la prochaine chose à faire : prochain niveau de l'établi, quête disponible
-     * (pas terminée, ses prérequis le sont), prochaine étape du projet. Un objectif plus lointain ne l'est pas.
+     * Vrai si l'objectif est la prochaine chose à faire : niveau en cours de l'établi, quête en cours (pas
+     * terminée, ses prérequis le sont), étape en cours du projet. Un objectif plus lointain ne l'est pas.
      */
     fun atteignable(progression: Progression, objectif: Objectif): Boolean = when (objectif) {
         is Objectif.NiveauDEtabli ->
@@ -128,28 +133,26 @@ class SuiviProgression(private val catalogue: Catalogue) {
 
     /** L'objectif est fait : niveau construit, quête terminée (et celles qui y mènent), étape de projet faite. */
     fun terminer(progression: Progression, objectif: Objectif): Progression = when (objectif) {
-        is Objectif.NiveauDEtabli -> catalogue.etabli(objectif.etabliId)
-            ?.let { changerNiveau(progression, it, maxOf(niveau(progression, it), objectif.niveau)) } ?: progression
+        is Objectif.NiveauDEtabli -> catalogue.etabli(objectif.etabliId)?.let { e ->
+            val fait = maxOf(niveau(progression, e), objectif.niveau).coerceAtMost(niveauMax(e))
+            progression.copy(niveauxEtablis = progression.niveauxEtablis + (e.id to fait))
+        } ?: progression
         is Objectif.QueteATerminer -> terminerQuete(progression, objectif.queteId)
-        is Objectif.EtapeDeProjet -> catalogue.projet(objectif.projetId)
-            ?.let { changerEtapes(progression, it, maxOf(progression.etapesProjets[it.id] ?: 0, objectif.etape + 1)) } ?: progression
+        is Objectif.EtapeDeProjet -> catalogue.projet(objectif.projetId)?.let { p ->
+            val faites = maxOf(progression.etapesProjets[p.id] ?: 0, objectif.etape + 1).coerceAtMost(p.etapes.size)
+            progression.copy(etapesProjets = progression.etapesProjets + (p.id to faites))
+        } ?: progression
     }
 
     /**
-     * Termine d'eux-mêmes les objectifs dont tout a été rapporté ([complet]) quand ils sont la prochaine chose
-     * à faire, puis ceux qui le deviennent (le niveau suivant peut être déjà complet, s'il avait été ajouté à
-     * la main). [manuels] : objectifs ajoutés à la main. Renvoie la progression et les objectifs terminés.
+     * Termine d'eux-mêmes les objectifs dont tout a été rapporté ([complet]), puis la suite si elle l'est
+     * déjà aussi. Renvoie la progression et les objectifs terminés, dans l'ordre.
      */
-    fun terminerLesComplets(
-        progression: Progression,
-        manuels: List<Objectif>,
-        complet: (Objectif) -> Boolean,
-    ): Pair<Progression, List<Objectif>> {
+    fun terminerLesComplets(progression: Progression, complet: (Objectif) -> Boolean): Pair<Progression, List<Objectif>> {
         var p = progression
         val termines = mutableListOf<Objectif>()
         while (true) {
-            val suivant = (objectifsAutomatiques(p) + manuels)
-                .firstOrNull { it !in termines && atteignable(p, it) && complet(it) } ?: break
+            val suivant = objectifs(p).firstOrNull { it !in termines && atteignable(p, it) && complet(it) } ?: break
             p = terminer(p, suivant)
             termines += suivant
         }

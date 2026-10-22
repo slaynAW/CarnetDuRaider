@@ -3,16 +3,22 @@ package io.github.slaynaw.carnetduraider.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -44,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.BilanRaid
 import io.github.slaynaw.carnetduraider.core.Objectif
@@ -60,10 +69,11 @@ private const val OBJECTIFS_AFFICHES = 3
 private const val OBJETS_AFFICHES = 5
 
 /**
- * Animation du retour de raid validé : les objectifs terminés d'eux-mêmes (tout a été rapporté) et les
- * objets qui ont atteint le nombre demandé apparaissent un à un. Quand toute la liste est trouvée :
- * « Raid terminé, objets trouvés », avec une gerbe de bandes aux couleurs de l'appli. Une touche (ou
- * « Retour ») la ferme.
+ * Animation du retour de raid validé. Un objectif terminé de lui-même (tout a été rapporté) est validé à la
+ * manière d'ARC Raiders : une bande verte balaie l'écran, « OBJECTIF TERMINÉ » s'y imprime en capitales,
+ * puis chaque objectif reçoit son tampon « VALIDÉ ». Les objets qui ont atteint le nombre demandé
+ * apparaissent ensuite un à un. Quand toute la liste est trouvée : « Raid terminé, objets trouvés », avec
+ * une gerbe de bandes aux couleurs de l'appli. Une touche (ou « Retour ») la ferme.
  */
 @Composable
 fun CelebrationRaid(vm: CarnetViewModel, bilan: BilanRaid, onFin: () -> Unit) {
@@ -94,19 +104,18 @@ fun CelebrationRaid(vm: CarnetViewModel, bilan: BilanRaid, onFin: () -> Unit) {
                 scaleX = titre.value
                 scaleY = titre.value
             }
-            if (bilan.termine) {
+            if (bilan.objectifsTermines.isNotEmpty()) {
+                BanniereObjectif(bilan.objectifsTermines.size)
+                Text(
+                    if (bilan.termine) "Raid terminé, objets trouvés\u00a0! La suite s'ajoute à tes objectifs." else "Tout est rapporté. La suite s'ajoute à tes objectifs.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (bilan.termine) Signal.Texte else Signal.TexteDoux,
+                    textAlign = TextAlign.Center,
+                )
+            } else if (bilan.termine) {
                 Bandes(echelle, hauteur = 40.dp, largeurBande = 10.dp)
                 Text("Raid terminé", style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center, modifier = echelle)
                 Text("Objets trouvés\u00a0!", style = MaterialTheme.typography.headlineSmall, color = Signal.Vert, textAlign = TextAlign.Center)
-            } else if (bilan.objectifsTermines.isNotEmpty()) {
-                Text(
-                    if (bilan.objectifsTermines.size > 1) "Objectifs terminés" else "Objectif terminé",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = Signal.Vert,
-                    textAlign = TextAlign.Center,
-                    modifier = echelle,
-                )
-                Text("Tout est rapporté. La suite s'ajoute à tes objectifs.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux, textAlign = TextAlign.Center)
             } else {
                 Text("Objets trouvés", style = MaterialTheme.typography.headlineLarge, color = Signal.Vert, textAlign = TextAlign.Center, modifier = echelle)
                 Text(
@@ -148,16 +157,91 @@ private fun Modifier.rebond(apparition: Animatable<Float, AnimationVector1D>): M
     scaleY = 0.7f + 0.3f * apparition.value
 }
 
-/** Un objectif dont tout a été rapporté : il s'est terminé tout seul, la suite apparaît. */
+/**
+ * « OBJECTIF TERMINÉ » à la manière d'ARC Raiders : une bande verte inclinée balaie l'écran de gauche à droite,
+ * rayée de fines bandes qui défilent, et le titre en capitales s'y resserre.
+ */
+@Composable
+private fun BanniereObjectif(nombre: Int) {
+    val balayage = remember { Animatable(0f) }
+    val resserrage = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        balayage.animateTo(1f, tween(durationMillis = 450, easing = FastOutSlowInEasing))
+        resserrage.animateTo(1f, tween(durationMillis = 600, easing = FastOutSlowInEasing))
+    }
+    val titre = if (nombre > 1) "OBJECTIFS TERMINÉS" else "OBJECTIF TERMINÉ"
+    Box(Modifier.fillMaxWidth().height(88.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val pente = size.height * 0.4f
+            val fin = (size.width + pente) * balayage.value
+            val bande = Path().apply {
+                moveTo(0f, size.height)
+                lineTo((fin - pente).coerceAtLeast(0f), size.height)
+                lineTo(fin, 0f)
+                lineTo(pente.coerceAtMost(fin), 0f)
+                close()
+            }
+            drawPath(bande, Signal.Vert)
+            // Rayures sombres qui défilent dans la bande, comme sur les écrans du jeu.
+            val pas = 18.dp.toPx()
+            val decalage = pas * 2f * resserrage.value
+            clipPath(bande) {
+                var x = -size.height + decalage % pas - pas
+                while (x < fin) {
+                    val rayure = Path().apply {
+                        moveTo(x, size.height)
+                        lineTo(x + 4.dp.toPx(), size.height)
+                        lineTo(x + 4.dp.toPx() + pente, 0f)
+                        lineTo(x + pente, 0f)
+                        close()
+                    }
+                    drawPath(rayure, Signal.Fond, alpha = 0.12f)
+                    x += pas
+                }
+            }
+        }
+        Text(
+            titre,
+            style = MaterialTheme.typography.headlineLarge.copy(letterSpacing = (10f - 8f * resserrage.value).sp),
+            color = Signal.SurCouleur,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            modifier = Modifier.graphicsLayer { alpha = ((balayage.value - 0.5f) * 2f).coerceIn(0f, 1f) },
+        )
+    }
+}
+
+/** Un objectif dont tout a été rapporté : il arrive, puis reçoit son tampon « VALIDÉ » ; la suite apparaît. */
 @Composable
 private fun ObjectifTermine(vm: CarnetViewModel, objectif: Objectif, rang: Int) {
+    val tampon = remember(rang) { Animatable(0f) }
+    LaunchedEffect(rang) {
+        delay(900L + rang * 250L)
+        tampon.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+    }
     Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().rebond(arrivee(rang))) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Signal.Vert, modifier = Modifier.size(36.dp))
-            Column(Modifier.weight(1f)) {
+        Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(6.dp).fillMaxHeight().background(Signal.Vert))
+            Column(Modifier.weight(1f).padding(12.dp)) {
                 Text(vm.planificateur.libelle(objectif), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text("Tout est rapporté", style = MaterialTheme.typography.labelMedium, color = Signal.Vert)
             }
+            Text(
+                "VALIDÉ",
+                style = MaterialTheme.typography.titleMedium.copy(letterSpacing = 2.sp),
+                color = Signal.Vert,
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .graphicsLayer {
+                        val t = tampon.value
+                        alpha = t.coerceIn(0f, 1f)
+                        scaleX = 2.2f - 1.2f * t
+                        scaleY = 2.2f - 1.2f * t
+                        rotationZ = -12f
+                    }
+                    .border(2.dp, Signal.Vert, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+            )
         }
     }
 }
@@ -179,7 +263,7 @@ private fun ObjetAtteint(vm: CarnetViewModel, a: ObjetATrouver, rang: Int) {
             Column(Modifier.weight(1f)) {
                 Text(vm.catalogue.nomObjet(a.objetId), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${minOf(a.trouves, a.voulu)}/${a.voulu} · " + (a.pour.map { it.libelle } + listOfNotNull("ajouté par toi".takeIf { a.ajouteParLeJoueur })).joinToString(" · "),
+                    "${minOf(a.trouves, a.voulu)}/${a.voulu} · " + a.pour.joinToString(" · ") { it.libelle },
                     style = MaterialTheme.typography.labelMedium,
                     color = Signal.TexteDoux,
                     maxLines = 1,

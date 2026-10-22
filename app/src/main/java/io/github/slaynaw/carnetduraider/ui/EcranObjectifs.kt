@@ -1,11 +1,11 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,25 +13,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,147 +47,94 @@ import io.github.slaynaw.carnetduraider.core.Etabli
 import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
-import io.github.slaynaw.carnetduraider.core.Quete
 import io.github.slaynaw.carnetduraider.core.cle
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
+/** Ce que le joueur peut indiquer en cours, chacun avec sa liste complète. */
+enum class ChoixEnCours(val bouton: String, val titre: String) {
+    QUETES("Indiquer mes quêtes en cours", "Mes quêtes en cours"),
+    ATELIERS("Indiquer mes ateliers en cours", "Mes ateliers en cours"),
+    PROJETS("Indiquer mes projets en cours", "Mes projets en cours"),
+    EXPEDITIONS("Indiquer mes expéditions en cours", "Mes expéditions en cours"),
+}
+
+/** Nombre d'éléments indiqués en cours pour ce choix. */
+private fun nombreEnCours(vm: CarnetViewModel, choix: ChoixEnCours): Int = when (choix) {
+    ChoixEnCours.QUETES -> vm.suivi.quetesEnCours(vm.progression).size
+    ChoixEnCours.ATELIERS -> vm.catalogue.donnees.etablis.count { vm.suivi.niveauEnCours(vm.progression, it) != null }
+    ChoixEnCours.PROJETS -> vm.catalogue.donnees.projets.count { !it.expedition && vm.suivi.etapeEnCours(vm.progression, it) != null }
+    ChoixEnCours.EXPEDITIONS -> vm.catalogue.donnees.projets.count { it.expedition && vm.suivi.etapeEnCours(vm.progression, it) != null }
+}
+
 /**
- * Onglet Objectifs : ce que le joueur veut faire avancer (établis, quêtes, projets), avec ce qui a déjà été
- * rapporté pour chacun. Rien n'est suivi à l'installation ; un geste suffit pour suivre. Un objectif dont
- * tout a été rapporté se termine tout seul au retour de raid ; un geste le valide s'il est fait autrement.
+ * Onglet Objectifs : tout est considéré comme déjà fait, sauf ce que le joueur indique en cours (quatre
+ * boutons, chacun vers la liste complète). Au départ, il n'y a que ces boutons. Ce qui est en cours s'affiche
+ * dessous, avec ce qui a déjà été rapporté ; tout se valide tout seul au retour de raid, et la suite s'ajoute.
  */
 @Composable
-fun EcranObjectifs(
-    vm: CarnetViewModel,
-    ajouterObjectif: () -> Unit,
-    choisirQuetes: () -> Unit,
-    voirRaid: () -> Unit,
-) {
+fun EcranObjectifs(vm: CarnetViewModel, choisir: (ChoixEnCours) -> Unit, voirRaid: () -> Unit) {
+    val objectifs = vm.objectifs
     val liste = vm.listeDeCourses()
-    val enCours = vm.suivi.quetesEnCours(vm.progression)
-    val autres = vm.objectifsManuels.filter { it !in vm.objectifsAutomatiques }
-    val tousLesEtablis = vm.progression.etablisSuivis.size == vm.catalogue.donnees.etablis.size
 
-    Box(Modifier.fillMaxSize()) {
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Bandeau("Objectifs", Signal.Vert)
-                    Text("Objectifs", style = MaterialTheme.typography.headlineLarge)
-                    Text(
-                        "Choisis ce que tu veux faire avancer. Ce que tu rapportes de raid s'y ajoute, et tout ce qui est " +
-                            "complet se termine tout seul. Fait autrement en jeu\u00a0? Valide-le d'un geste.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Signal.TexteDoux,
-                    )
-                }
-            }
-
-            // Résumé, et le chemin vers ce qu'il faut trouver.
-            if (vm.objectifs.isNotEmpty()) {
-                item {
-                    Surface(onClick = voirRaid, color = Signal.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    "${pluriel(vm.objectifs.size, "objectif suivi", "objectifs suivis")} · ${pluriel(liste.objetsATrouver, "objet", "objets")} à trouver",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text("Raid ›", style = MaterialTheme.typography.labelLarge, color = Signal.Rouge)
-                            }
-                            Barre(liste.progression.toFloat(), Signal.Vert, epaisseur = 8.dp)
-                        }
-                    }
-                }
-            }
-
-            // Démarrage en un geste : tout l'Atelier, puis les quêtes.
-            if (vm.progression.etablisSuivis.isEmpty() || !vm.quetesIndiquees) {
-                item {
-                    Surface(color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Pour commencer", style = MaterialTheme.typography.titleMedium)
-                            if (vm.progression.etablisSuivis.isEmpty()) {
-                                Button(
-                                    onClick = { vm.suivreTousLesEtablis(true) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-                                ) { Text("Suivre tous mes établis") }
-                            }
-                            if (!vm.quetesIndiquees) {
-                                Text(
-                                    "Coche une seule fois les quêtes en cours dans ton jeu\u00a0: l'appli en déduit celles déjà terminées.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Signal.TexteDoux,
-                                )
-                                Button(
-                                    onClick = choisirQuetes,
-                                    colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-                                ) { Text("Indiquer mes quêtes en cours") }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Atelier", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { vm.suivreTousLesEtablis(!tousLesEtablis) }) {
-                        Text(if (tousLesEtablis) "Ne rien suivre" else "Tout suivre", color = if (tousLesEtablis) Signal.TexteDiscret else Signal.Vert)
-                    }
-                }
-            }
-            items(vm.catalogue.donnees.etablis.sortedBy { it.nom }, key = { "etabli-${it.id}" }) { etabli ->
-                CarteEtabli(vm, etabli)
-            }
-
-            if (vm.quetesIndiquees) {
-                item {
-                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Quêtes en cours", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        TextButton(onClick = choisirQuetes) { Text("Modifier", color = Signal.Vert) }
-                    }
-                }
-                if (enCours.isEmpty()) {
-                    item { Text("Aucune quête en cours.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret) }
-                }
-                items(enCours.sortedWith(compareBy({ it.objets.isEmpty() }, { it.nom })), key = { "quete-${it.id}" }) { quete ->
-                    CarteQuete(vm, quete)
-                }
-            }
-
-            item { SousTitre("Projets") }
-            item {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Bandeau("Objectifs", Signal.Vert)
+                Text("Objectifs", style = MaterialTheme.typography.headlineLarge)
                 Text(
-                    "Expéditions et projets de saison\u00a0: suis ceux que tu fais, leur prochaine étape s'ajoute à ce qu'il te faut.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Tout ce que tu n'indiques pas est considéré comme déjà fait. Indique ce que tu as en cours\u00a0: " +
+                        "ce que tu rapportes de raid s'y ajoute, et tout se valide tout seul.",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
                 )
             }
-            items(vm.catalogue.donnees.projets, key = { "projet-${it.id}" }) { projet -> CarteProjet(vm, projet) }
+        }
+        items(ChoixEnCours.entries, key = { "choix-${it.name}" }) { choix ->
+            BoutonEnCours(choix, nombreEnCours(vm, choix), onClick = { choisir(choix) })
+        }
 
+        if (objectifs.isNotEmpty()) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                    Text("Autres objectifs", style = MaterialTheme.typography.titleMedium)
-                    autres.forEach { objectif -> LigneObjectif(vm, objectif) }
-                    TextButton(onClick = ajouterObjectif) {
-                        Icon(Icons.Filled.Add, contentDescription = null, tint = Signal.Vert)
-                        Text("Ajouter un objectif plus lointain", color = Signal.Vert, modifier = Modifier.padding(start = 6.dp))
+                Surface(onClick = voirRaid, color = Signal.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "${pluriel(objectifs.size, "objectif en cours", "objectifs en cours")} · ${pluriel(liste.objetsATrouver, "objet", "objets")} à trouver",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text("Raid ›", style = MaterialTheme.typography.labelLarge, color = Signal.Rouge)
+                        }
+                        Barre(liste.progression.toFloat(), Signal.Vert, epaisseur = 8.dp)
                     }
                 }
             }
+            item { Text("En cours", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
+            items(objectifs, key = { "objectif-${it.cle}" }) { objectif -> CarteObjectif(vm, objectif) }
         }
     }
 }
 
+/** Un des quatre boutons : vers la liste complète, avec le nombre d'éléments en cours. */
 @Composable
-private fun SousTitre(texte: String) {
-    Text(texte, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
+private fun BoutonEnCours(choix: ChoixEnCours, enCours: Int, onClick: () -> Unit) {
+    Surface(onClick = onClick, color = Signal.Releve, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(choix.bouton, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (enCours == 0) "Rien en cours" else "$enCours en cours",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (enCours == 0) Signal.TexteDiscret else Signal.Vert,
+                )
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Signal.Vert)
+        }
+    }
 }
 
 private fun detailCout(cout: List<Quantite>, catalogue: Catalogue): String =
@@ -203,152 +148,75 @@ private fun detailAvancement(vm: CarnetViewModel, objectif: Objectif): String {
     }
 }
 
-/** Bouton « Valider » : l'action est faite en jeu, sans avoir à saisir d'abord les objets. */
+/**
+ * Un objectif en cours : ce qu'il demande et ce qui a été rapporté. Il se termine tout seul quand tout est
+ * rapporté ; « C'est fait » le valide s'il est fait autrement en jeu (ou s'il n'y a rien à rapporter).
+ */
 @Composable
-private fun BoutonValider(texte: String, description: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-        modifier = Modifier.semantics { contentDescription = description },
-    ) {
-        Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-        Text(texte, modifier = Modifier.padding(start = 6.dp))
-    }
-}
-
-@Composable
-private fun CarteEtabli(vm: CarnetViewModel, etabli: Etabli) {
-    val niveau = vm.suivi.niveau(vm.progression, etabli)
-    val max = vm.suivi.niveauMax(etabli)
-    val prochain = vm.suivi.prochainNiveau(vm.progression, etabli)
-    val suivi = etabli.id in vm.progression.etablisSuivis
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(etabli.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    Text("Niveau $niveau sur $max", style = MaterialTheme.typography.labelMedium, color = if (prochain == null) Signal.Vert else Signal.TexteDoux)
-                }
-                FilledIconButton(
-                    onClick = { vm.changerNiveau(etabli, niveau - 1) },
-                    enabled = niveau > vm.suivi.niveauDeDepart(etabli),
-                    modifier = Modifier.semantics { contentDescription = "Corriger\u00a0: ${etabli.nom} un niveau plus bas" },
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Texte),
-                ) { Text("−", style = MaterialTheme.typography.titleLarge) }
-                FilledIconButton(
-                    onClick = { vm.changerNiveau(etabli, niveau + 1) },
-                    enabled = prochain != null,
-                    modifier = Modifier.semantics { contentDescription = "Corriger\u00a0: ${etabli.nom} un niveau plus haut" },
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Texte),
-                ) { Text("+", style = MaterialTheme.typography.titleLarge) }
-            }
-            if (prochain != null) {
-                Text(
-                    "Niveau ${prochain.niveau}\u00a0: ${detailAvancement(vm, Objectif.NiveauDEtabli(etabli.id, prochain.niveau))}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (suivi) Signal.TexteDoux else Signal.TexteDiscret,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    BoutonValider("Niveau ${prochain.niveau} construit", "Valider\u00a0: ${etabli.nom} niveau ${prochain.niveau} construit") { vm.validerEtabli(etabli) }
-                    Spacer(Modifier.weight(1f))
-                    TextButton(onClick = { vm.suivreEtabli(etabli.id, !suivi) }) {
-                        Text(if (suivi) "Ne pas suivre" else "Suivre", color = if (suivi) Signal.TexteDiscret else Signal.Vert)
-                    }
-                }
-            } else {
-                Text("Niveau maximum atteint.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret)
-            }
-        }
-    }
-}
-
-@Composable
-private fun CarteQuete(vm: CarnetViewModel, quete: Quete) {
+private fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
+    val libelle = vm.planificateur.libelle(objectif)
+    val besoins = vm.planificateur.besoins(objectif)
+    val autres = (objectif as? Objectif.EtapeDeProjet)
+        ?.let { vm.catalogue.projet(it.projetId)?.etapes?.getOrNull(it.etape)?.autresObjectifs } ?: 0
+    val commercant = (objectif as? Objectif.QueteATerminer)?.let { vm.catalogue.quete(it.queteId)?.commercant }
     Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(quete.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            quete.commercant?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
-            if (quete.objets.isNotEmpty()) {
-                Text(detailAvancement(vm, Objectif.QueteATerminer(quete.id)), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
+            Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            commercant?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
+            Text(
+                if (besoins.isEmpty()) "Rien à rapporter\u00a0: valide-le quand c'est fait en jeu." else detailAvancement(vm, objectif),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (besoins.isEmpty()) Signal.TexteDoux else Signal.Or,
+            )
+            if (autres > 0) {
+                Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
-            BoutonValider("Terminée", "Valider\u00a0: quête ${quete.nom} terminée") { vm.validerQuete(quete.id) }
-        }
-    }
-}
-
-@Composable
-private fun CarteProjet(vm: CarnetViewModel, projet: Projet) {
-    val suivi = projet.id in vm.progression.projetsSuivis
-    val etape = vm.suivi.prochaineEtape(vm.progression, projet)
-    val faites = vm.progression.etapesProjets[projet.id] ?: 0
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(projet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        if (etape == null) "Projet terminé" else "Étape ${etape + 1} sur ${projet.etapes.size}\u00a0: ${vm.planificateur.nomEtape(projet, etape)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (etape == null) Signal.Vert else Signal.TexteDoux,
-                    )
-                }
-                if (suivi) {
-                    FilledIconButton(
-                        onClick = { vm.changerEtapes(projet, faites - 1) },
-                        enabled = faites > 0,
-                        modifier = Modifier.semantics { contentDescription = "Corriger\u00a0: ${projet.nom} une étape en arrière" },
-                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Releve, contentColor = Signal.Texte),
-                    ) { Text("−", style = MaterialTheme.typography.titleLarge) }
-                }
-            }
-            if (suivi && etape != null) {
-                val e = projet.etapes[etape]
-                if (e.cout.isNotEmpty()) {
-                    Text(detailAvancement(vm, Objectif.EtapeDeProjet(projet.id, etape)), style = MaterialTheme.typography.bodySmall, color = Signal.Or)
-                }
-                if (e.autresObjectifs > 0) {
-                    Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (suivi && etape != null) {
-                    BoutonValider("Étape terminée", "Valider\u00a0: ${projet.nom}, ${vm.planificateur.nomEtape(projet, etape)} terminée") { vm.validerEtape(projet) }
-                }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = { vm.suivreProjet(projet.id, !suivi) }) {
-                    Text(if (suivi) "Ne pas suivre" else "Suivre", color = if (suivi) Signal.TexteDiscret else Signal.Vert)
-                }
+            Button(
+                onClick = { vm.valider(objectif) },
+                colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                modifier = Modifier.semantics { contentDescription = "C'est fait\u00a0: $libelle" },
+            ) {
+                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("C'est fait", modifier = Modifier.padding(start = 6.dp))
             }
         }
     }
 }
 
+/** En-tête des écrans de choix : retour, titre et explication. */
 @Composable
-private fun LigneObjectif(vm: CarnetViewModel, objectif: Objectif) {
-    val libelle = vm.planificateur.libelle(objectif)
-    val complet = vm.planificateur.complet(objectif, vm.apports)
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                Text(
-                    // Objectif lointain : il se termine quand il devient la prochaine étape.
-                    if (complet) "Tout est rapporté\u00a0: il se terminera à son tour." else detailAvancement(vm, objectif),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (complet) Signal.Vert else Signal.TexteDoux,
-                )
-            }
-            IconButton(onClick = { vm.retirerObjectif(objectif) }) {
-                Icon(Icons.Filled.Close, contentDescription = "Ne plus suivre\u00a0: $libelle", tint = Signal.TexteDoux)
-            }
+private fun EnTeteChoix(titre: String, explication: String, onRetour: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
+            Bandeau("Objectifs", Signal.Vert)
         }
+        Text(titre, style = MaterialTheme.typography.headlineMedium)
+        Text(explication, style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+    }
+}
+
+/** Une pastille de choix (niveau, étape, « Aucun »), mise en avant quand elle est choisie. */
+@Composable
+private fun Pastille(texte: String, choisie: Boolean, description: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = if (choisie) Signal.Vert else Signal.Releve,
+        contentColor = if (choisie) Signal.SurCouleur else Signal.Texte,
+        shape = RoundedCornerShape(50),
+        modifier = Modifier.semantics {
+            contentDescription = description
+            selected = choisie
+        },
+    ) {
+        Text(texte, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
 }
 
 /**
- * Mise en place des quêtes : le joueur coche celles qui sont en cours dans son jeu (journal de
- * quêtes). Celles qui y mènent sont marquées terminées.
+ * Mes quêtes en cours : le joueur coche celles qui sont en cours dans son journal de quêtes. Toutes les
+ * autres sont faites d'office, sauf ce qui vient après elles (la suite s'ajoutera toute seule).
  */
 @Composable
 fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
@@ -367,15 +235,11 @@ fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
-                    Bandeau("Objectifs", Signal.Vert)
-                }
-                Text("Mes quêtes en cours", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    "Coche les quêtes affichées en cours dans ton journal de quêtes. Toutes celles qui y mènent seront marquées terminées.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Signal.TexteDoux,
+                EnTeteChoix(
+                    ChoixEnCours.QUETES.titre,
+                    "Coche les quêtes en cours dans ton journal de quêtes. Toutes les autres sont considérées comme faites\u00a0; " +
+                        "celles qui viennent après s'ajouteront toutes seules.",
+                    onRetour,
                 )
                 OutlinedTextField(
                     value = recherche,
@@ -385,14 +249,16 @@ fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Button(
-                    onClick = { vm.indiquerQuetesEnCours(choix); onRetour() },
+                    onClick = {
+                        vm.indiquerQuetesEnCours(choix)
+                        onRetour()
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
                 ) { Text("Valider (${pluriel(choix.size, "quête", "quêtes")})") }
             }
         }
         items(affichees, key = { it.id }) { quete ->
             val coche = quete.id in choix
-            val terminee = quete.id in vm.progression.quetesTerminees
             Surface(
                 onClick = { choix = if (coche) choix - quete.id else choix + quete.id },
                 color = Signal.Surface,
@@ -408,11 +274,10 @@ fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
                     Box(Modifier.width(6.dp))
                     Column(Modifier.weight(1f)) {
                         Text(quete.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            listOfNotNull(quete.commercant, "terminée".takeIf { terminee && !coche }).joinToString(" · "),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Signal.TexteDoux,
-                        )
+                        val detail = listOfNotNull(quete.commercant, detailCout(quete.objets, vm.catalogue).takeIf { it.isNotEmpty() })
+                        if (detail.isNotEmpty()) {
+                            Text(detail.joinToString(" · "), style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                        }
                     }
                 }
             }
@@ -420,63 +285,103 @@ fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
     }
 }
 
-/** Choix d'un objectif plus lointain : un niveau d'établi au-delà du prochain, ou une quête à venir. */
+/**
+ * Mes ateliers en cours : pour chaque établi de l'Atelier, le niveau en cours d'amélioration (les précédents
+ * sont faits), ou « Aucun ». Chaque choix s'applique tout de suite.
+ */
 @Composable
-fun EcranAjoutObjectif(vm: CarnetViewModel, onRetour: () -> Unit) {
-    val donnees = vm.catalogue.donnees
-    val quetes = donnees.quetes.filter { it.objets.isNotEmpty() && it.id !in vm.progression.quetesTerminees }.sortedBy { it.nom }
+fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
-                    Bandeau("Objectifs", Signal.Vert)
-                }
-                Text("Ajouter un objectif", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    "Le prochain niveau des établis suivis et tes quêtes en cours sont déjà suivis. Ajoute ici un objectif plus lointain\u00a0: ses objets s'ajoutent à ce qu'il te faut.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Signal.TexteDoux,
-                )
-                Text("Atelier", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 10.dp))
-            }
-        }
-        donnees.etablis.forEach { etabli ->
-            val atteint = vm.suivi.niveau(vm.progression, etabli)
-            items(etabli.niveaux.filter { it.niveau > atteint }, key = { "etabli-${etabli.id}-${it.niveau}" }) { niveau ->
-                val objectif = Objectif.NiveauDEtabli(etabli.id, niveau.niveau)
-                ChoixObjectif(
-                    titre = vm.planificateur.libelle(objectif),
-                    detail = detailCout(niveau.cout, vm.catalogue),
-                    suivi = vm.suit(objectif),
-                    onClick = { vm.ajouterObjectif(objectif); onRetour() },
-                )
-            }
-        }
-        item { Text("Quêtes", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 10.dp)) }
-        items(quetes, key = { "quete-${it.id}" }) { quete ->
-            val objectif = Objectif.QueteATerminer(quete.id)
-            ChoixObjectif(
-                titre = quete.nom,
-                detail = listOfNotNull(quete.commercant, detailCout(quete.objets, vm.catalogue)).joinToString(" — "),
-                suivi = vm.suit(objectif),
-                onClick = { vm.ajouterObjectif(objectif); onRetour() },
+            EnTeteChoix(
+                ChoixEnCours.ATELIERS.titre,
+                "Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer. Une fois terminé, le suivant s'ajoute tout seul.",
+                onRetour,
             )
         }
+        items(vm.catalogue.donnees.etablis.sortedBy { it.nom }, key = { it.id }) { etabli -> ChoixEtabli(vm, etabli) }
     }
 }
 
 @Composable
-private fun ChoixObjectif(titre: String, detail: String, suivi: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, enabled = !suivi, color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(titre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
-            if (suivi) Text("Déjà suivi", style = MaterialTheme.typography.labelMedium, color = Signal.Vert)
+private fun ChoixEtabli(vm: CarnetViewModel, etabli: Etabli) {
+    val enCours = vm.suivi.niveauEnCours(vm.progression, etabli)
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(etabli.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pastille("Aucun", enCours == null, "${etabli.nom}\u00a0: rien en cours") { vm.indiquerNiveauEnCours(etabli, null) }
+                etabli.niveaux.sortedBy { it.niveau }.forEach { n ->
+                    Pastille("Niveau ${n.niveau}", enCours == n.niveau, "${etabli.nom}\u00a0: niveau ${n.niveau} en cours") {
+                        vm.indiquerNiveauEnCours(etabli, n.niveau)
+                    }
+                }
+            }
+            enCours?.let { niveau ->
+                val cout = etabli.niveaux.firstOrNull { it.niveau == niveau }?.cout.orEmpty()
+                Text(
+                    "Niveau $niveau\u00a0: ${detailAvancement(vm, Objectif.NiveauDEtabli(etabli.id, niveau)).ifEmpty { detailCout(cout, vm.catalogue) }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Signal.Or,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Mes projets (ou mes Expéditions) en cours : pour chacun, l'étape en cours (les précédentes sont faites),
+ * ou « Aucune ». Chaque choix s'applique tout de suite.
+ */
+@Composable
+fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () -> Unit) {
+    val choix = if (expeditions) ChoixEnCours.EXPEDITIONS else ChoixEnCours.PROJETS
+    val projets = vm.catalogue.donnees.projets.filter { it.expedition == expeditions }
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item {
+            EnTeteChoix(
+                choix.titre,
+                "Choisis l'étape en cours de chacun. Une fois terminée, la suivante s'ajoute toute seule.",
+                onRetour,
+            )
+        }
+        items(projets, key = { it.id }) { projet -> ChoixProjet(vm, projet) }
+    }
+}
+
+@Composable
+private fun ChoixProjet(vm: CarnetViewModel, projet: Projet) {
+    val enCours = vm.suivi.etapeEnCours(vm.progression, projet)
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(projet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pastille("Aucune", enCours == null, "${projet.nom}\u00a0: pas en cours") { vm.indiquerEtapeEnCours(projet, null) }
+                projet.etapes.indices.forEach { etape ->
+                    Pastille(
+                        "Étape ${etape + 1}",
+                        enCours == etape,
+                        "${projet.nom}\u00a0: ${vm.planificateur.nomEtape(projet, etape)} en cours",
+                    ) { vm.indiquerEtapeEnCours(projet, etape) }
+                }
+            }
+            enCours?.let { etape ->
+                val objectif = Objectif.EtapeDeProjet(projet.id, etape)
+                Text(vm.planificateur.nomEtape(projet, etape), style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                val detail = detailAvancement(vm, objectif)
+                if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = Signal.Or)
+                if (projet.etapes[etape].autresObjectifs > 0) {
+                    Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                }
+            }
         }
     }
 }

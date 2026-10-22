@@ -26,12 +26,6 @@ object RetourDeRaid {
         return BilanRaid(atteints, termines, termine = avant.any { !it.trouve } && apres.all { it.trouve })
     }
 
-    /** Les objets ajoutés à la main et trouvés quittent la liste : renvoie la liste et les comptes qui restent. */
-    fun sansLesTrouves(raid: Map<String, Int>, trouves: Map<String, Int>): Pair<Map<String, Int>, Map<String, Int>> {
-        val restants = raid.filter { (id, voulu) -> (trouves[id] ?: 0) < voulu }
-        return restants to trouves.filterKeys { it in restants }
-    }
-
     /** Ce qui a été rapporté pour des objectifs terminés n'a plus à être gardé. */
     fun sansLesTermines(apports: Apports, termines: List<Objectif>): Apports = apports - termines.map { it.cle }.toSet()
 }

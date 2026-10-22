@@ -25,8 +25,3 @@ rétablir un, vérifie son nom dans le jeu en français : s'il est vraiment iden
 | Quête | `the_first_nomads_unlock` |  | pas de texte français |
 | Quête | `unlock_nomad_envoy_questgiver` |  | pas de texte français |
 | Projet | `community_event` | Community Event | texte français identique à l'anglais |
-| Carte | `riven-tides` | Riven Tides | texte français identique à l'anglais |
-| Condition de la carte | `beachcombing` | Beachcombing | texte français identique à l'anglais |
-| Condition de la carte | `close-scrutiny` | Close Scrutiny | texte français identique à l'anglais |
-| Condition de la carte | `hurricane` | Hurricane | texte français identique à l'anglais |
-| Condition de la carte | `redirection` | Redirection | texte français identique à l'anglais |

@@ -76,7 +76,8 @@ Release. **Reject** annule la publication sans rien créer.
    voit à chaque build.
 2. Le job « Publication officielle » re-signe cet APK avec la clé définitive (`apksigner`, schémas v2
    et v3), puis vérifie que la signature est valide, que le seul signataire est bien cette clé, et que
-   l'alignement des fichiers est intact.
+   l'alignement est conservé (pages de 16 Kio pour les bibliothèques natives, 4 octets pour les autres
+   fichiers non compressés).
 
 ## Passage d'un APK de test à la version officielle
 

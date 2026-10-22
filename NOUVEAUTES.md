@@ -5,6 +5,16 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.10.0
+
+- **Tout est fait d'office** : l'appli considère tout comme déjà fait, sauf ce que tu indiques en cours. Au départ, il n'y a rien.
+- **Objectifs** : quatre boutons, « Indiquer mes quêtes en cours », « Indiquer mes ateliers en cours », « Indiquer mes projets en cours » et « Indiquer mes expéditions en cours », chacun vers la liste complète. Ce que tu as en cours s'affiche dessous. Tes objectifs d'avant repartent de zéro : indique-les en quelques gestes.
+- **Validé tout seul** : ce que tu notes au retour de raid va d'abord à l'objectif le plus près d'être terminé. Un objectif complet se valide tout seul, avec une animation « Objectif terminé » et son tampon « VALIDÉ », puis la suite s'ajoute (niveau suivant, quête suivante, étape suivante).
+- **Mes builds** : un nouvel onglet pour préparer jusqu'à six builds, avec leur nom et un objet par case (module, bouclier, deux armes, soins, grenades, divers).
+- **Garder, recycler ou vendre ?** Un objet est à garder seulement s'il sert à un objectif en cours ou à fabriquer un de tes builds. Sinon, il est à vendre ou à recycler, et sa fiche dit quand même à quoi il peut servir.
+- **Conditions de la carte** : Hurricane, Beachcombing, Close Scrutiny, Redirection et la carte Riven Tides ont leur nom, tel qu'il s'affiche dans le jeu en français. Riven Tides arrive aussi dans les cartes et dans le butin.
+- **À chaque lancement**, l'appli relit le calendrier des conditions de la carte et cherche une nouvelle version.
+
 ## 0.9.0
 
 - **Plus de réserve à tenir** : l'appli ne te demande plus ce que tu as en stock. Tu notes seulement ce que tu rapportes, dans « Retour de raid ». Ta réserve d'avant est effacée : on repart de zéro.

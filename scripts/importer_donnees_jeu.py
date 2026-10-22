@@ -42,6 +42,10 @@ GROUPES = {"CraftingItems", "Misc", "Weapons", "Utilities", "Keys", "Modificatio
 RARETES = {"Common": "COMMUN", "Uncommon": "INHABITUEL", "Rare": "RARE", "Epic": "EPIQUE",
            "Legendary": "LEGENDAIRE"}
 OBJECTIFS_OBJET = {"Deliver", "Obtain"}
+# Emplacement d'un objet dans un build (section « Mes builds » de l'appli), d'après sa famille dans le jeu.
+EMPLACEMENTS_GROUPE = {"Augment": "MODULE", "Armor": "BOUCLIER", "Weapons": "ARME"}
+EMPLACEMENTS_CATEGORIE = {"Utility.Regenerative": "SOINS", "Utility.Grenade": "GRENADE",
+                          "Utility.Mine": "DIVERS", "Utility.Tools": "DIVERS", "Gadget": "DIVERS"}
 CATEGORIES_HISTOIRE = {"main", "side"}
 
 
@@ -98,6 +102,13 @@ def objets_de_quete(noeud, total):
     for enfant in noeud.get("children", []):
         objets_de_quete(enfant, total)
     return total
+
+
+def emplacement(objet):
+    """Emplacement de build de l'objet (MODULE, BOUCLIER, ARME, SOINS, GRENADE, DIVERS), ou None."""
+    if objet.get("group") == "Utilities":
+        return EMPLACEMENTS_CATEGORIE.get(objet.get("category"))
+    return EMPLACEMENTS_GROUPE.get(objet.get("group"))
 
 
 def quantites(liste):
@@ -463,6 +474,17 @@ def obtention_objet(ident, it, src_textes, trades, recettes, filtre, noms_projet
     return obtention
 
 
+def amelioration_objet(ident, it, tous, ids_objets):
+    """Arme améliorée (« Ferro III ») : l'arme d'avant et ce que coûte l'amélioration, ou None."""
+    for depuis in it.get("upgradesFrom", []):
+        if depuis not in ids_objets:
+            continue
+        for u in tous.get(depuis, {}).get("upgradesTo", []):
+            if u.get("itemId") == ident:
+                return {"depuis": depuis, "ingredients": quantites(u.get("cost", {}).get("items"))}
+    return None
+
+
 # ---- À quoi sert chaque objet ----
 # Familles d'équipement : ce qui s'utilise en raid (armes, modules, boucliers, utilitaires, mods, munitions).
 GROUPES_EQUIPEMENT = {"Weapons", "Augment", "Armor", "Utilities", "Modifications", "Ammunition"}
@@ -618,6 +640,7 @@ def main():
             "recyclage": quantites(it.get("recyclesInto")),
             "recuperation": quantites(it.get("salvagesInto")),
             "lieux": [classif["themes"][t] for t in it.get("foundIn", []) if t in classif["themes"]],
+            **({"emplacement": e} if (e := emplacement(it)) else {}),
         })
     ids_objets = {o["id"] for o in objets}
 
@@ -724,6 +747,9 @@ def main():
         obtention = obtention_objet(o["id"], items["items"][o["id"]], textes_obtention, trades, recettes, filtre, noms_projets)
         if o["id"] in butin:
             obtention = {**butin[o["id"]], **obtention}
+        amelioration = amelioration_objet(o["id"], it, items["items"], ids_objets)
+        if amelioration:
+            obtention["amelioration"] = amelioration
         if obtention:
             o["obtention"] = obtention
 
@@ -746,6 +772,7 @@ def main():
                         + [x for p in projets for e in p["etapes"] for x in e["cout"]]
                         + [x for o in objets for a in o.get("obtention", {}).get("achats", []) for x in a.get("objets", [])]
                         + [x for o in objets for f in o.get("obtention", {}).get("fabrications", []) for x in f["ingredients"]]
+                        + [x for o in objets for x in o.get("obtention", {}).get("amelioration", {}).get("ingredients", [])]
                         + [{"id": f["objet"]} for o in objets for f in o.get("utilisations", {}).get("fabrication", [])]
                         + [{"id": e["objet"]} for o in objets for e in o.get("utilisations", {}).get("echanges", [])]}
                        - ids_objets)
