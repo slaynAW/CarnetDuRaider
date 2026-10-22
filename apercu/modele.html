@@ -510,6 +510,9 @@ function ecranObjets() {
 
 // Fiche d'un objet, dans l'ordre où le joueur se pose les questions : verdict, à quoi il peut servir, où le trouver, ce qu'il rapporte.
 function ecranFiche(id) {
+  // Nom français officiel pas encore vérifié : l'objet est exclu des données, jamais affiché avec un nom inventé.
+  if (!objets.has(id)) return `${retour("Objet", "--or")}<h3>${NOM_A_VERIFIER}</h3>
+  <p class="doux" style="margin:0">Le nom français officiel de cet objet n'est pas encore vérifié${NB}: l'appli ne l'affiche pas, pour ne jamais inventer de nom. Il le sera dès qu'il aura été vérifié dans le jeu en français.</p>`;
   const o = objets.get(id), v = verdict(id), u = usages(id), vr = valeurRecyclage(o), rar = RARETES[o.rarete];
   const sortie = s => s === "RECYCLER" ? `recycle-le${NB}: ses matériaux valent ${vr} pièces, plus que l'objet (${o.valeur}).`
     : !o.recyclage.length ? `vends-le${NB}: il vaut ${o.valeur} pièces et ne se recycle pas.` : `vends-le${NB}: il vaut ${o.valeur} pièces, plus que ses matériaux (${vr}).`;
