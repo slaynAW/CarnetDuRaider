@@ -101,7 +101,8 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   `SuiviProgression.indiquerQuetesEnCours`), choisit le niveau en cours de chaque établi
   (`indiquerNiveauEnCours`) et l'étape en cours de chaque projet ou Expédition (`indiquerEtapeEnCours`,
   `Projet.expedition`), ou « Terminé » (`indiquerEtabliTermine`, `indiquerProjetTermine` : niveau maximum,
-  toutes les étapes ; tampon vert « TERMINÉ », carte teintée de vert, pastille juste après « Aucun »). Ce qui est en cours s'affiche sous les boutons. Un objectif dont tout a été
+  toutes les étapes ; pastille juste après « Aucun » ; carte « coin validé », `CarteChoix` : fond teinté de vert,
+  coin vert plié à coche, bandes du logo en vert et « TERMINÉ · 3 niveaux sur 3 »). Ce qui est en cours s'affiche sous les boutons. Un objectif dont tout a été
   rapporté se valide tout seul (`SuiviProgression.terminerLesComplets`) et la suite s'ajoute (niveau
   suivant, quêtes suivantes d'après l'enchaînement `requiert`, étape suivante). Ce qui est fait autrement
   se valide en un geste (« C'est fait », `CarnetViewModel.valider`), avec « Annuler » : jamais de saisie
