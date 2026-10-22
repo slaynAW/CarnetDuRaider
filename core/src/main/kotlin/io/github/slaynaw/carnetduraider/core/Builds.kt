@@ -1,10 +1,15 @@
 package io.github.slaynaw.carnetduraider.core
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
-/** Les cases d'un build, chacune pour un objet d'un [emplacement] : module, bouclier, deux armes, soins… */
+/**
+ * Les cases d'un build, chacune pour un objet d'un [emplacement] : module, bouclier, deux armes, soins,
+ * grenades, puis six « autres » (tyrolienne, pièges…). La première des autres garde le nom enregistré de
+ * l'ancienne case « Divers » : un build d'avant la 0.11 la retrouve en « Autre 1 ».
+ */
 @Serializable
 enum class CaseBuild(val libelle: String, val emplacement: Emplacement) {
     MODULE("Module", Emplacement.MODULE),
@@ -13,7 +18,18 @@ enum class CaseBuild(val libelle: String, val emplacement: Emplacement) {
     ARME_2("Arme 2", Emplacement.ARME),
     SOINS("Soins", Emplacement.SOINS),
     GRENADES("Grenades", Emplacement.GRENADE),
-    DIVERS("Divers", Emplacement.DIVERS),
+
+    @SerialName("DIVERS")
+    AUTRE_1("Autre 1", Emplacement.DIVERS),
+    AUTRE_2("Autre 2", Emplacement.DIVERS),
+    AUTRE_3("Autre 3", Emplacement.DIVERS),
+    AUTRE_4("Autre 4", Emplacement.DIVERS),
+    AUTRE_5("Autre 5", Emplacement.DIVERS),
+    AUTRE_6("Autre 6", Emplacement.DIVERS),
+    ;
+
+    /** Une des six cases « Autres », affichées ensemble sous ce titre. */
+    val autre: Boolean get() = emplacement == Emplacement.DIVERS
 }
 
 /** Un build du joueur : son [nom] (vide tant qu'il n'en a pas donné) et l'objet choisi pour chaque case. */

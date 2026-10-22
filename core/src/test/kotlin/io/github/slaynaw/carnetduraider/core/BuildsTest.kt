@@ -16,7 +16,10 @@ class BuildsTest {
         assertEquals(builds.choix(CaseBuild.ARME_1), builds.choix(CaseBuild.ARME_2))
         assertTrue(builds.choix(CaseBuild.SOINS).any { it.id == "bandage" })
         assertTrue(builds.choix(CaseBuild.GRENADES).any { it.id == "light_impact_grenade" })
-        assertTrue(builds.choix(CaseBuild.DIVERS).any { it.id == "zipline" })
+        assertTrue(builds.choix(CaseBuild.AUTRE_1).any { it.id == "zipline" })
+        // Six cases « Autres », toutes pour les mêmes objets.
+        assertEquals((1..6).map { "Autre $it" }, CaseBuild.entries.filter { it.autre }.map { it.libelle })
+        assertTrue(CaseBuild.entries.filter { it.autre }.all { builds.choix(it) == builds.choix(CaseBuild.AUTRE_1) })
         CaseBuild.entries.forEach { case -> assertTrue(builds.choix(case).all { it.emplacement == case.emplacement }) }
     }
 
@@ -53,5 +56,14 @@ class BuildsTest {
         assertTrue(relus.drop(2).all { it == Build() })
         assertEquals(List(Builds.NOMBRE) { Build() }, Builds.decoder(null))
         assertEquals(List(Builds.NOMBRE) { Build() }, Builds.decoder("pas du JSON"))
+    }
+
+    @Test
+    fun `l'ancienne case Divers devient Autre 1, et les autres cases s'enregistrent`() {
+        val avant = Builds.decoder("""[{"nom":"Assaut","objets":{"ARME_1":"ferro_iii","DIVERS":"zipline"}}]""")
+        assertEquals(mapOf(CaseBuild.ARME_1 to "ferro_iii", CaseBuild.AUTRE_1 to "zipline"), avant.first().objets)
+        val plein = listOf(Build("Pièges", CaseBuild.entries.filter { it.autre }.associateWith { "zipline" }))
+        assertEquals(plein.first(), Builds.decoder(Builds.encoder(plein)).first())
+        assertEquals(listOf(UsageBuild("Pièges", "zipline", direct = true)), builds.aGarder(plein)["zipline"])
     }
 }

@@ -1,7 +1,6 @@
 package io.github.slaynaw.carnetduraider.ui
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -58,8 +56,9 @@ private const val MATERIAUX_AFFICHES = 6
 
 /**
  * Section « Mes builds » : jusqu'à six builds, chacun avec un nom et un objet par case (module, bouclier,
- * deux armes, soins, grenades, divers). Une puce par build, en haut ; ses cases en grille, dessous. Les objets
- * choisis et tout ce qu'il faut pour les fabriquer sont à garder : l'onglet Objets ne les propose plus à la vente.
+ * deux armes, soins, grenades et six « autres »). Une puce par build, en haut (deux lignes de trois) ; ses
+ * cases en grille, dessous. Les objets choisis et tout ce qu'il faut pour les fabriquer sont à garder :
+ * l'onglet Objets ne les propose plus à la vente.
  */
 @Composable
 fun EcranBuilds(vm: CarnetViewModel, choisir: (rang: Int, case: CaseBuild) -> Unit) {
@@ -78,9 +77,19 @@ fun EcranBuilds(vm: CarnetViewModel, choisir: (rang: Int, case: CaseBuild) -> Un
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
                 )
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    vm.builds.forEachIndexed { i, b ->
-                        PuceFiltre(vm.outilsBuilds.nom(b, i), choisie = i == rang, couleur = Signal.Violet, onClick = { rang = i })
+                // Les six builds en deux lignes de trois.
+                vm.builds.withIndex().chunked(3).forEach { ligne ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ligne.forEach { (i, b) ->
+                            PuceFiltre(
+                                vm.outilsBuilds.nom(b, i),
+                                choisie = i == rang,
+                                couleur = Signal.Violet,
+                                onClick = { rang = i },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        repeat(3 - ligne.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
@@ -106,15 +115,11 @@ private fun CarteBuild(vm: CarnetViewModel, rang: Int, build: Build, choisir: (C
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Signal.Violet, focusedLabelColor = Signal.Violet, cursorColor = Signal.Violet),
             modifier = Modifier.fillMaxWidth(),
         )
-        // Les cases, deux par ligne.
-        CaseBuild.entries.chunked(2).forEach { ligne ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ligne.forEach { case ->
-                    CaseDuBuild(vm, case, build.objets[case], onClick = { choisir(case) }, modifier = Modifier.weight(1f))
-                }
-                if (ligne.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
+        // Les cases, deux par ligne : l'équipement, puis les six « Autres ».
+        val (autres, equipement) = CaseBuild.entries.partition { it.autre }
+        GrilleCases(vm, build, equipement, choisir)
+        Etiquette("Autres", Signal.Violet, Modifier.padding(top = 6.dp))
+        GrilleCases(vm, build, autres, choisir)
         if (materiaux.isNotEmpty()) {
             Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -127,6 +132,19 @@ private fun CarteBuild(vm: CarnetViewModel, rang: Int, build: Build, choisir: (C
                     Text("À garder\u00a0: ils ne sont plus proposés à la vente.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
                 }
             }
+        }
+    }
+}
+
+/** Des cases du build, deux par ligne. */
+@Composable
+private fun GrilleCases(vm: CarnetViewModel, build: Build, cases: List<CaseBuild>, choisir: (CaseBuild) -> Unit) {
+    cases.chunked(2).forEach { ligne ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ligne.forEach { case ->
+                CaseDuBuild(vm, case, build.objets[case], onClick = { choisir(case) }, modifier = Modifier.weight(1f))
+            }
+            if (ligne.size == 1) Spacer(Modifier.weight(1f))
         }
     }
 }
