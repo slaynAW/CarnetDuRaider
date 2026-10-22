@@ -225,6 +225,12 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     /** Étape en cours d'un projet ou d'une Expédition, ou `null` : pas en cours. */
     fun indiquerEtapeEnCours(projet: Projet, etape: Int?) = changerProgression(suivi.indiquerEtapeEnCours(progression, projet, etape))
 
+    /** L'établi est terminé : tous ses niveaux sont faits. */
+    fun indiquerEtabliTermine(etabli: Etabli) = changerProgression(suivi.indiquerEtabliTermine(progression, etabli))
+
+    /** Le projet ou l'Expédition est terminé : toutes ses étapes sont faites. */
+    fun indiquerProjetTermine(projet: Projet) = changerProgression(suivi.indiquerProjetTermine(progression, projet))
+
     /** Annule la dernière validation : progression, butin recherché et ce qui avait été rapporté reviennent comme avant. */
     fun annulerValidation() {
         val v = derniereValidation ?: return

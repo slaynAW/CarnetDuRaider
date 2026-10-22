@@ -156,6 +156,14 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .banniere::before { content: ""; position: absolute; inset: 0 -40px; background: repeating-linear-gradient(70deg, transparent 0 14px, rgba(20,20,23,.12) 14px 18px), var(--vert);
   clip-path: polygon(40px 0, 100% 0, calc(100% - 40px) 100%, 0 100%); animation: balayage .45s cubic-bezier(.4, 0, .2, 1) both, rayures 1.2s .45s linear both; }
 .banniere h2 { position: relative; color: var(--sur-couleur); font-size: 28px; white-space: nowrap; animation: resserrer .6s .3s cubic-bezier(.4, 0, .2, 1) both; }
+.chip.fin:not([aria-pressed="true"]) { color: var(--vert); }
+/* Carte terminée, le « coin validé » (CarteChoix, EcranObjectifs.kt) : fond teinté de vert, coin bas gauche
+   coupé, coin vert plié avec sa coche en haut à droite. */
+.carte.terminee { position: relative; overflow: hidden; border-radius: 0; background: color-mix(in srgb, var(--vert) 12%, var(--surface));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px)); }
+.carte.terminee .coin-valide { position: absolute; top: 0; right: 0; }
+.carte.terminee .titre-choix { padding-right: 40px; }
+.termine-ligne { display: flex; align-items: center; gap: 8px; }
 .tampon { flex: none; margin-right: 6px; font: 700 15px/1 var(--titre); letter-spacing: 2px; color: var(--vert); border: 2px solid var(--vert); border-radius: 6px; padding: 4px 8px;
   transform: rotate(-12deg); animation: tampon .45s cubic-bezier(.34, 1.56, .64, 1) both; }
 .objectif-termine { border-left: 6px solid var(--vert); padding-left: 12px; }
@@ -265,13 +273,19 @@ function indiquerQuetes(enCours) {
   M.terminees = histoire.map(q => q.id).filter(id => !vraiment.includes(id) && !apres.has(id));
   M.quetesIndiquees = true;
 }
+// Terminé : l'établi est au niveau maximum, ou le projet a fait toutes ses étapes.
+const etabliTermine = e => e.niveaux.length > 0 && !prochainNiveau(e);
+const projetTermine = p => p.etapes.length > 0 && prochaineEtape(p) == null;
+function indiquerEtabliTermine(e) { M.niveaux[e.id] = niveauMax(e); M.suivis = M.suivis.filter(x => x !== e.id); }
+function indiquerProjetTermine(p) { M.etapesProjets[p.id] = p.etapes.length; M.projetsSuivis = M.projetsSuivis.filter(x => x !== p.id); }
 function indiquerNiveau(e, n) {
-  if (n == null) { M.suivis = M.suivis.filter(x => x !== e.id); return; }
+  // « Aucun » : rien en cours ; s'il était terminé, il ne l'est plus.
+  if (n == null) { if (etabliTermine(e)) delete M.niveaux[e.id]; M.suivis = M.suivis.filter(x => x !== e.id); return; }
   M.niveaux[e.id] = Math.min(Math.max(n - 1, niveauDepart(e)), niveauMax(e));
   if (!M.suivis.includes(e.id)) M.suivis.push(e.id);
 }
 function indiquerEtape(p, etape) {
-  if (etape == null) { M.projetsSuivis = M.projetsSuivis.filter(x => x !== p.id); return; }
+  if (etape == null) { if (projetTermine(p)) delete M.etapesProjets[p.id]; M.projetsSuivis = M.projetsSuivis.filter(x => x !== p.id); return; }
   M.etapesProjets[p.id] = Math.min(Math.max(etape, 0), p.etapes.length);
   if (!M.projetsSuivis.includes(p.id)) M.projetsSuivis.push(p.id);
 }
@@ -817,23 +831,28 @@ function ecranQuetes() {
     <span class="flex"><span class="nom">${echap(q.nom)}</span>${detail ? `<br><span class="petit doux">${detail}</span>` : ""}</span></button>`; }).join("")}`;
 }
 
-// Mes ateliers en cours : le niveau en cours de chaque établi, ou « Aucun ». Chaque choix s'applique tout de suite.
+// Nom d'un établi ou d'un projet ; terminé, suivi des bandes du logo en vert, de « TERMINÉ » et de ce qui a été
+// fait, avec le coin vert plié (TitreChoix et CoinValide, EcranObjectifs.kt).
+const COIN_VALIDE = `<svg class="coin-valide" width="52" height="52" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0H56V56Z" fill="#6CCB5F"/><path d="M30 17.5l5 5 10.5-11" fill="none" stroke="#141417" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const BANDES_VERTES = `<svg width="22" height="12" viewBox="0 0 35 20" aria-hidden="true"><path d="M0 20h5l7.2-20h-5z" fill="#3E7A37"/><path d="M7.5 20h5l7.2-20h-5z" fill="#4E9C45"/><path d="M15 20h5l7.2-20h-5z" fill="#5DB552"/><path d="M22.5 20h5l7.2-20h-5z" fill="#6CCB5F"/></svg>`;
+const titreChoix = (nom, fin, fait) => `${fin ? COIN_VALIDE : ""}<div class="titre-choix"><span class="nom">${echap(nom)}</span>${fin ? `<div class="termine-ligne">${BANDES_VERTES}${etiquette("Terminé", "--vert")}<span class="petit doux">· ${fait}</span></div>` : ""}</div>`;
+// Mes ateliers en cours : le niveau en cours de chaque établi, « Aucun » ou « Terminé ». Chaque choix s'applique tout de suite.
 function ecranAteliers() {
   return `${retour("Objectifs", "--vert")}<h3>Mes ateliers en cours</h3>
-  <p class="doux" style="margin:0">Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer. Une fois terminé, le suivant s'ajoute tout seul.</p>
-  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveauEnCours(e); return `<div class="carte" style="display:flex;flex-direction:column;gap:8px">
-    <span class="nom">${echap(e.nom)}</span>
-    <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="" aria-pressed="${n == null}" aria-label="${echap(e.nom)}${NB}: rien en cours">Aucun</button>${[...e.niveaux].sort((a, b) => a.niveau - b.niveau).map(x => `<button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="${x.niveau}" aria-pressed="${n === x.niveau}" aria-label="${echap(e.nom)}${NB}: niveau ${x.niveau} en cours">Niveau ${x.niveau}</button>`).join("")}</div>
+  <p class="doux" style="margin:0">Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer, ou «${NB}Terminé${NB}» s'il est au niveau maximum. Une fois un niveau terminé, le suivant s'ajoute tout seul.</p>
+  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveauEnCours(e), fin = etabliTermine(e); return `<div class="carte ${fin ? "terminee" : ""}" style="display:flex;flex-direction:column;gap:8px">
+    ${titreChoix(e.nom, fin, `${pluriel(e.niveaux.length, "niveau", "niveaux")} sur ${e.niveaux.length}`)}
+    <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="" aria-pressed="${n == null && !fin}" aria-label="${echap(e.nom)}${NB}: rien en cours">Aucun</button><button class="chip fin" data-action="etabli-termine" data-id="${e.id}" aria-pressed="${fin}" aria-label="${echap(e.nom)}${NB}: terminé, tous les niveaux sont faits">✓ Terminé</button>${[...e.niveaux].sort((a, b) => a.niveau - b.niveau).map(x => `<button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="${x.niveau}" aria-pressed="${n === x.niveau}" aria-label="${echap(e.nom)}${NB}: niveau ${x.niveau} en cours">Niveau ${x.niveau}</button>`).join("")}</div>
     ${n != null ? `<span class="petit" style="color:var(--or)">Niveau ${n}${NB}: ${detailAvancement({ type: "etabli", id: e.id, niveau: n })}</span>` : ""}</div>`; }).join("")}`;
 }
 
-// Mes projets (ou mes Expéditions) en cours : l'étape en cours de chacun, ou « Aucune ».
+// Mes projets (ou mes Expéditions) en cours : l'étape en cours de chacun, « Aucune » ou « Terminé ».
 function ecranProjets(expeditions) {
   return `${retour("Objectifs", "--vert")}<h3>${expeditions ? "Mes expéditions en cours" : "Mes projets en cours"}</h3>
-  <p class="doux" style="margin:0">Choisis l'étape en cours de chacun. Une fois terminée, la suivante s'ajoute toute seule.</p>
-  ${(D.projets || []).filter(p => estExpedition(p) === expeditions).map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null; return `<div class="carte" style="display:flex;flex-direction:column;gap:8px">
-    <span class="nom">${echap(p.nom)}</span>
-    <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="" aria-pressed="${e == null}" aria-label="${echap(p.nom)}${NB}: pas en cours">Aucune</button>${p.etapes.map((_, i) => `<button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="${i}" aria-pressed="${e === i}" aria-label="${echap(p.nom)}${NB}: ${echap(nomEtape(p, i))} en cours">Étape ${i + 1}</button>`).join("")}</div>
+  <p class="doux" style="margin:0">Choisis l'étape en cours de chacun, ou «${NB}Terminé${NB}» s'il est fini. Une fois une étape terminée, la suivante s'ajoute toute seule.</p>
+  ${(D.projets || []).filter(p => estExpedition(p) === expeditions).map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p); return `<div class="carte ${fin ? "terminee" : ""}" style="display:flex;flex-direction:column;gap:8px">
+    ${titreChoix(p.nom, fin, `${pluriel(p.etapes.length, "étape", "étapes")} sur ${p.etapes.length}`)}
+    <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="" aria-pressed="${e == null && !fin}" aria-label="${echap(p.nom)}${NB}: pas en cours">Aucune</button><button class="chip fin" data-action="projet-termine" data-id="${p.id}" aria-pressed="${fin}" aria-label="${echap(p.nom)}${NB}: terminé, toutes les étapes sont faites">✓ Terminé</button>${p.etapes.map((_, i) => `<button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="${i}" aria-pressed="${e === i}" aria-label="${echap(p.nom)}${NB}: ${echap(nomEtape(p, i))} en cours">Étape ${i + 1}</button>`).join("")}</div>
     ${et ? `<span class="petit doux" style="font-weight:600">${echap(nomEtape(p, e))}</span>${et.cout.length ? `<span class="petit" style="color:var(--or)">${detailAvancement({ type: "projet", id: p.id, etape: e })}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}</div>`; }).join("")}`;
 }
 
@@ -1146,6 +1165,8 @@ document.addEventListener("click", ev => {
     case "butin-retirer": changerButin(id, 0); break;
     case "niveau-en-cours": indiquerNiveau(etablis.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
     case "etape-en-cours": indiquerEtape(projets.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
+    case "etabli-termine": indiquerEtabliTermine(etablis.get(id)); break;
+    case "projet-termine": indiquerProjetTermine(projets.get(id)); break;
     case "valider-objectif": valider(objectifDepuisCle(b.dataset.cle)); break;
     case "build-case": S.caseBuild = { rang: +id, cle: b.dataset.case }; S.rechercheBuild = ""; return ouvrir("choix-build");
     case "build-choisir": { const { rang, cle } = S.caseBuild; changerBuild(rang, x => { if (id) x.objets[cle] = id; else delete x.objets[cle]; }); S.ecran = null; break; }

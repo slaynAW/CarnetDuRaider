@@ -41,8 +41,12 @@ import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
 /** Les quatre bandes inclinées (cyan, vert, or, rouge) : la signature visuelle de l'appli. */
 @Composable
-fun Bandes(modifier: Modifier = Modifier, hauteur: Dp = 28.dp, largeurBande: Dp = 7.dp) {
-    val couleurs = listOf(Signal.Cyan, Signal.Vert, Signal.Or, Signal.Rouge)
+fun Bandes(
+    modifier: Modifier = Modifier,
+    hauteur: Dp = 28.dp,
+    largeurBande: Dp = 7.dp,
+    couleurs: List<Color> = listOf(Signal.Cyan, Signal.Vert, Signal.Or, Signal.Rouge),
+) {
     Canvas(modifier.size(width = largeurBande * 7, height = hauteur).clearAndSetSemantics { }) {
         val l = largeurBande.toPx()
         val decalage = size.height * 0.36f

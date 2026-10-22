@@ -1,9 +1,11 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -36,6 +39,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -219,20 +229,79 @@ private fun EnTeteChoix(titre: String, explication: String, onRetour: () -> Unit
     }
 }
 
-/** Une pastille de choix (niveau, étape, « Aucun »), mise en avant quand elle est choisie. */
+/** Une pastille de choix (niveau, étape, « Aucun », « Terminé »), mise en avant quand elle est choisie. */
 @Composable
-private fun Pastille(texte: String, choisie: Boolean, description: String, onClick: () -> Unit) {
+private fun Pastille(texte: String, choisie: Boolean, description: String, coche: Boolean = false, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         color = if (choisie) Signal.Vert else Signal.Releve,
-        contentColor = if (choisie) Signal.SurCouleur else Signal.Texte,
+        contentColor = if (choisie) Signal.SurCouleur else if (coche) Signal.Vert else Signal.Texte,
         shape = RoundedCornerShape(50),
         modifier = Modifier.semantics {
             contentDescription = description
             selected = choisie
         },
     ) {
-        Text(texte, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (coche) Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp).padding(end = 2.dp))
+            Text(texte, style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+/** Fond d'une carte terminée : la surface, légèrement teintée de vert. */
+private val FondTermine = Signal.Vert.copy(alpha = 0.12f).compositeOver(Signal.Surface)
+
+/** Les bandes du logo en dégradé de vert, devant « TERMINÉ ». */
+private val BandesVertes = listOf(Color(0xFF3E7A37), Color(0xFF4E9C45), Color(0xFF5DB552), Signal.Vert)
+
+/**
+ * Carte d'un établi ou d'un projet. Terminé, c'est le « coin validé » : fond teinté de vert, coin bas
+ * gauche coupé et, en haut à droite, un coin vert plié avec sa coche.
+ */
+@Composable
+private fun CarteChoix(termine: Boolean, contenu: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        color = if (termine) FondTermine else Signal.Surface,
+        shape = if (termine) CutCornerShape(bottomStart = 16.dp) else RoundedCornerShape(6.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = contenu)
+            if (termine) CoinValide(Modifier.align(Alignment.TopEnd))
+        }
+    }
+}
+
+/** Le coin vert plié, avec sa coche, d'une carte terminée. */
+@Composable
+private fun CoinValide(modifier: Modifier = Modifier) {
+    Canvas(modifier.size(52.dp).clearAndSetSemantics { }) {
+        val u = size.width / 56f
+        drawPath(Path().apply { moveTo(0f, 0f); lineTo(size.width, 0f); lineTo(size.width, size.height); close() }, Signal.Vert)
+        drawPath(
+            Path().apply { moveTo(30f * u, 17.5f * u); lineTo(35f * u, 22.5f * u); lineTo(45.5f * u, 11.5f * u) },
+            Signal.SurCouleur,
+            style = Stroke(width = 3f * u, cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
+    }
+}
+
+/**
+ * Nom d'un établi ou d'un projet ; terminé, il est suivi des bandes du logo en vert, de « TERMINÉ » et de
+ * ce qui a été fait ([fait] : « 3 niveaux sur 3 »).
+ */
+@Composable
+private fun TitreChoix(nom: String, termine: Boolean, fait: String) {
+    Column(Modifier.padding(end = if (termine) 40.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        if (termine) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Bandes(hauteur = 12.dp, largeurBande = 3.5.dp, couleurs = BandesVertes)
+                Etiquette("Terminé", Signal.Vert)
+                Text("· $fait", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+            }
+        }
     }
 }
 
@@ -309,7 +378,7 @@ fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
 
 /**
  * Mes ateliers en cours : pour chaque établi de l'Atelier, le niveau en cours d'amélioration (les précédents
- * sont faits), ou « Aucun ». Chaque choix s'applique tout de suite.
+ * sont faits), « Aucun » ou « Terminé » (tous ses niveaux sont faits). Chaque choix s'applique tout de suite.
  */
 @Composable
 fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
@@ -321,7 +390,8 @@ fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
         item {
             EnTeteChoix(
                 ChoixEnCours.ATELIERS.titre,
-                "Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer. Une fois terminé, le suivant s'ajoute tout seul.",
+                "Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer, ou «\u00a0Terminé\u00a0» s'il est au niveau maximum. " +
+                    "Une fois un niveau terminé, le suivant s'ajoute tout seul.",
                 onRetour,
             )
         }
@@ -332,32 +402,35 @@ fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
 @Composable
 private fun ChoixEtabli(vm: CarnetViewModel, etabli: Etabli) {
     val enCours = vm.suivi.niveauEnCours(vm.progression, etabli)
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(etabli.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pastille("Aucun", enCours == null, "${etabli.nom}\u00a0: rien en cours") { vm.indiquerNiveauEnCours(etabli, null) }
-                etabli.niveaux.sortedBy { it.niveau }.forEach { n ->
-                    Pastille("Niveau ${n.niveau}", enCours == n.niveau, "${etabli.nom}\u00a0: niveau ${n.niveau} en cours") {
-                        vm.indiquerNiveauEnCours(etabli, n.niveau)
-                    }
+    val termine = vm.suivi.etabliTermine(vm.progression, etabli)
+    val niveaux = etabli.niveaux.size
+    CarteChoix(termine) {
+        TitreChoix(etabli.nom, termine, "${pluriel(niveaux, "niveau", "niveaux")} sur $niveaux")
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Pastille("Aucun", enCours == null && !termine, "${etabli.nom}\u00a0: rien en cours") { vm.indiquerNiveauEnCours(etabli, null) }
+            Pastille("Terminé", termine, "${etabli.nom}\u00a0: terminé, tous les niveaux sont faits", coche = true) {
+                vm.indiquerEtabliTermine(etabli)
+            }
+            etabli.niveaux.sortedBy { it.niveau }.forEach { n ->
+                Pastille("Niveau ${n.niveau}", enCours == n.niveau, "${etabli.nom}\u00a0: niveau ${n.niveau} en cours") {
+                    vm.indiquerNiveauEnCours(etabli, n.niveau)
                 }
             }
-            enCours?.let { niveau ->
-                val cout = etabli.niveaux.firstOrNull { it.niveau == niveau }?.cout.orEmpty()
-                Text(
-                    "Niveau $niveau\u00a0: ${detailAvancement(vm, Objectif.NiveauDEtabli(etabli.id, niveau)).ifEmpty { detailCout(cout, vm.catalogue) }}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Signal.Or,
-                )
-            }
+        }
+        enCours?.let { niveau ->
+            val cout = etabli.niveaux.firstOrNull { it.niveau == niveau }?.cout.orEmpty()
+            Text(
+                "Niveau $niveau\u00a0: ${detailAvancement(vm, Objectif.NiveauDEtabli(etabli.id, niveau)).ifEmpty { detailCout(cout, vm.catalogue) }}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Signal.Or,
+            )
         }
     }
 }
 
 /**
  * Mes projets (ou mes Expéditions) en cours : pour chacun, l'étape en cours (les précédentes sont faites),
- * ou « Aucune ». Chaque choix s'applique tout de suite.
+ * « Aucune » ou « Terminé » (toutes ses étapes sont faites). Chaque choix s'applique tout de suite.
  */
 @Composable
 fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () -> Unit) {
@@ -371,7 +444,7 @@ fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () 
         item {
             EnTeteChoix(
                 choix.titre,
-                "Choisis l'étape en cours de chacun. Une fois terminée, la suivante s'ajoute toute seule.",
+                "Choisis l'étape en cours de chacun, ou «\u00a0Terminé\u00a0» s'il est fini. Une fois une étape terminée, la suivante s'ajoute toute seule.",
                 onRetour,
             )
         }
@@ -382,27 +455,30 @@ fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () 
 @Composable
 private fun ChoixProjet(vm: CarnetViewModel, projet: Projet) {
     val enCours = vm.suivi.etapeEnCours(vm.progression, projet)
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(projet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pastille("Aucune", enCours == null, "${projet.nom}\u00a0: pas en cours") { vm.indiquerEtapeEnCours(projet, null) }
-                projet.etapes.indices.forEach { etape ->
-                    Pastille(
-                        "Étape ${etape + 1}",
-                        enCours == etape,
-                        "${projet.nom}\u00a0: ${vm.planificateur.nomEtape(projet, etape)} en cours",
-                    ) { vm.indiquerEtapeEnCours(projet, etape) }
-                }
+    val termine = vm.suivi.projetTermine(vm.progression, projet)
+    val etapes = projet.etapes.size
+    CarteChoix(termine) {
+        TitreChoix(projet.nom, termine, "${pluriel(etapes, "étape", "étapes")} sur $etapes")
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Pastille("Aucune", enCours == null && !termine, "${projet.nom}\u00a0: pas en cours") { vm.indiquerEtapeEnCours(projet, null) }
+            Pastille("Terminé", termine, "${projet.nom}\u00a0: terminé, toutes les étapes sont faites", coche = true) {
+                vm.indiquerProjetTermine(projet)
             }
-            enCours?.let { etape ->
-                val objectif = Objectif.EtapeDeProjet(projet.id, etape)
-                Text(vm.planificateur.nomEtape(projet, etape), style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
-                val detail = detailAvancement(vm, objectif)
-                if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = Signal.Or)
-                if (projet.etapes[etape].autresObjectifs > 0) {
-                    Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
-                }
+            projet.etapes.indices.forEach { etape ->
+                Pastille(
+                    "Étape ${etape + 1}",
+                    enCours == etape,
+                    "${projet.nom}\u00a0: ${vm.planificateur.nomEtape(projet, etape)} en cours",
+                ) { vm.indiquerEtapeEnCours(projet, etape) }
+            }
+        }
+        enCours?.let { etape ->
+            val objectif = Objectif.EtapeDeProjet(projet.id, etape)
+            Text(vm.planificateur.nomEtape(projet, etape), style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+            val detail = detailAvancement(vm, objectif)
+            if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = Signal.Or)
+            if (projet.etapes[etape].autresObjectifs > 0) {
+                Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
         }
     }
