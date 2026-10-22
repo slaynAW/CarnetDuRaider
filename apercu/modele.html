@@ -158,7 +158,8 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .banniere h2 { position: relative; color: var(--sur-couleur); font-size: 28px; white-space: nowrap; animation: resserrer .6s .3s cubic-bezier(.4, 0, .2, 1) both; }
 .tampon-termine { flex: none; display: inline-flex; align-items: center; gap: 4px; font: 700 14px/1 var(--titre); letter-spacing: 2px; color: var(--vert);
   border: 2px solid var(--vert); border-radius: 6px; padding: 4px 8px; transform: rotate(-8deg); }
-.chip.fin { color: var(--vert); }
+.chip.fin:not([aria-pressed="true"]) { color: var(--vert); }
+.carte.terminee { background: color-mix(in srgb, var(--vert) 12%, var(--surface)); }
 .tampon { flex: none; margin-right: 6px; font: 700 15px/1 var(--titre); letter-spacing: 2px; color: var(--vert); border: 2px solid var(--vert); border-radius: 6px; padding: 4px 8px;
   transform: rotate(-12deg); animation: tampon .45s cubic-bezier(.34, 1.56, .64, 1) both; }
 .objectif-termine { border-left: 6px solid var(--vert); padding-left: 12px; }
@@ -832,7 +833,7 @@ const titreChoix = (nom, fin) => `<div class="ligne"><span class="nom flex">${ec
 function ecranAteliers() {
   return `${retour("Objectifs", "--vert")}<h3>Mes ateliers en cours</h3>
   <p class="doux" style="margin:0">Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer, ou «${NB}Terminé${NB}» s'il est au niveau maximum. Une fois un niveau terminé, le suivant s'ajoute tout seul.</p>
-  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveauEnCours(e), fin = etabliTermine(e); return `<div class="carte" style="display:flex;flex-direction:column;gap:8px">
+  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveauEnCours(e), fin = etabliTermine(e); return `<div class="carte ${fin ? "terminee" : ""}" style="display:flex;flex-direction:column;gap:8px">
     ${titreChoix(e.nom, fin)}
     <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="" aria-pressed="${n == null && !fin}" aria-label="${echap(e.nom)}${NB}: rien en cours">Aucun</button><button class="chip fin" data-action="etabli-termine" data-id="${e.id}" aria-pressed="${fin}" aria-label="${echap(e.nom)}${NB}: terminé, tous les niveaux sont faits">✓ Terminé</button>${[...e.niveaux].sort((a, b) => a.niveau - b.niveau).map(x => `<button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="${x.niveau}" aria-pressed="${n === x.niveau}" aria-label="${echap(e.nom)}${NB}: niveau ${x.niveau} en cours">Niveau ${x.niveau}</button>`).join("")}</div>
     ${n != null ? `<span class="petit" style="color:var(--or)">Niveau ${n}${NB}: ${detailAvancement({ type: "etabli", id: e.id, niveau: n })}</span>` : ""}</div>`; }).join("")}`;
@@ -842,7 +843,7 @@ function ecranAteliers() {
 function ecranProjets(expeditions) {
   return `${retour("Objectifs", "--vert")}<h3>${expeditions ? "Mes expéditions en cours" : "Mes projets en cours"}</h3>
   <p class="doux" style="margin:0">Choisis l'étape en cours de chacun, ou «${NB}Terminé${NB}» s'il est fini. Une fois une étape terminée, la suivante s'ajoute toute seule.</p>
-  ${(D.projets || []).filter(p => estExpedition(p) === expeditions).map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p); return `<div class="carte" style="display:flex;flex-direction:column;gap:8px">
+  ${(D.projets || []).filter(p => estExpedition(p) === expeditions).map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p); return `<div class="carte ${fin ? "terminee" : ""}" style="display:flex;flex-direction:column;gap:8px">
     ${titreChoix(p.nom, fin)}
     <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="" aria-pressed="${e == null && !fin}" aria-label="${echap(p.nom)}${NB}: pas en cours">Aucune</button><button class="chip fin" data-action="projet-termine" data-id="${p.id}" aria-pressed="${fin}" aria-label="${echap(p.nom)}${NB}: terminé, toutes les étapes sont faites">✓ Terminé</button>${p.etapes.map((_, i) => `<button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="${i}" aria-pressed="${e === i}" aria-label="${echap(p.nom)}${NB}: ${echap(nomEtape(p, i))} en cours">Étape ${i + 1}</button>`).join("")}</div>
     ${et ? `<span class="petit doux" style="font-weight:600">${echap(nomEtape(p, e))}</span>${et.cout.length ? `<span class="petit" style="color:var(--or)">${detailAvancement({ type: "projet", id: p.id, etape: e })}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}</div>`; }).join("")}`;

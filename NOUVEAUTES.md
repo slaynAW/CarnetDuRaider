@@ -7,7 +7,7 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 
 ## 0.12.1
 
-- **Terminé** : dans Mes ateliers, Mes projets et Mes expéditions, une nouvelle pastille « Terminé », à côté de « Aucun », pour un établi au niveau maximum ou un projet dont toutes les étapes sont faites. Il s'affiche avec un tampon vert « TERMINÉ ».
+- **Terminé** : dans Mes ateliers, Mes projets et Mes expéditions, une nouvelle pastille « Terminé », à côté de « Aucun », pour un établi au niveau maximum ou un projet dont toutes les étapes sont faites. Il s'affiche avec un tampon vert « TERMINÉ », sur une carte légèrement teintée de vert.
 - Un établi ou un projet que tu termines au fil de tes retours de raid s'affiche aussi « Terminé ». « Aucun » ou une étape choisie le remet en cours.
 
 ## 0.12.0

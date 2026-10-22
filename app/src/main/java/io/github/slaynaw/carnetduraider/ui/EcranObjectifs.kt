@@ -39,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -262,6 +264,9 @@ private fun TamponTermine(modifier: Modifier = Modifier) {
     }
 }
 
+/** Fond de la carte d'un établi ou d'un projet : légèrement teinté de vert quand il est terminé. */
+private fun fondChoix(termine: Boolean): Color = if (termine) Signal.Vert.copy(alpha = 0.12f).compositeOver(Signal.Surface) else Signal.Surface
+
 /** Nom d'un établi ou d'un projet, avec son tampon « TERMINÉ » s'il est fini. */
 @Composable
 private fun TitreChoix(nom: String, termine: Boolean) {
@@ -369,7 +374,7 @@ fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
 private fun ChoixEtabli(vm: CarnetViewModel, etabli: Etabli) {
     val enCours = vm.suivi.niveauEnCours(vm.progression, etabli)
     val termine = vm.suivi.etabliTermine(vm.progression, etabli)
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = fondChoix(termine), shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TitreChoix(etabli.nom, termine)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -423,7 +428,7 @@ fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () 
 private fun ChoixProjet(vm: CarnetViewModel, projet: Projet) {
     val enCours = vm.suivi.etapeEnCours(vm.progression, projet)
     val termine = vm.suivi.projetTermine(vm.progression, projet)
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = fondChoix(termine), shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TitreChoix(projet.nom, termine)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
