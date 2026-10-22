@@ -474,8 +474,9 @@ function prochainRaid() {
       <b>${premiere.objets.length} de tes ${pluriel(restants.length, "objet", "objets")} à trouver${premiere.zones[0] ? ` · surtout ${echap(premiere.zones[0].zone)}` : ""}</b>
       ${conseil.parcours.length > 1 ? `<span class="petit">Puis ${echap(conseil.parcours.slice(1).map(e => nomC(e.carteId)).join(", "))} pour tout trouver.</span>` : ""}`
     : restants.length ? `<strong>Rien dans le butin des cartes</strong><span class="doux">Ce qu'il te faut s'obtient autrement${NB}: regarde l'onglet Raid.</span>`
+    : objectifs().length ? `<strong>Rien à chercher en raid</strong><span class="doux">Tes objectifs en cours ne demandent aucun objet${NB}: valide-les quand c'est fait en jeu.</span>`
     : `<strong>Rien à chercher pour l'instant</strong><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira où aller.</span>`;
-  return `<button class="prochain ${premiere ? "plein" : ""}" data-action="onglet" data-onglet="${restants.length ? "RAID" : "OBJECTIFS"}"><small>TON PROCHAIN RAID</small>${contenu}</button>`;
+  return `<button class="prochain ${premiere ? "plein" : ""}" data-action="onglet" data-onglet="${restants.length || objectifs().length ? "RAID" : "OBJECTIFS"}"><small>TON PROCHAIN RAID</small>${contenu}</button>`;
 }
 
 // Où en sont les objectifs en cours (MesObjectifs, EcranAccueil.kt).
@@ -711,12 +712,14 @@ function ecranObjectifs() {
     <span class="ligne"><b class="flex" style="font:600 14px var(--titre)">${pluriel(objs.length, "objectif en cours", "objectifs en cours")} · ${pluriel(l.lignes.filter(x => !x.complet).length, "objet", "objets")} à trouver</b><b style="font:700 14px var(--titre);color:var(--rouge)">Raid ›</b></span>
     <span class="barre" style="height:8px;--c:var(--vert)"><i style="width:${l.progression * 100}%"></i></span></button>
   <h4>En cours</h4>
-  ${objs.map(o => {
-    const q = o.type === "quete" ? quetes.get(o.id) : null, autres = o.type === "projet" ? projets.get(o.id)?.etapes[o.etape]?.autresObjectifs : 0, vide = !besoins(o).length;
-    return `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="nom">${echap(libelle(o))}</span>${q?.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}
+  ${objs.map(carteObjectif).join("")}` : ""}`;
+}
+// Un objectif en cours (CarteObjectif) : la même carte dans l'onglet Objectifs et dans l'onglet Raid.
+function carteObjectif(o) {
+  const q = o.type === "quete" ? quetes.get(o.id) : null, autres = o.type === "projet" ? projets.get(o.id)?.etapes[o.etape]?.autresObjectifs : 0, vide = !besoins(o).length;
+  return `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="nom">${echap(libelle(o))}</span>${q?.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}
     <span class="petit" style="color:var(${vide ? "--texte-doux" : "--or"})">${vide ? `Rien à rapporter${NB}: valide-le quand c'est fait en jeu.` : detailAvancement(o)}</span>${autres ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}
     <button class="valider" data-action="valider-objectif" data-cle="${cleObjectif(o)}" aria-label="C'est fait${NB}: ${echap(libelle(o))}">${coche}C'est fait</button></div>`;
-  }).join("")}` : ""}`;
 }
 
 // Mes quêtes en cours : cochées dans le journal de quêtes ; tout le reste est fait d'office.
@@ -819,7 +822,7 @@ function autreMoyen(o) {
 }
 // ---- Onglet Raid (EcranRaid.kt) : ce qu'il te faut et où aller, sans rien préparer ----
 function ecranOngletRaid() {
-  const liste = aTrouver(), restants = liste.filter(x => !x.trouve), conseil = conseilRaid(restants.map(x => x.id));
+  const objs = objectifs(), liste = aTrouver(), restants = liste.filter(x => !x.trouve), conseil = conseilRaid(restants.map(x => x.id));
   const nomC = id => cartes.get(id)?.nom ?? NOM_A_VERIFIER;
   // Cartes détaillées : celles du parcours (les cartes à faire), sinon la meilleure.
   let detaillees = conseil.parcours.map(e => conseil.cartes.find(c => c.carteId === e.carteId)).filter(Boolean);
@@ -827,10 +830,13 @@ function ecranOngletRaid() {
   const autres = conseil.cartes.filter(c => !detaillees.includes(c)), avecButin = new Set(conseil.cartes.flatMap(c => c.objets)).size;
   const couverts = conseil.parcours.reduce((n, e) => n + e.objets.length, 0);
   return `${bandeau("Raid", "--rouge")}<h2>Préparer mon raid</h2>
-  <p class="doux" style="margin:0">${restants.length ? `${pluriel(restants.length, "objet", "objets")} à trouver pour tes objectifs en cours. Voici où aller.` : "Rien à chercher pour l'instant."}</p>
+  <p class="doux" style="margin:0">${restants.length ? `${pluriel(restants.length, "objet", "objets")} à trouver pour tes objectifs en cours. Voici où aller.`
+    : objs.length ? `Rien à chercher en raid${NB}: tes objectifs en cours ne demandent aucun objet à rapporter.` : "Rien à chercher pour l'instant."}</p>
   ${restants.length ? `<button class="bouton large" data-action="raid">Retour de raid${NB}: ajouter mon butin</button>` : ""}
-  ${!restants.length ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:8px;padding:16px"><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira sur quelle carte aller et où chercher.</span>
-    <button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="onglet" data-onglet="OBJECTIFS">Mes objectifs</button></div>` : ""}
+  ${objs.length ? `<div class="ligne" style="margin-top:8px"><h4 class="flex" style="margin:0">Mes objectifs</h4><button class="lien" style="--c:var(--vert)" data-action="onglet" data-onglet="OBJECTIFS">Modifier</button></div>
+  ${objs.map(carteObjectif).join("")}` : ""}
+  ${!objs.length ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:8px;padding:16px"><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira sur quelle carte aller et où chercher.</span>
+    <button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="onglet" data-onglet="OBJECTIFS">Indiquer mes objectifs</button></div>` : ""}
   ${detaillees.length ? `<h4>Où aller</h4>
   ${conseil.parcours.length > 1 ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:4px;padding:14px"><b style="color:var(--rouge);font-family:var(--titre)">Pour tout trouver</b>
     ${conseil.parcours.map((e, i) => `<span>${i + 1}. ${echap(nomC(e.carteId))} · ${i ? "+ " : ""}${pluriel(e.objets.length, "objet", "objets")}</span>`).join("")}

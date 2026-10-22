@@ -25,8 +25,8 @@ Application Android compagnon pour **ARC Raiders**, à garder à côté du clavi
   valide ce que tu as fini autrement (« Annuler » pour revenir en arrière).
 - **Mes builds.** Jusqu'à six builds, avec un nom et un objet par case (module, bouclier, deux armes,
   soins, grenades, divers) : leurs objets et tout ce qu'il faut pour les fabriquer sont à garder.
-- **Préparer mon raid.** Rien à préparer : l'onglet Raid se remplit tout seul avec ce qui manque pour
-  tes objectifs en cours. L'appli dit sur quelle carte aller, où chercher sur chacune et les cartes à
+- **Préparer mon raid.** Rien à préparer : l'onglet Raid reprend tes objectifs en cours (les mêmes que
+  dans Objectifs) et se remplit tout seul avec ce qui leur manque. L'appli dit sur quelle carte aller, où chercher sur chacune et les cartes à
   faire pour tout trouver (d'après les tables de butin du jeu).
 - **Retour de raid, sans réserve à tenir.** L'appli ne te demande jamais ce que tu as en stock : tu
   notes seulement ce que tu rapportes (« +1 », « +5 »), et seulement ce qu'il te faut. Chaque objet va

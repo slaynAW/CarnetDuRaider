@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.10.1
+
+- **Mes objectifs dans l'onglet Raid** : ce que tu indiques en cours dans Objectifs s'affiche aussi dans Raid, avec les mêmes cartes, le même avancement et le même bouton « C'est fait ». Ce sont les mêmes objectifs.
+- Une quête qui ne demande aucun objet (c'est le cas de beaucoup de quêtes) n'affiche plus « Indique ce que tu as en cours » dans Raid et sur l'accueil : l'appli dit qu'il n'y a rien à chercher en raid pour tes objectifs, et tu les valides quand c'est fait en jeu.
+
 ## 0.10.0
 
 - **Tout est fait d'office** : l'appli considère tout comme déjà fait, sauf ce que tu indiques en cours. Au départ, il n'y a rien.

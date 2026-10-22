@@ -151,9 +151,10 @@ private fun detailAvancement(vm: CarnetViewModel, objectif: Objectif): String {
 /**
  * Un objectif en cours : ce qu'il demande et ce qui a été rapporté. Il se termine tout seul quand tout est
  * rapporté ; « C'est fait » le valide s'il est fait autrement en jeu (ou s'il n'y a rien à rapporter).
+ * La même carte dans l'onglet Objectifs et dans l'onglet Raid : ce sont les mêmes objectifs.
  */
 @Composable
-private fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
+fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
     val libelle = vm.planificateur.libelle(objectif)
     val besoins = vm.planificateur.besoins(objectif)
     val autres = (objectif as? Objectif.EtapeDeProjet)

@@ -102,7 +102,7 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
     val conseil = remember(restants.map { it.objetId }) { vm.conseilRaid() }
     val premiere = conseil.cartes.firstOrNull()
     Surface(
-        onClick = { aller(if (restants.isEmpty()) Onglet.OBJECTIFS else Onglet.RAID) },
+        onClick = { aller(if (restants.isEmpty() && vm.objectifs.isEmpty()) Onglet.OBJECTIFS else Onglet.RAID) },
         color = if (premiere != null) Signal.Rouge else Signal.Surface,
         contentColor = if (premiere != null) Signal.SurCouleur else Signal.Texte,
         shape = RoundedCornerShape(24.dp),
@@ -131,6 +131,14 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
                 restants.isNotEmpty() -> {
                     Text("Rien dans le butin des cartes", style = MaterialTheme.typography.titleMedium)
                     Text("Ce qu'il te faut s'obtient autrement\u00a0: regarde l'onglet Raid.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+                }
+                vm.objectifs.isNotEmpty() -> {
+                    Text("Rien à chercher en raid", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Tes objectifs en cours ne demandent aucun objet\u00a0: valide-les quand c'est fait en jeu.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Signal.TexteDoux,
+                    )
                 }
                 else -> {
                     Text("Rien à chercher pour l'instant", style = MaterialTheme.typography.titleMedium)
