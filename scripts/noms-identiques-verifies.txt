@@ -83,3 +83,12 @@ Tunnels
 Bastion
 Bombardier
 Pop
+
+# Conditions de la carte et carte laissées en anglais par la table de traduction française du jeu
+# (maps.text.fr, jeu 2.0) ; affichées telles quelles dans le jeu en français, vérifié par le joueur
+# le 22/10/2026.
+Beachcombing
+Close Scrutiny
+Hurricane
+Redirection
+Riven Tides

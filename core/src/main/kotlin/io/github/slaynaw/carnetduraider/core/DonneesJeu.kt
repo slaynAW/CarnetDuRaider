@@ -57,7 +57,13 @@ data class Objet(
     /** Description officielle du jeu (« Déverrouille certaines portes… »), si le jeu la traduit. */
     val description: String? = null,
     val utilisations: Utilisations = Utilisations(),
+    /** Emplacement qu'il peut occuper dans un build (section « Mes builds »), d'après sa famille dans le jeu. */
+    val emplacement: Emplacement? = null,
 )
+
+/** Emplacements d'un build : module, bouclier, arme, soins, grenades, divers (gadgets, mines, outils). */
+@Serializable
+enum class Emplacement { MODULE, BOUCLIER, ARME, SOINS, GRENADE, DIVERS }
 
 /**
  * À quoi sert un objet, d'après les fichiers du jeu (les établis, quêtes et projets qui le demandent
@@ -109,7 +115,13 @@ data class Obtention(
     val fabrications: List<Fabrication> = emptyList(),
     /** Quêtes et projets qui le donnent en récompense (noms officiels). */
     val recompenses: List<String> = emptyList(),
+    /** Arme améliorée (« Ferro III ») : l'arme d'avant et ce que coûte l'amélioration. */
+    val amelioration: Amelioration? = null,
 )
+
+/** Amélioration d'une arme : à partir de [depuis] (l'arme du niveau d'avant), avec ces [ingredients]. */
+@Serializable
+data class Amelioration(val depuis: String, val ingredients: List<Quantite> = emptyList())
 
 @Serializable
 data class CarteButin(val carte: String, val indice: Int)
@@ -215,7 +227,10 @@ data class ArcPlan(val nom: String, val points: List<List<Float>>)
 
 /** Projet du jeu (Expédition, projet de saison…) : des étapes successives, chacune avec ses objets à livrer. */
 @Serializable
-data class Projet(val id: String, val nom: String, val etapes: List<EtapeProjet>)
+data class Projet(val id: String, val nom: String, val etapes: List<EtapeProjet>) {
+    /** Une Expédition (« Expédition 3 ») plutôt qu'un autre projet. */
+    val expedition: Boolean get() = id.startsWith("expedition_project")
+}
 
 /**
  * [nom] : nom officiel de l'étape, ou `null` s'il n'est pas vérifié. [autresObjectifs] : conditions qui

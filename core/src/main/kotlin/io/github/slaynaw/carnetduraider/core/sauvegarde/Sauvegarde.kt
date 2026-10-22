@@ -12,7 +12,7 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Sauvegarde chiffrée des données du joueur (réserve, progression, listes, réglages).
+ * Sauvegarde chiffrée des données du joueur (ce qu'il a en cours, ce qu'il a rapporté, ses builds, réglages).
  *
  * Le fichier est chiffré avec le mot de passe du joueur : clé tirée du mot de passe par PBKDF2
  * (HMAC-SHA256, [ITERATIONS] tours, sel aléatoire), puis AES-256-GCM (IV aléatoire à chaque écriture).

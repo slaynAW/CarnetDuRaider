@@ -2,22 +2,37 @@ package io.github.slaynaw.carnetduraider
 
 import android.content.Context
 import io.github.slaynaw.carnetduraider.core.Apports
-import io.github.slaynaw.carnetduraider.core.Objectif
+import io.github.slaynaw.carnetduraider.core.Build
+import io.github.slaynaw.carnetduraider.core.Builds
 import io.github.slaynaw.carnetduraider.core.Progression
 import io.github.slaynaw.carnetduraider.core.calendrier.Region
-import io.github.slaynaw.carnetduraider.core.cle
 
 /**
- * Ce que le joueur a saisi (sa progression, ses objectifs en plus, ce qu'il a rapporté de raid pour eux),
+ * Ce que le joueur a saisi (ce qu'il a en cours, ce qu'il a rapporté de raid pour ses objectifs, ses builds),
  * gardé sur le téléphone uniquement.
  * Format texte simple, une entrée par ligne, lisible et stable d'une version à l'autre.
  */
 class Memoire(context: Context) {
     private val prefs = context.getSharedPreferences("carnet", Context.MODE_PRIVATE)
 
-    /** Il n'y a plus de réserve : ce qui y était noté par une version précédente est oublié. */
-    fun oublierReserve() {
-        if (prefs.contains(RESERVE)) prefs.edit().remove(RESERVE).apply()
+    /**
+     * Version 0.10 : tout est fait d'office sauf ce que le joueur indique en cours. Ce qui avait été saisi
+     * avec les versions précédentes (établis suivis, objectifs ajoutés à la main, réserve, liste de raid)
+     * ne veut plus dire la même chose : les objectifs repartent de zéro, une seule fois. Les réglages restent.
+     */
+    fun nouveauDepart() {
+        if (prefs.getInt(MODELE, 0) >= MODELE_ACTUEL) return
+        val editeur = prefs.edit()
+        listOf(RESERVE, APPORTS, RAID, TROUVES_RAID, OBJECTIFS, NIVEAUX, QUETES_TERMINEES, ETABLIS_SUIVIS, ETABLIS_IGNORES,
+            ETAPES_PROJETS, PROJETS_SUIVIS, QUETES_INDIQUEES).forEach { editeur.remove(it) }
+        editeur.putInt(MODELE, MODELE_ACTUEL).apply()
+    }
+
+    /** Les builds du joueur (section « Mes builds »). */
+    fun lireBuilds(): List<Build> = Builds.decoder(prefs.getString(BUILDS, null))
+
+    fun ecrireBuilds(builds: List<Build>) {
+        prefs.edit().putString(BUILDS, Builds.encoder(builds)).apply()
     }
 
     /** Ce qui a été rapporté de raid pour chaque objectif : une ligne « clé de l'objectif|objet=quantité ». */
@@ -31,35 +46,6 @@ class Memoire(context: Context) {
     fun ecrireApports(apports: Apports) {
         val lignes = apports.flatMap { (cle, objets) -> objets.map { (id, n) -> "$cle|$id=$n" } }
         prefs.edit().putString(APPORTS, lignes.joinToString("\n")).apply()
-    }
-
-    /** Objets ajoutés à la main dans l'onglet Raid (identifiant → quantité voulue), dans l'ordre où ils ont été ajoutés. */
-    fun lireRaid(): Map<String, Int> =
-        lignes(RAID).mapNotNull { ligne ->
-            val (id, quantite) = ligne.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
-            quantite.toIntOrNull()?.takeIf { it > 0 }?.let { id to it }
-        }.toMap()
-
-    fun ecrireRaid(liste: Map<String, Int>) {
-        prefs.edit().putString(RAID, liste.entries.joinToString("\n") { "${it.key}=${it.value}" }).apply()
-    }
-
-    /** Pour chaque objet ajouté à la main dans l'onglet Raid : combien le joueur en a rapporté depuis. */
-    fun lireTrouvesRaid(): Map<String, Int> =
-        lignes(TROUVES_RAID).mapNotNull { ligne ->
-            val (id, quantite) = ligne.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
-            quantite.toIntOrNull()?.takeIf { it > 0 }?.let { id to it }
-        }.toMap()
-
-    fun ecrireTrouvesRaid(trouves: Map<String, Int>) {
-        prefs.edit().putString(TROUVES_RAID, trouves.entries.joinToString("\n") { "${it.key}=${it.value}" }).apply()
-    }
-
-    fun lireObjectifs(): List<Objectif> =
-        prefs.getString(OBJECTIFS, "").orEmpty().lines().mapNotNull(::decoder)
-
-    fun ecrireObjectifs(objectifs: List<Objectif>) {
-        prefs.edit().putString(OBJECTIFS, objectifs.joinToString("\n") { it.cle }).apply()
     }
 
     fun lireProgression(): Progression = Progression(
@@ -82,8 +68,6 @@ class Memoire(context: Context) {
             .putString(NIVEAUX, p.niveauxEtablis.entries.joinToString("\n") { "${it.key}=${it.value}" })
             .putString(QUETES_TERMINEES, p.quetesTerminees.sorted().joinToString("\n"))
             .putString(ETABLIS_SUIVIS, p.etablisSuivis.sorted().joinToString("\n"))
-            // Ancien format (tous les établis suivis sauf ceux-ci) : abandonné, rien n'est suivi par défaut.
-            .remove(ETABLIS_IGNORES)
             .putString(ETAPES_PROJETS, p.etapesProjets.entries.joinToString("\n") { "${it.key}=${it.value}" })
             .putString(PROJETS_SUIVIS, p.projetsSuivis.sorted().joinToString("\n"))
             .putBoolean(QUETES_INDIQUEES, p.quetesIndiquees)
@@ -96,19 +80,12 @@ class Memoire(context: Context) {
 
     private fun lignes(cle: String): List<String> = prefs.getString(cle, "").orEmpty().lines().filter { it.isNotBlank() }
 
-    private fun decoder(ligne: String): Objectif? {
-        val parties = ligne.split(':')
-        return when {
-            parties.size == 3 && parties[0] == "etabli" ->
-                parties[2].toIntOrNull()?.let { Objectif.NiveauDEtabli(parties[1], it) }
-            parties.size == 2 && parties[0] == "quete" -> Objectif.QueteATerminer(parties[1])
-            parties.size == 3 && parties[0] == "projet" ->
-                parties[2].toIntOrNull()?.let { Objectif.EtapeDeProjet(parties[1], it) }
-            else -> null
-        }
-    }
-
     private companion object {
+        const val MODELE = "modele"
+        const val MODELE_ACTUEL = 2
+        const val BUILDS = "builds"
+
+        // Clés des versions précédentes, effacées par nouveauDepart().
         const val RESERVE = "reserve"
         const val APPORTS = "apports"
         const val RAID = "raid"

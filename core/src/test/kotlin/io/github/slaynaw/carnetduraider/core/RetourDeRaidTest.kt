@@ -9,49 +9,39 @@ import org.junit.jupiter.api.Test
 class RetourDeRaidTest {
     private val planificateur = Planificateur(Catalogue(DonneesJeu.embarquees()))
 
-    /** « Ciel dégagé » demande 3 Alliages ARC. */
+    /** « Ciel dégagé » demande 3 Alliages ARC ; la Station utilitaire niveau 1, 6 Alliages ARC et 50 Composants plastiques. */
     private val cielDegage = Objectif.QueteATerminer("clearer_skies")
-
-    /** Ajoutés à la main : 2 Batteries et une Bobine de film. */
-    private val raid = mapOf("battery" to 2, "film_reel" to 1)
-
-    private val rien = Rapporte(emptyMap(), emptyMap())
-
-    private fun liste(r: Rapporte) = planificateur.listeDuRaid(listOf(cielDegage), r.apports, raid, r.trouvesRaid)
+    private val station1 = Objectif.NiveauDEtabli("utility_bench", 1)
+    private val objectifs = listOf(cielDegage, station1)
 
     @Test
     fun `objets qui atteignent leur nombre, objectifs termines, puis raid termine`() {
-        val avant = liste(rien)
-        assertEquals(listOf("arc_alloy", "battery", "film_reel"), avant.map { it.objetId })
-        assertEquals(listOf(3, 2, 1), avant.map { it.reste })
+        val avant = planificateur.listeDuRaid(objectifs, emptyMap())
+        assertEquals(listOf(9, 50), avant.sortedBy { it.objetId }.map { it.reste })
 
-        // Premier retour : les 3 Alliages ARC de la quête, la Bobine de film, une seule Batterie sur deux.
-        val r = planificateur.repartir(listOf(cielDegage), raid, rien, mapOf("arc_alloy" to 3, "film_reel" to 1, "battery" to 1))
-        val apres = liste(r)
-        assertEquals(listOf(0, 1, 0), apres.map { it.reste })
+        // Premier retour : les 9 Alliages ARC (quête et établi), 20 Composants plastiques sur 50.
+        val r = planificateur.repartir(objectifs, emptyMap(), mapOf("arc_alloy" to 9, "plastic_parts" to 20))
+        val apres = planificateur.listeDuRaid(objectifs, r)
         val bilan = RetourDeRaid.bilan(avant, apres, listOf(cielDegage))
-        assertEquals(listOf("arc_alloy", "film_reel"), bilan.atteints.map { it.objetId })
+        assertEquals(listOf("arc_alloy"), bilan.atteints.map { it.objetId })
         assertEquals(listOf(cielDegage), bilan.objectifsTermines)
         assertFalse(bilan.termine)
 
-        // La Bobine de film trouvée quitte la liste, comme ce qui a été rapporté pour la quête terminée.
-        val (raid2, trouves2) = RetourDeRaid.sansLesTrouves(raid, r.trouvesRaid)
-        assertEquals(mapOf("battery" to 2), raid2)
-        assertEquals(mapOf("battery" to 1), trouves2)
-        assertEquals(emptyMap<String, Map<String, Int>>(), RetourDeRaid.sansLesTermines(r.apports, listOf(cielDegage)))
+        // Ce qui a été rapporté pour la quête terminée n'a plus à être gardé.
+        val r2 = RetourDeRaid.sansLesTermines(r, listOf(cielDegage))
+        assertEquals(setOf(station1.cle), r2.keys)
 
-        // Second retour : la dernière Batterie, tout est trouvé.
-        val r2 = Rapporte(emptyMap(), trouves2)
-        val avant2 = planificateur.listeDuRaid(emptyList(), r2.apports, raid2, r2.trouvesRaid)
-        val r3 = planificateur.repartir(emptyList(), raid2, r2, mapOf("battery" to 1))
-        val bilan2 = RetourDeRaid.bilan(avant2, planificateur.listeDuRaid(emptyList(), r3.apports, raid2, r3.trouvesRaid), emptyList())
-        assertEquals(listOf("battery"), bilan2.atteints.map { it.objetId })
+        // Second retour : les 30 derniers Composants plastiques, tout est trouvé.
+        val avant2 = planificateur.listeDuRaid(listOf(station1), r2)
+        val r3 = planificateur.repartir(listOf(station1), r2, mapOf("plastic_parts" to 30))
+        val bilan2 = RetourDeRaid.bilan(avant2, planificateur.listeDuRaid(listOf(station1), r3), listOf(station1))
+        assertEquals(listOf("plastic_parts"), bilan2.atteints.map { it.objetId })
         assertTrue(bilan2.termine)
     }
 
     @Test
     fun `rien a feter sans objet atteint`() {
-        val avant = liste(rien)
+        val avant = planificateur.listeDuRaid(objectifs, emptyMap())
         val bilan = RetourDeRaid.bilan(avant, avant, emptyList())
         assertTrue(bilan.vide)
         assertFalse(bilan.termine)

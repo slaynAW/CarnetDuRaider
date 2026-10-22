@@ -1,6 +1,10 @@
-# Met à jour chaque jour les données du jeu (noms français officiels, objets, quêtes, plans, butin…)
-# à partir de github.com/baschny/arcraiders-raider-tools, comme le ferait scripts/importer_donnees_jeu.py
-# lancé à la main (CLAUDE.md).
+# Met à jour les données du jeu (noms français officiels, objets, quêtes, plans, butin…) à partir de
+# github.com/baschny/arcraiders-raider-tools, comme le ferait scripts/importer_donnees_jeu.py lancé à la
+# main (CLAUDE.md).
+#
+# Lancement à la main seulement (Actions → Données du jeu → Run workflow) : la source n'est plus publique
+# depuis le 20/10/2026 et le lancement de chaque jour échouait. Remettre le « schedule » (cron
+# "41 4 * * *") si elle le redevient.
 #
 # - Job « Import » (lecture seule, aucun secret) : lance l'import sur les données du jour, puis les tests
 #   du module core. Si rien n'a changé, tout s'arrête là. Sinon, il produit le correctif (fichiers de
@@ -14,8 +18,6 @@
 name: Données du jeu
 
 on:
-  schedule:
-    - cron: "41 4 * * *"
   workflow_dispatch:
 
 permissions:

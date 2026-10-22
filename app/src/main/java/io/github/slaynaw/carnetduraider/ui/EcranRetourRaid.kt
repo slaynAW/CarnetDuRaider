@@ -94,7 +94,7 @@ fun EcranRetourRaid(vm: CarnetViewModel, onRetour: () -> Unit) {
                 }
                 if (depart.isEmpty()) {
                     Text(
-                        "Rien à trouver pour l'instant\u00a0: suis un objectif ou ajoute un objet à chercher dans l'onglet Raid.",
+                        "Rien à trouver pour l'instant\u00a0: indique ce que tu as en cours dans l'onglet Objectifs.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Signal.TexteDoux,
                     )
@@ -109,7 +109,7 @@ fun EcranRetourRaid(vm: CarnetViewModel, onRetour: () -> Unit) {
 @Composable
 private fun LigneSaisie(vm: CarnetViewModel, a: ObjetATrouver, note: Int) {
     val nom = vm.catalogue.nomObjet(a.objetId)
-    val pour = a.pour.map { it.libelle } + listOfNotNull("ajouté par toi".takeIf { a.ajouteParLeJoueur })
+    val pour = a.pour.map { it.libelle }
     Surface(color = Signal.Surface, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

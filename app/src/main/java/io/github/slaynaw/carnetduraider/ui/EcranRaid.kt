@@ -15,23 +15,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -48,7 +40,7 @@ import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
 /**
  * Onglet Raid, « Préparer mon raid » : ce qu'il te faut et où aller, sans rien préparer. La liste se
- * remplit toute seule avec ce qui manque pour tes objectifs suivis, plus les objets que tu ajoutes ;
+ * remplit toute seule avec ce qui manque pour tes objectifs en cours ;
  * l'appli en déduit les cartes et les zones où tu as le plus de chances de tout trouver
  * ([io.github.slaynaw.carnetduraider.core.PreparationRaid]). Le retour de raid décompte ce que tu
  * rapportes.
@@ -61,11 +53,9 @@ fun EcranRaid(
     retourDeRaid: () -> Unit,
     choisirObjectifs: () -> Unit,
 ) {
-    var recherche by rememberSaveable { mutableStateOf("") }
     val aTrouver = vm.aTrouver()
     val restants = aTrouver.filter { !it.trouve }
     val conseil = remember(restants.map { it.objetId }) { vm.conseilRaid() }
-    val resultats = if (recherche.isBlank()) emptyList() else vm.catalogue.rechercher(recherche, limite = 8)
 
     val etat by vm.calendrier.etat.collectAsStateWithLifecycle()
     val calendrier = remember(etat.donnees) { etat.donnees?.let(vm::calendrierOfficiel) }
@@ -90,7 +80,7 @@ fun EcranRaid(
                     if (restants.isEmpty()) {
                         "Rien à chercher pour l'instant."
                     } else {
-                        "${pluriel(restants.size, "objet", "objets")} à trouver pour tes objectifs et ta liste. Voici où aller."
+                        "${pluriel(restants.size, "objet", "objets")} à trouver pour tes objectifs en cours. Voici où aller."
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
@@ -116,7 +106,7 @@ fun EcranRaid(
                 Surface(color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            "Suis un objectif (un établi à améliorer, une quête, un projet) ou ajoute un objet ci-dessous\u00a0: " +
+                            "Indique ce que tu as en cours (quêtes, ateliers, projets, Expéditions)\u00a0: " +
                                 "l'appli te dira sur quelle carte aller et où chercher.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Signal.TexteDoux,
@@ -124,7 +114,7 @@ fun EcranRaid(
                         Button(
                             onClick = choisirObjectifs,
                             colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-                        ) { Text("Choisir mes objectifs") }
+                        ) { Text("Mes objectifs") }
                     }
                 }
             }
@@ -163,47 +153,6 @@ fun EcranRaid(
             items(aTrouver, key = { "atrouver-${it.objetId}" }) { a -> LigneATrouver(vm, a, onClick = { ouvrir(a.objetId) }) }
         }
 
-        item {
-            Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Chercher autre chose", style = MaterialTheme.typography.titleMedium)
-                OutlinedTextField(
-                    value = recherche,
-                    onValueChange = { recherche = it },
-                    placeholder = { Text("Ajouter un objet à chercher…") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Rouge) },
-                    trailingIcon = {
-                        if (recherche.isNotEmpty()) {
-                            IconButton(onClick = { recherche = "" }) { Icon(Icons.Filled.Close, contentDescription = "Effacer la recherche") }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(26.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Signal.Rouge,
-                        unfocusedBorderColor = Signal.Trait,
-                        focusedContainerColor = Signal.Surface,
-                        unfocusedContainerColor = Signal.Surface,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        items(resultats, key = { "resultat-${it.id}" }) { o ->
-            val voulu = vm.listeRaid[o.id]
-            Surface(
-                onClick = { vm.ajouterAuRaid(o.id) },
-                color = Signal.Surface,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    IconeObjet(o.id, o.rarete, 36.dp)
-                    Text(o.nom, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    Text(if (voulu == null) "Ajouter" else "× $voulu  +1", style = MaterialTheme.typography.labelLarge, color = Signal.Rouge)
-                }
-            }
-        }
-
         if (conseil.sansButin.isNotEmpty()) {
             item { TitreRaid("Pas dans le butin") }
             items(conseil.sansButin, key = { "sans-$it" }) { id ->
@@ -231,7 +180,7 @@ private fun nomCarte(vm: CarnetViewModel, carteId: String): String = vm.catalogu
 
 /**
  * Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien ont été
- * rapportés sur combien il en faut, et pour quoi. Ce qu'on a ajouté soi-même se retire d'un geste.
+ * rapportés sur combien il en faut, et pour quoi.
  */
 @Composable
 private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> Unit) {
@@ -242,7 +191,7 @@ private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> 
             Column(Modifier.weight(1f)) {
                 Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${a.trouves}/${a.voulu} · " + (a.pour.map { it.libelle } + listOfNotNull("ajouté par toi".takeIf { a.ajouteParLeJoueur })).joinToString(" · "),
+                    "${a.trouves}/${a.voulu} · " + a.pour.joinToString(" · ") { it.libelle },
                     style = MaterialTheme.typography.labelMedium,
                     color = if (a.trouve) Signal.Vert else Signal.TexteDoux,
                     maxLines = 2,
@@ -254,11 +203,6 @@ private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> 
                 Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 6.dp)) {
                     Text("${a.reste}", style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"), color = Signal.Or)
                     Text("à trouver", style = MaterialTheme.typography.labelSmall, color = Signal.TexteDoux)
-                }
-            }
-            if (a.ajouteParLeJoueur) {
-                IconButton(onClick = { vm.changerRaid(a.objetId, 0) }) {
-                    Icon(Icons.Filled.Close, contentDescription = "Ne plus chercher\u00a0: $nom", tint = Signal.TexteDoux)
                 }
             }
         }

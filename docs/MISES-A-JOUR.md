@@ -6,7 +6,7 @@ mécanisme est le même que celui de Patronus.
 
 ## Ce que voit l'utilisateur
 
-- À l'ouverture de l'appli (au plus toutes les 12 h), elle regarde s'il existe une version plus
+- À chaque lancement de l'appli (au plus toutes les 5 minutes), elle regarde s'il existe une version plus
   récente. Si oui, une fenêtre **« Mise à jour disponible »** affiche le numéro, la date, la taille et
   les **nouveautés**, avec **Plus tard** et **Mettre à jour**. Un bandeau le rappelle sur l'accueil.
 - *Plus tard* : la version n'est plus proposée d'elle-même pendant 24 h (le bandeau de l'accueil et
@@ -72,7 +72,7 @@ n'expose rien de sensible : la clé de signature n'est que dans les secrets de l
 | Fichier | Rôle |
 |---|---|
 | `core/src/main/kotlin/…/core/miseajour/MisesAJour.kt` | Vérification de la signature, lecture du manifeste, téléchargement contrôlé |
-| `app/src/main/java/…/miseajour/GestionnaireMiseAJour.kt` | Recherche (12 h), « Plus tard » (24 h), installation via l'installateur d'Android |
+| `app/src/main/java/…/miseajour/GestionnaireMiseAJour.kt` | Recherche (à chaque lancement, au plus toutes les 5 min), « Plus tard » (24 h), installation via l'installateur d'Android |
 | `app/src/main/java/…/ui/DialogueMiseAJour.kt`, `ui/EcranReglages.kt` | Fenêtre « Mise à jour disponible » et réglages |
 | `.github/scripts/manifeste-mise-a-jour.sh` | Création et signature de `update.json` |
 | `.github/scripts/signer-apk.sh` | Signature de l'APK avec la clé définitive, et contrôles |

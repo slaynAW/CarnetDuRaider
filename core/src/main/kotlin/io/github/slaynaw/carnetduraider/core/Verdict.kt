@@ -3,54 +3,48 @@ package io.github.slaynaw.carnetduraider.core
 /**
  * Que faire d'un objet trouvé : la réponse à « je garde, je recycle ou je vends ? ».
  *
- * Il n'y a pas de réserve : l'appli sait seulement ce que les objectifs demandent et ce qui a été rapporté
- * pour eux au retour de raid. Un objet que le joueur veut (pour ses objectifs, ou ajouté à sa liste de
- * raid) n'est jamais proposé à la vente. Un objet qui sert à quelque chose (fabrication, établis, quêtes,
- * clé, équipement…) non plus : l'appli dit à quoi il sert, et ce qu'il rapporterait si le joueur n'en a
- * pas l'usage. Seul un objet qui ne sert à rien d'autre est à vendre ou à recycler.
+ * Un objet n'est utile que s'il sert à un objectif en cours (et qu'il en manque encore), ou à un build du
+ * joueur (dans le build, ou pour le fabriquer). Tout le reste est à vendre ou à recycler, selon ce qui
+ * rapporte le plus ; l'appli dit quand même à quoi il peut servir ([Usages]).
  */
 sealed interface Verdict {
-    /** Les objectifs suivis en demandent encore [manquant] (sur [besoin]). */
-    data class Garder(val manquant: Int, val besoin: Int, val pour: List<Besoin>) : Verdict
+    /** Les objectifs en cours en demandent encore [manquant] (sur [besoin]) ; il sert peut-être aussi à des [builds]. */
+    data class Garder(
+        val manquant: Int,
+        val besoin: Int,
+        val pour: List<Besoin>,
+        val builds: List<UsageBuild> = emptyList(),
+    ) : Verdict
 
-    /** Le joueur l'a ajouté à sa liste de raid : il en veut [voulu], il en a rapporté [trouves]. */
-    data class Cherche(val voulu: Int, val trouves: Int) : Verdict
+    /** Il sert à un build du joueur. */
+    data class PourBuild(val builds: List<UsageBuild>) : Verdict
 
-    /** Tout ce que les objectifs suivis en demandent ([besoin]) a déjà été rapporté. */
-    data class Suffisant(val besoin: Int, val pour: List<Besoin>) : Verdict
-
-    /** Aucun objectif ne le demande, mais il sert à autre chose ([usages]). */
-    data class Utile(val usages: UsagesObjet, val conseil: Sortie) : Verdict
-
-    /** Il ne sert à rien d'autre : à vendre ou à recycler. */
+    /** Aucun objectif en cours ni aucun build n'en a besoin : à vendre ou à recycler. */
     data class Inutile(val conseil: Sortie) : Verdict
 }
 
 /** Meilleure façon de se séparer d'un objet, selon ce que rapporte chaque option en pièces. */
 enum class Sortie { VENDRE, RECYCLER }
 
-class Conseiller(private val catalogue: Catalogue, private val planificateur: Planificateur, private val usages: Usages) {
+class Conseiller(private val catalogue: Catalogue, private val planificateur: Planificateur) {
 
+    /**
+     * [objectifs] : objectifs en cours ; [apports] : ce qui a déjà été rapporté pour eux ; [builds] : objets à
+     * garder pour les builds ([Builds.aGarder]).
+     */
     fun verdict(
         objetId: String,
         objectifs: List<Objectif>,
         apports: Apports = emptyMap(),
-        progression: Progression = Progression(),
-        listeRaid: Map<String, Int> = emptyMap(),
-        trouvesRaid: Map<String, Int> = emptyMap(),
+        builds: Map<String, List<UsageBuild>> = emptyMap(),
     ): Verdict {
         val pour = planificateur.besoinsPourObjet(objetId, objectifs, apports)
-        val besoin = pour.sumOf { it.quantite }
         val manque = pour.sumOf { it.manque }
-        val voulu = listeRaid[objetId]
+        val pourBuilds = builds[objetId].orEmpty()
         return when {
-            manque > 0 -> Verdict.Garder(manque, besoin, pour)
-            voulu != null -> Verdict.Cherche(voulu, trouvesRaid[objetId] ?: 0)
-            besoin > 0 -> Verdict.Suffisant(besoin, pour)
-            else -> {
-                val u = usages.pour(objetId, progression)
-                if (u.aucun) Verdict.Inutile(meilleureSortie(objetId)) else Verdict.Utile(u, meilleureSortie(objetId))
-            }
+            manque > 0 -> Verdict.Garder(manque, pour.sumOf { it.quantite }, pour, pourBuilds)
+            pourBuilds.isNotEmpty() -> Verdict.PourBuild(pourBuilds)
+            else -> Verdict.Inutile(meilleureSortie(objetId))
         }
     }
 

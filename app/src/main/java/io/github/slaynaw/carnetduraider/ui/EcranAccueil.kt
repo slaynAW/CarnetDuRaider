@@ -135,7 +135,7 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
                 else -> {
                     Text("Rien à chercher pour l'instant", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Choisis ce que tu veux faire avancer (établis, quêtes, projets)\u00a0: l'appli te dira où aller.",
+                        "Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)\u00a0: l'appli te dira où aller.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Signal.TexteDoux,
                     )
@@ -145,7 +145,7 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
     }
 }
 
-/** Où en sont les objectifs suivis. */
+/** Où en sont les objectifs en cours. */
 @Composable
 private fun MesObjectifs(vm: CarnetViewModel, onClick: () -> Unit) {
     val liste = vm.listeDeCourses()
@@ -153,10 +153,10 @@ private fun MesObjectifs(vm: CarnetViewModel, onClick: () -> Unit) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Objectifs", style = MaterialTheme.typography.titleSmall, color = Signal.Vert)
             if (vm.objectifs.isEmpty()) {
-                Text("Aucun objectif suivi. Touche ici pour suivre tes établis, tes quêtes ou un projet.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+                Text("Rien en cours. Touche ici pour indiquer tes quêtes, ateliers, projets ou expéditions en cours.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
             } else {
                 Text(
-                    "${pluriel(vm.objectifs.size, "objectif suivi", "objectifs suivis")} · ${pluriel(liste.objetsATrouver, "objet", "objets")} à trouver",
+                    "${pluriel(vm.objectifs.size, "objectif en cours", "objectifs en cours")} · ${pluriel(liste.objetsATrouver, "objet", "objets")} à trouver",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Barre(liste.progression.toFloat(), Signal.Vert)

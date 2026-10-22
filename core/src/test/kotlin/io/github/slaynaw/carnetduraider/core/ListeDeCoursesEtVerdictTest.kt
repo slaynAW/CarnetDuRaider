@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Test
 class ListeDeCoursesEtVerdictTest {
     private val catalogue = Catalogue(DonneesJeu.embarquees())
     private val planificateur = Planificateur(catalogue)
-    private val conseiller = Conseiller(catalogue, planificateur, Usages(catalogue, SuiviProgression(catalogue)))
+    private val conseiller = Conseiller(catalogue, planificateur)
+    private val usages = Usages(catalogue)
 
     private val stationUtilitaire1 = Objectif.NiveauDEtabli("utility_bench", 1)
     private val cielDegage = Objectif.QueteATerminer("clearer_skies")
@@ -56,45 +57,37 @@ class ListeDeCoursesEtVerdictTest {
     }
 
     @Test
-    fun `liste du raid - objectifs et ajouts du joueur reunis`() {
-        val apports = mapOf(cielDegage.cle to mapOf("arc_alloy" to 3))
-        val ajouts = mapOf("film_reel" to 2, "battery" to 1, "arc_alloy" to 5)
-        val trouves = mapOf("film_reel" to 1, "arc_alloy" to 2)
-        val liste = planificateur.listeDuRaid(listOf(cielDegage), apports, ajouts, trouves)
-        // L'Alliage ARC : 3 pour la quête (rapportés) et 5 ajoutés à la main (2 rapportés), sur une seule ligne.
+    fun `liste du raid - ce que demandent les objectifs, et son decompte`() {
+        val apports = mapOf(stationUtilitaire1.cle to mapOf("arc_alloy" to 2), cielDegage.cle to mapOf("arc_alloy" to 3))
+        val liste = planificateur.listeDuRaid(listOf(stationUtilitaire1, cielDegage), apports)
         val alliage = liste.single { it.objetId == "arc_alloy" }
-        assertEquals(listOf(5, 8, 3), listOf(alliage.trouves, alliage.voulu, alliage.reste))
-        assertTrue(alliage.ajouteParLeJoueur && alliage.pour.isNotEmpty())
-        // La Bobine de film, ajoutée à la main, se décompte avec ce qui a été rapporté pour elle.
-        val bobine = liste.single { it.objetId == "film_reel" }
-        assertEquals(listOf(1, 2, 1), listOf(bobine.trouves, bobine.voulu, bobine.reste))
-        assertEquals(listOf("arc_alloy", "film_reel", "battery"), liste.map { it.objetId })
-        assertEquals(3, planificateur.aTrouver(listOf(cielDegage), apports, ajouts, trouves).size)
+        assertEquals(listOf(5, 9, 4), listOf(alliage.trouves, alliage.voulu, alliage.reste))
+        assertEquals(2, alliage.pour.size)
+        assertEquals(listOf("arc_alloy", "plastic_parts"), planificateur.aTrouver(listOf(stationUtilitaire1, cielDegage), apports).map { it.objetId }.sorted())
+        assertTrue(planificateur.aTrouver(listOf(cielDegage), apports).isEmpty())
     }
 
     @Test
     fun `repartir le butin - l'objectif le plus pres d'etre termine d'abord`() {
         // « Ciel dégagé » ne demande que 3 Alliages ARC ; la Station utilitaire 1 en demande 6, plus 50 Composants plastiques.
-        val r = planificateur.repartir(listOf(stationUtilitaire1, cielDegage), emptyMap(), Rapporte(emptyMap(), emptyMap()), mapOf("arc_alloy" to 4))
-        assertEquals(mapOf("arc_alloy" to 3), r.apports[cielDegage.cle])
-        assertEquals(mapOf("arc_alloy" to 1), r.apports[stationUtilitaire1.cle])
-        assertTrue(planificateur.complet(cielDegage, r.apports))
-        assertFalse(planificateur.complet(stationUtilitaire1, r.apports))
-        assertEquals(mapOf("plastic_parts" to 50, "arc_alloy" to 5), planificateur.manque(stationUtilitaire1, r.apports))
+        val r = planificateur.repartir(listOf(stationUtilitaire1, cielDegage), emptyMap(), mapOf("arc_alloy" to 4))
+        assertEquals(mapOf("arc_alloy" to 3), r[cielDegage.cle])
+        assertEquals(mapOf("arc_alloy" to 1), r[stationUtilitaire1.cle])
+        assertTrue(planificateur.complet(cielDegage, r))
+        assertFalse(planificateur.complet(stationUtilitaire1, r))
+        assertEquals(mapOf("plastic_parts" to 50, "arc_alloy" to 5), planificateur.manque(stationUtilitaire1, r))
     }
 
     @Test
-    fun `repartir le butin - ajouts du joueur, surplus ignore, retours successifs`() {
-        val ajouts = mapOf("battery" to 2)
-        val r = planificateur.repartir(listOf(cielDegage), ajouts, Rapporte(emptyMap(), emptyMap()), mapOf("battery" to 5, "arc_alloy" to 10, "fabric" to 3))
+    fun `repartir le butin - surplus ignore, retours successifs`() {
+        val r = planificateur.repartir(listOf(cielDegage), emptyMap(), mapOf("battery" to 5, "arc_alloy" to 10, "fabric" to 3))
         // Ce qui dépasse n'est gardé nulle part : pas de réserve.
-        assertEquals(mapOf("battery" to 2), r.trouvesRaid)
-        assertEquals(mapOf(cielDegage.cle to mapOf("arc_alloy" to 3)), r.apports)
+        assertEquals(mapOf(cielDegage.cle to mapOf("arc_alloy" to 3)), r)
         // Un second retour de raid s'ajoute au premier, sans jamais dépasser ce qui est demandé.
-        assertEquals(r, planificateur.repartir(listOf(cielDegage), ajouts, r, mapOf("battery" to 1, "arc_alloy" to 1)))
-        val partiel = planificateur.repartir(listOf(stationUtilitaire1), emptyMap(), Rapporte(emptyMap(), emptyMap()), mapOf("arc_alloy" to 2))
-        val suite = planificateur.repartir(listOf(stationUtilitaire1), emptyMap(), partiel, mapOf("arc_alloy" to 3))
-        assertEquals(mapOf("arc_alloy" to 5), suite.apports[stationUtilitaire1.cle])
+        assertEquals(r, planificateur.repartir(listOf(cielDegage), r, mapOf("battery" to 1, "arc_alloy" to 1)))
+        val partiel = planificateur.repartir(listOf(stationUtilitaire1), emptyMap(), mapOf("arc_alloy" to 2))
+        val suite = planificateur.repartir(listOf(stationUtilitaire1), partiel, mapOf("arc_alloy" to 3))
+        assertEquals(mapOf("arc_alloy" to 5), suite[stationUtilitaire1.cle])
     }
 
     @Test
@@ -120,52 +113,32 @@ class ListeDeCoursesEtVerdictTest {
     }
 
     @Test
-    fun `verdict suffisant quand tout a ete rapporte, sans proposer la vente`() {
+    fun `tout rapporte pour les objectifs, plus besoin de le garder`() {
         val apports = mapOf(stationUtilitaire1.cle to mapOf("arc_alloy" to 6), cielDegage.cle to mapOf("arc_alloy" to 3))
-        val v = conseiller.verdict("arc_alloy", objectifs, apports)
-        v as Verdict.Suffisant
-        assertEquals(9, v.besoin)
+        assertTrue(conseiller.verdict("arc_alloy", objectifs, apports) is Verdict.Inutile)
     }
 
     @Test
-    fun `jamais a vendre s'il est dans la liste de raid`() {
-        val v = conseiller.verdict("film_reel", emptyList(), listeRaid = mapOf("film_reel" to 2))
-        assertEquals(Verdict.Cherche(voulu = 2, trouves = 0), v)
-        val rapporte = conseiller.verdict("film_reel", emptyList(), listeRaid = mapOf("film_reel" to 2), trouvesRaid = mapOf("film_reel" to 1))
-        assertEquals(Verdict.Cherche(voulu = 2, trouves = 1), rapporte)
-    }
+    fun `utile seulement pour un objectif en cours ou un build`() {
+        // L'Alliage ARC sert aux établis, à des quêtes, à la fabrication… mais rien n'est en cours : à vendre ou recycler.
+        assertTrue(conseiller.verdict("arc_alloy", emptyList()) is Verdict.Inutile)
+        assertTrue(conseiller.verdict("blue_gate_cellar_key", emptyList()) is Verdict.Inutile)
+        // L'explication dit quand même à quoi il peut servir.
+        val u = usages.pour("arc_alloy")
+        assertTrue(u.ameliorations.any { it.etabli.id == "utility_bench" && it.niveau == 1 })
+        assertTrue(u.utilisations.fabrication.isNotEmpty())
+        assertTrue(usages.pour("blue_gate_cellar_key").utilisations.cle)
+        assertEquals(listOf("advanced_camera"), usages.pour("advanced_camera_blueprint").utilisations.debloque)
 
-    @Test
-    fun `utile quand il sert a autre chose qu'aux objectifs suivis`() {
-        // L'Alliage ARC sert aux établis, à des quêtes, à la fabrication : jamais « à vendre » d'office.
-        val alliage = conseiller.verdict("arc_alloy", listOf(armurier2))
-        alliage as Verdict.Utile
-        assertTrue(alliage.usages.ameliorations.isNotEmpty())
-        assertTrue(alliage.usages.utilisations.fabrication.isNotEmpty())
-
-        // Une clé ouvre une porte, une arme s'équipe, un schéma s'apprend.
-        assertTrue((conseiller.verdict("blue_gate_cellar_key", emptyList()) as Verdict.Utile).usages.utilisations.cle)
-        assertTrue((conseiller.verdict("anvil_ii", emptyList()) as Verdict.Utile).usages.utilisations.equipement)
-        val schema = conseiller.verdict("advanced_camera_blueprint", emptyList()) as Verdict.Utile
-        assertEquals(listOf("advanced_camera"), schema.usages.utilisations.debloque)
-    }
-
-    @Test
-    fun `a vendre seulement s'il ne sert a rien`() {
-        // Babiole sans aucun usage dans le jeu.
-        val babiole = catalogue.donnees.objets.first { it.categorie == "Babiole" && Usages(catalogue, SuiviProgression(catalogue)).pour(it.id).aucun }
-        assertTrue(conseiller.verdict(babiole.id, emptyList()) is Verdict.Inutile)
-    }
-
-    @Test
-    fun `ce qui est fait ne compte plus`() {
-        val suivi = SuiviProgression(catalogue)
-        val usages = Usages(catalogue, suivi)
-        val avant = usages.pour("arc_alloy").ameliorations.map { it.etabli.id to it.niveau }
-        assertTrue("utility_bench" to 1 in avant)
-        val station = catalogue.etabli("utility_bench")!!
-        val apres = usages.pour("arc_alloy", suivi.changerNiveau(Progression(), station, 3)).ameliorations.map { it.etabli.id to it.niveau }
-        assertTrue(apres.none { it.first == "utility_bench" })
+        // Dans un build, ou pour en fabriquer un objet : à garder.
+        val build = UsageBuild("Assaut", "ferro_iii", direct = false)
+        val v = conseiller.verdict("metal_parts", emptyList(), builds = mapOf("metal_parts" to listOf(build)))
+        assertEquals(Verdict.PourBuild(listOf(build)), v)
+        // Demandé par un objectif ET par un build : « Garder », avec les deux raisons.
+        val garder = conseiller.verdict("arc_alloy", listOf(cielDegage), builds = mapOf("arc_alloy" to listOf(build)))
+        garder as Verdict.Garder
+        assertEquals(3, garder.manquant)
+        assertEquals(listOf(build), garder.builds)
     }
 
     @Test
@@ -180,7 +153,7 @@ class ListeDeCoursesEtVerdictTest {
         )
         val c = Catalogue(donnees)
         assertEquals(150, c.valeurRecyclage(c.objet("boite")!!))
-        val conseil = Conseiller(c, Planificateur(c), Usages(c, SuiviProgression(c)))
+        val conseil = Conseiller(c, Planificateur(c))
         assertEquals(Sortie.RECYCLER, conseil.meilleureSortie("boite"))
         assertEquals(Sortie.VENDRE, conseil.meilleureSortie("vis"))
     }

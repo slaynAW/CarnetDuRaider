@@ -31,6 +31,7 @@ object Signal {
     val Cyan = Color(0xFF3CC4D8)
     val Vert = Color(0xFF6CCB5F)
     val Rouge = Color(0xFFF0544A)
+    val Violet = Color(0xFFB48CF2)
 
     /** Texte posé sur une des quatre couleurs. */
     val SurCouleur = Color(0xFF141417)

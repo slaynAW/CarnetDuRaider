@@ -48,9 +48,32 @@ class DonneesJeuTest {
     fun `un nom non traduit dans les donnees n'entre pas dans l'appli`() {
         // Exclus par l'import (docs/NOMS-A-VERIFIER.md) : texte français identique à l'anglais.
         assertNull(catalogue.objet("sheet_metal"))
-        assertTrue(donnees.cartes.none { it.id == "riven-tides" })
-        assertTrue(donnees.conditions.none { it.id == "hurricane" })
+        assertTrue(donnees.projets.none { it.id == "community_event" })
         assertEquals(Catalogue.NOM_A_VERIFIER, catalogue.nomObjet("sheet_metal"))
+    }
+
+    @Test
+    fun `noms identiques a l'anglais verifies en jeu`() {
+        // Laissés en anglais par la traduction française du jeu, vérifiés en jeu (scripts/noms-identiques-verifies.txt).
+        assertEquals("Riven Tides", catalogue.carte("riven-tides")?.nom)
+        assertEquals(
+            listOf("Beachcombing", "Close Scrutiny", "Hurricane", "Redirection"),
+            listOf("beachcombing", "close-scrutiny", "hurricane", "redirection").map { catalogue.condition(it)?.nom },
+        )
+    }
+
+    @Test
+    fun `emplacements des builds et ameliorations d'armes`() {
+        assertEquals(Emplacement.MODULE, catalogue.objet("combat_mk1")?.emplacement)
+        assertEquals(Emplacement.BOUCLIER, catalogue.objet("light_shield")?.emplacement)
+        assertEquals(Emplacement.ARME, catalogue.objet("ferro_i")?.emplacement)
+        assertEquals(Emplacement.SOINS, catalogue.objet("bandage")?.emplacement)
+        assertEquals(Emplacement.GRENADE, catalogue.objet("light_impact_grenade")?.emplacement)
+        assertEquals(Emplacement.DIVERS, catalogue.objet("zipline")?.emplacement)
+        assertNull(catalogue.objet("metal_parts")?.emplacement)
+        val ferro3 = catalogue.objet("ferro_iii")!!.obtention.amelioration!!
+        assertEquals("ferro_ii", ferro3.depuis)
+        assertTrue(ferro3.ingredients.isNotEmpty())
     }
 
     @Test

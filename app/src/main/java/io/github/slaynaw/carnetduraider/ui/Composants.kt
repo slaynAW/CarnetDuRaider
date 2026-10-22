@@ -16,12 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,7 +30,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.core.Rarete
@@ -106,33 +102,6 @@ fun Barre(progression: Float, couleur: Color, modifier: Modifier = Modifier, epa
                 .clip(RoundedCornerShape(50))
                 .background(couleur),
         )
-    }
-}
-
-/** Compteur « − n + » pour changer un nombre en une touche ; [suffixe] dit ce qu'il compte (« à trouver… »). */
-@Composable
-fun Compteur(valeur: Int, nomObjet: String, onChange: (Int) -> Unit, suffixe: String, modifier: Modifier = Modifier) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        FilledIconButton(
-            onClick = { onChange(-1) },
-            enabled = valeur > 0,
-            modifier = Modifier.semantics { contentDescription = "En retirer un\u00a0: $nomObjet" },
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Surface, contentColor = Signal.Texte),
-        ) {
-            Text("−", style = MaterialTheme.typography.titleLarge)
-        }
-        Text(
-            valeur.toString(),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.width(44.dp).semantics { contentDescription = "$valeur $nomObjet $suffixe" },
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
-        FilledIconButton(
-            onClick = { onChange(+1) },
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = Signal.Or, contentColor = Signal.SurCouleur),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Ajouter un $nomObjet")
-        }
     }
 }
 
