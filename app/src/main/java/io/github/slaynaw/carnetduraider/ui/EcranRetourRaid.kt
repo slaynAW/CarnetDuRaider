@@ -65,7 +65,7 @@ fun EcranRetourRaid(vm: CarnetViewModel, onRetour: () -> Unit) {
                 }
                 Text("Retour de raid", style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    "Note ce que tu as rapporté\u00a0: chaque objet va aux objectifs qui en ont besoin. " +
+                    "Note ce que tu as rapporté\u00a0: chaque objet va aux objectifs qui en ont besoin, puis à ton butin recherché. " +
                         "À la validation, tout ce qui est complet se termine tout seul.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,

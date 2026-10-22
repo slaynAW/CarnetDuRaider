@@ -1,5 +1,6 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -20,11 +22,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -43,8 +48,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.Besoin
+import io.github.slaynaw.carnetduraider.core.ButinRecherche
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.FiltreVerdict
+import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.Objet
 import io.github.slaynaw.carnetduraider.core.Sortie
 import io.github.slaynaw.carnetduraider.core.UsageBuild
@@ -124,7 +131,8 @@ private fun LigneObjet(vm: CarnetViewModel, objet: Objet, verdict: Verdict, onCl
 /** Pourquoi ce verdict, en une ligne : pour quel objectif ou quel build, ou ce qu'il rapporte. */
 private fun raisonVerdict(vm: CarnetViewModel, objet: Objet, verdict: Verdict): String = when (verdict) {
     is Verdict.Garder -> verdict.pour.firstOrNull()?.let { b ->
-        "Pour ${b.libelle}" + if (verdict.pour.size > 1) " et ${pluriel(verdict.pour.size - 1, "autre", "autres")}" else ""
+        (if (b.objectif is Objectif.ObjetRecherche) "Dans ton butin recherché" else "Pour ${b.libelle}") +
+            if (verdict.pour.size > 1) " et ${pluriel(verdict.pour.size - 1, "autre", "autres")}" else ""
     } ?: "Pour tes objectifs en cours"
     is Verdict.PourBuild -> "Pour le build «\u00a0${verdict.builds.first().build}\u00a0»"
     is Verdict.Inutile ->
@@ -196,6 +204,7 @@ fun EcranFiche(
 
         val usages = vm.usagesDe(objet.id)
         CarteVerdict(vm.verdict(objet.id), objet, usages, vm)
+        BoutonButinRecherche(vm, objet.id)
         SectionUsages(vm, usages, ouvrir)
         CommentLObtenir(vm, objet, ouvrir, ouvrirZone)
         Section("Vente et recyclage") {
@@ -212,6 +221,25 @@ fun EcranFiche(
             }
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Ajoute l'objet au butin recherché de l'onglet Raid (un de plus s'il y est déjà). */
+@Composable
+private fun BoutonButinRecherche(vm: CarnetViewModel, objetId: String) {
+    val voulu = vm.butinRecherche[objetId]
+    OutlinedButton(
+        onClick = { vm.ajouterAuButin(objetId) },
+        border = BorderStroke(1.5.dp, Signal.Rouge),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Signal.Rouge),
+        shape = RoundedCornerShape(6.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(
+            if (voulu == null) "Ajouter au ${ButinRecherche.TITRE.lowercase()}" else "${ButinRecherche.TITRE}\u00a0: $voulu · en ajouter un",
+            modifier = Modifier.padding(start = 6.dp),
+        )
     }
 }
 
@@ -354,7 +382,11 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, usages: UsagesObjet, vm
     val c = when (verdict) {
         is Verdict.Garder -> ContenuVerdict(
             "Garde-le",
-            "Il en faut encore ${verdict.manquant} pour tes objectifs en cours.",
+            "Il en faut encore ${verdict.manquant} pour " + when {
+                verdict.pour.all { it.objectif is Objectif.ObjetRecherche } -> "ton butin recherché."
+                verdict.pour.any { it.objectif is Objectif.ObjetRecherche } -> "tes objectifs en cours et ton butin recherché."
+                else -> "tes objectifs en cours."
+            },
             Signal.Vert,
             verdict.pour,
             verdict.builds,

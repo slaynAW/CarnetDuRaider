@@ -119,10 +119,17 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
   carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la
   meilleure carte.
+- Butin recherché (`core/ButinRecherche.kt`, section de l'onglet Raid, `ui/EcranChoixButin.kt`, bouton sur
+  la fiche d'un objet) : des objets que le joueur veut rapporter pour lui, sans objectif du jeu (objet →
+  quantité voulue, `Memoire`, clé « butinRecherche »). Ils deviennent des `Objectif.ObjetRecherche` dans la
+  liste du raid (à trouver, meilleure carte, retour de raid, verdict « Garder »), jamais dans l'onglet
+  Objectifs ; le butin va d'abord aux objectifs du jeu, puis à eux ; un objet dont tout a été rapporté
+  quitte la liste à la validation du retour de raid (`ButinRecherche.terminerLesComplets`).
 - Retour de raid (`core/RetourDeRaid.kt`, `ui/EcranRetourRaid.kt`), le seul endroit où le joueur note
   des objets : seulement ce qui manque, sans pouvoir dépasser. `Planificateur.repartir` donne le butin
-  aux objectifs qui le demandent, le plus près d'être terminé d'abord (`Memoire`, clé « apports » :
-  clé de l'objectif → objets rapportés) ; ce qui dépasse n'est gardé nulle part. À la validation (bouton,
+  aux objectifs qui le demandent (objectifs du jeu, puis butin recherché), le plus près d'être terminé
+  d'abord (`Memoire`, clé « apports » : clé de l'objectif → objets rapportés) ; ce qui dépasse n'est gardé
+  nulle part. À la validation (bouton,
   retour ou autre onglet, jamais une rotation), les objectifs complets se terminent et
   `RetourDeRaid.bilan` donne les objectifs terminés, les objets qui ont atteint le nombre demandé et si
   toute la liste est trouvée : animation `ui/CelebrationRaid.kt` (objectif terminé à la manière d'ARC

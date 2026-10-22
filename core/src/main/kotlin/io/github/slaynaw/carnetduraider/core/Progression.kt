@@ -129,6 +129,8 @@ class SuiviProgression(private val catalogue: Catalogue) {
         } ?: false
         is Objectif.EtapeDeProjet ->
             catalogue.projet(objectif.projetId)?.let { prochaineEtape(progression, it) == objectif.etape } ?: false
+        // Le butin recherché ne fait pas partie de la progression du jeu.
+        is Objectif.ObjetRecherche -> false
     }
 
     /** L'objectif est fait : niveau construit, quête terminée (et celles qui y mènent), étape de projet faite. */
@@ -142,6 +144,7 @@ class SuiviProgression(private val catalogue: Catalogue) {
             val faites = maxOf(progression.etapesProjets[p.id] ?: 0, objectif.etape + 1).coerceAtMost(p.etapes.size)
             progression.copy(etapesProjets = progression.etapesProjets + (p.id to faites))
         } ?: progression
+        is Objectif.ObjetRecherche -> progression
     }
 
     /**

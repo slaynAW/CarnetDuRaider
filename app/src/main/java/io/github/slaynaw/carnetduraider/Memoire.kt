@@ -4,11 +4,13 @@ import android.content.Context
 import io.github.slaynaw.carnetduraider.core.Apports
 import io.github.slaynaw.carnetduraider.core.Build
 import io.github.slaynaw.carnetduraider.core.Builds
+import io.github.slaynaw.carnetduraider.core.ButinRecherche
 import io.github.slaynaw.carnetduraider.core.Progression
 import io.github.slaynaw.carnetduraider.core.calendrier.Region
 
 /**
- * Ce que le joueur a saisi (ce qu'il a en cours, ce qu'il a rapporté de raid pour ses objectifs, ses builds),
+ * Ce que le joueur a saisi (ce qu'il a en cours, ce qu'il a rapporté de raid pour ses objectifs, son butin
+ * recherché, ses builds),
  * gardé sur le téléphone uniquement.
  * Format texte simple, une entrée par ligne, lisible et stable d'une version à l'autre.
  */
@@ -33,6 +35,13 @@ class Memoire(context: Context) {
 
     fun ecrireBuilds(builds: List<Build>) {
         prefs.edit().putString(BUILDS, Builds.encoder(builds)).apply()
+    }
+
+    /** Le « Butin recherché » : objets à rapporter sans objectif du jeu (une ligne « objet=quantité »). */
+    fun lireButinRecherche(): Map<String, Int> = ButinRecherche.decoder(prefs.getString(BUTIN_RECHERCHE, null))
+
+    fun ecrireButinRecherche(liste: Map<String, Int>) {
+        prefs.edit().putString(BUTIN_RECHERCHE, ButinRecherche.encoder(liste)).apply()
     }
 
     /** Ce qui a été rapporté de raid pour chaque objectif : une ligne « clé de l'objectif|objet=quantité ». */
@@ -84,6 +93,7 @@ class Memoire(context: Context) {
         const val MODELE = "modele"
         const val MODELE_ACTUEL = 2
         const val BUILDS = "builds"
+        const val BUTIN_RECHERCHE = "butinRecherche"
 
         // Clés des versions précédentes, effacées par nouveauDepart().
         const val RESERVE = "reserve"

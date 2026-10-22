@@ -11,6 +11,7 @@ import io.github.slaynaw.carnetduraider.core.Apports
 import io.github.slaynaw.carnetduraider.core.BilanRaid
 import io.github.slaynaw.carnetduraider.core.Build
 import io.github.slaynaw.carnetduraider.core.Builds
+import io.github.slaynaw.carnetduraider.core.ButinRecherche
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.ConseilRaid
 import io.github.slaynaw.carnetduraider.core.Conseiller
@@ -34,9 +35,11 @@ import io.github.slaynaw.carnetduraider.core.calendrier.Region
 
 /**
  * État de l'appli : données du jeu (embarquées) et ce que le joueur a en cours. Tout est fait d'office, sauf
- * ce qu'il indique en cours (quêtes, ateliers, projets, Expéditions) : les objectifs en découlent. Il note
- * seulement ce qu'il rapporte de raid, qui va aux objectifs qui le demandent ; un objectif complet se
- * termine tout seul et la suite s'ajoute. Ses builds disent quels objets garder en plus.
+ * ce qu'il indique en cours (quêtes, ateliers, projets, Expéditions) : les objectifs en découlent. Il peut
+ * aussi rechercher des objets pour lui-même (« Butin recherché »). Il note seulement ce qu'il rapporte de
+ * raid, qui va aux objectifs qui le demandent, puis au butin recherché ; un objectif complet se termine tout
+ * seul et la suite s'ajoute, un objet recherché complet quitte la liste. Ses builds disent quels objets
+ * garder en plus.
  */
 class CarnetViewModel(application: Application) : AndroidViewModel(application) {
     val catalogue: Catalogue = application.carnet.catalogue
@@ -73,6 +76,13 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     /** Les objectifs : ce que le joueur a en cours, d'après sa progression. */
     val objectifs: List<Objectif> get() = suivi.objectifs(progression)
 
+    /** « Butin recherché » : objets à rapporter sans objectif du jeu (objet → quantité voulue). */
+    var butinRecherche by mutableStateOf(memoire.lireButinRecherche())
+        private set
+
+    /** Ce que le raid doit trouver : les objectifs en cours, puis le butin recherché. */
+    private val objectifsDuRaid: List<Objectif> get() = objectifs + ButinRecherche.objectifs(butinRecherche)
+
     /**
      * Restaure une sauvegarde chiffrée : toutes les données de l'appli sont remplacées, puis relues.
      * Renvoie un message d'erreur, ou `null` si tout s'est bien passé.
@@ -90,6 +100,7 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         region = memoire.region
         apports = memoire.lireApports()
         builds = memoire.lireBuilds()
+        butinRecherche = memoire.lireButinRecherche()
         retourOuvert = null
         saisis = emptyMap()
         derniereValidation = null
@@ -102,11 +113,33 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         memoire.ecrireApports(nouveaux)
     }
 
-    /** Toute la liste du raid, objets déjà trouvés compris : ce que demandent les objectifs en cours. */
-    fun listeDuRaid(): List<ObjetATrouver> = planificateur.listeDuRaid(objectifs, apports)
+    /** Toute la liste du raid, objets déjà trouvés compris : objectifs en cours et butin recherché. */
+    fun listeDuRaid(): List<ObjetATrouver> = planificateur.listeDuRaid(objectifsDuRaid, apports)
 
-    /** Ce qu'il reste à trouver pour les objectifs en cours. */
-    fun aTrouver(): List<ObjetATrouver> = planificateur.aTrouver(objectifs, apports)
+    /** Ce qu'il reste à trouver pour les objectifs en cours et le butin recherché. */
+    fun aTrouver(): List<ObjetATrouver> = planificateur.aTrouver(objectifsDuRaid, apports)
+
+    /** Ajoute un objet au butin recherché (un de plus s'il y est déjà). */
+    fun ajouterAuButin(objetId: String) = changerButin(ButinRecherche.ajouter(butinRecherche, objetId))
+
+    /**
+     * Nouvelle quantité voulue d'un objet recherché, jamais moins d'un de plus que ce qui a déjà été rapporté
+     * (un objet complet se termine au retour de raid) ; 0 le retire de la liste, avec ce qui avait été rapporté.
+     */
+    fun changerQuantiteButin(objetId: String, quantite: Int) {
+        if (quantite <= 0) {
+            changerButin(ButinRecherche.changer(butinRecherche, objetId, 0))
+            changerApports(apports - ButinRecherche.cle(objetId))
+        } else {
+            changerButin(ButinRecherche.changer(butinRecherche, objetId, maxOf(quantite, ButinRecherche.rapportes(apports, objetId) + 1)))
+        }
+    }
+
+    private fun changerButin(liste: Map<String, Int>) {
+        if (liste == butinRecherche) return
+        butinRecherche = liste
+        memoire.ecrireButinRecherche(liste)
+    }
 
     /** Retour de raid en cours : ce qui était rapporté et la liste du raid à l'ouverture (bilan, annulation). */
     class RetourOuvert(val avant: Apports, val liste: List<ObjetATrouver>)
@@ -130,7 +163,7 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         val max = r.liste.firstOrNull { it.objetId == objetId }?.reste ?: 0
         val n = ((saisis[objetId] ?: 0) + delta).coerceIn(0, max)
         saisis = if (n == 0) saisis - objetId else saisis + (objetId to n)
-        changerApports(planificateur.repartir(objectifs, r.avant, saisis))
+        changerApports(planificateur.repartir(objectifsDuRaid, r.avant, saisis))
     }
 
     /** Remet ce qui était rapporté comme à l'ouverture du retour de raid. */
@@ -153,10 +186,12 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         retourOuvert = null
         val notes = saisis.values.sum()
         saisis = emptyMap()
-        val avant = Validation("Retour de raid", progression, r.avant)
+        val avant = Validation("Retour de raid", progression, r.avant, butinRecherche)
         val apres = listeDuRaid()
-        // Même sans rien de noté (appli fermée par Android en plein retour), ce qui est complet se termine.
+        // Même sans rien de noté (appli fermée par Android en plein retour), ce qui est complet se termine,
+        // objectifs du jeu et objets du butin recherché.
         val termines = terminerLesComplets()
+        terminerLeButinComplet()
         val bilan = RetourDeRaid.bilan(r.liste, apres, termines)
         if (!bilan.vide) celebration = bilan
         if (notes > 0 || termines.isNotEmpty()) derniereValidation = avant.copy(objetsNotes = notes, termines = termines)
@@ -164,6 +199,14 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
 
     fun finCelebration() {
         celebration = null
+    }
+
+    /** Les objets du butin recherché dont tout a été rapporté quittent la liste. */
+    private fun terminerLeButinComplet() {
+        val (liste, nouveaux, termines) = ButinRecherche.terminerLesComplets(butinRecherche, apports)
+        if (termines.isEmpty()) return
+        changerButin(liste)
+        changerApports(nouveaux)
     }
 
     /** Où aller pour trouver ce qui manque encore. */
@@ -182,10 +225,11 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     /** Étape en cours d'un projet ou d'une Expédition, ou `null` : pas en cours. */
     fun indiquerEtapeEnCours(projet: Projet, etape: Int?) = changerProgression(suivi.indiquerEtapeEnCours(progression, projet, etape))
 
-    /** Annule la dernière validation : progression et ce qui avait été rapporté reviennent comme avant. */
+    /** Annule la dernière validation : progression, butin recherché et ce qui avait été rapporté reviennent comme avant. */
     fun annulerValidation() {
         val v = derniereValidation ?: return
         changerProgression(v.progression)
+        changerButin(v.butinRecherche)
         changerApports(v.apports)
         derniereValidation = null
     }
@@ -200,7 +244,7 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
      * complète : elle se termine aussi.
      */
     fun valider(objectif: Objectif) {
-        val avant = Validation(planificateur.libelle(objectif), progression, apports)
+        val avant = Validation(planificateur.libelle(objectif), progression, apports, butinRecherche)
         changerProgression(suivi.terminer(progression, objectif))
         changerApports(RetourDeRaid.sansLesTermines(apports, listOf(objectif)))
         derniereValidation = avant.copy(termines = terminerLesComplets())
@@ -233,7 +277,8 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
 
     fun listeDeCourses(): ListeDeCourses = planificateur.listeDeCourses(objectifs, apports)
 
-    fun verdict(objetId: String): Verdict = conseiller.verdict(objetId, objectifs, apports, aGarderPourBuilds)
+    /** Garder, vendre ou recycler : un objet que demandent les objectifs ou le butin recherché est à garder. */
+    fun verdict(objetId: String): Verdict = conseiller.verdict(objetId, objectifsDuRaid, apports, aGarderPourBuilds)
 
     /** Filtres de la liste des objets (« Recycler » seulement s'il peut servir). */
     val filtresObjets: List<FiltreVerdict> get() = conseiller.filtres
@@ -252,6 +297,7 @@ data class Validation(
     val titre: String,
     val progression: Progression,
     val apports: Apports,
+    val butinRecherche: Map<String, Int>,
     /** Objets notés au retour de raid. */
     val objetsNotes: Int = 0,
     /** Objectifs terminés d'eux-mêmes, tout ayant été rapporté. */

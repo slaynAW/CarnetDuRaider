@@ -220,7 +220,7 @@ const valeurRecyclage = o => o.recyclage.reduce((s, q) => s + (objets.get(q.id)?
 // ---- Mémoire du joueur (comme Memoire.kt), gardée pour ce compte ----
 // Tout est fait d'office, sauf ce qu'il indique en cours : quêtes, niveau en cours des établis (suivis),
 // étape en cours des projets et Expéditions (projetsSuivis). À l'installation, rien n'est en cours.
-const ETAT_VIDE = () => ({ apports: {}, niveaux: {}, terminees: [], suivis: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], builds: [], modele: 2 });
+const ETAT_VIDE = () => ({ apports: {}, butin: {}, niveaux: {}, terminees: [], suivis: [], quetesIndiquees: false, region: "EUROPE", etapesProjets: {}, projetsSuivis: [], builds: [], modele: 2 });
 const M = ETAT_VIDE();
 const projets = new Map((D.projets || []).map(p => [p.id, p]));
 const cartes = new Map(D.cartes.map(c => [c.id, c]));
@@ -244,7 +244,7 @@ function parcourir(depart, voisins) {
 }
 const precedentes = id => parcourir(id, x => quetes.get(x)?.requiert ?? []);
 const suivantes = id => parcourir(id, x => suites.get(x) ?? []);
-const cleObjectif = o => o.type === "etabli" ? `etabli:${o.id}:${o.niveau}` : o.type === "projet" ? `projet:${o.id}:${o.etape}` : `quete:${o.id}`;
+const cleObjectif = o => o.type === "etabli" ? `etabli:${o.id}:${o.niveau}` : o.type === "projet" ? `projet:${o.id}:${o.etape}` : o.type === "butin" ? `butin:${o.id}` : `quete:${o.id}`;
 const prochaineEtape = p => { const n = M.etapesProjets[p.id] ?? 0; return n < p.etapes.length ? n : null; };
 const etapeEnCours = p => M.projetsSuivis.includes(p.id) ? prochaineEtape(p) : null;
 const nomEtape = (p, i) => p?.etapes[i]?.nom ?? `étape ${i + 1}`;
@@ -279,9 +279,11 @@ function indiquerEtape(p, etape) {
 // ---- Liste de courses (core/ListeDeCourses.kt) : pas de réserve, seulement ce qui a été rapporté de raid
 // pour chaque objectif (M.apports : clé de l'objectif → objets rapportés) ----
 const libelle = o => o.type === "etabli" ? `${etablis.get(o.id)?.nom ?? NOM_A_VERIFIER} · niveau ${o.niveau}`
+  : o.type === "butin" ? BUTIN
   : o.type === "projet" ? `${projets.get(o.id)?.nom ?? NOM_A_VERIFIER} · ${nomEtape(projets.get(o.id), o.etape)}`
   : `Quête «${NB}${quetes.get(o.id)?.nom ?? NOM_A_VERIFIER}${NB}»`;
 const besoins = o => o.type === "etabli" ? (etablis.get(o.id)?.niveaux.find(n => n.niveau === o.niveau)?.cout ?? [])
+  : o.type === "butin" ? [{ id: o.id, quantite: o.quantite }]
   : o.type === "projet" ? (projets.get(o.id)?.etapes[o.etape]?.cout ?? []) : (quetes.get(o.id)?.objets ?? []);
 const apporteDe = (o, id, apports = M.apports) => apports?.[cleObjectif(o)]?.[id] ?? 0;
 const besoinsPourObjet = (id, objs, apports = M.apports) => objs.map(o => {
@@ -307,22 +309,37 @@ function manqueObjectif(o, apports = M.apports) {
   return m;
 }
 const complet = (o, apports = M.apports) => besoins(o).length > 0 && !Object.keys(manqueObjectif(o, apports)).length;
-// Toute la liste du raid, trouvés compris : ce que demandent les objectifs en cours, les plus en retard d'abord.
+// ---- Butin recherché (core/ButinRecherche.kt) : des objets à rapporter pour soi, sans objectif du jeu
+// (M.butin : objet → quantité voulue). Ils s'ajoutent à la liste du raid, après les objectifs du jeu ----
+const BUTIN = "Butin recherché", BUTIN_MAX = 999;
+const objetsRecherches = () => Object.entries(M.butin || {}).filter(([, n]) => n > 0).map(([id, n]) => ({ type: "butin", id, quantite: n }));
+const objectifsDuRaid = () => [...objectifs(), ...objetsRecherches()];
+const rapportesButin = id => M.apports?.[`butin:${id}`]?.[id] ?? 0;
+function changerButin(id, n) {
+  M.butin = M.butin || {};
+  if (n <= 0) { delete M.butin[id]; delete M.apports[`butin:${id}`]; }
+  else M.butin[id] = Math.min(Math.max(n, rapportesButin(id) + 1), BUTIN_MAX);
+}
+// Les objets dont tout a été rapporté quittent la liste, avec ce qui avait été rapporté pour eux.
+function terminerButin() {
+  for (const [id, n] of Object.entries(M.butin || {})) if (rapportesButin(id) >= n) { delete M.butin[id]; delete M.apports[`butin:${id}`]; }
+}
+// Toute la liste du raid, trouvés compris : objectifs en cours et butin recherché, les plus en retard d'abord.
 function listeDuRaid(apports = M.apports) {
-  return listeDeCourses(objectifs(), apports).lignes.map(l => etatATrouver({ id: l.id, trouves: l.apporte, voulu: l.besoin, pour: l.pour }));
+  return listeDeCourses(objectifsDuRaid(), apports).lignes.map(l => etatATrouver({ id: l.id, trouves: l.apporte, voulu: l.besoin, pour: l.pour }));
 }
 const etatATrouver = x => ({ ...x, reste: Math.max(0, x.voulu - x.trouves), trouve: x.trouves >= x.voulu });
 const aTrouver = () => listeDuRaid().filter(x => !x.trouve);
 const pourQui = a => a.pour.map(b => b.libelle).join(" · ");
 
-// ---- Répartition du butin (Planificateur.repartir) : d'abord l'objectif le plus près d'être terminé ;
-// ce qui dépasse n'est gardé nulle part ----
+// ---- Répartition du butin (Planificateur.repartir) : les objectifs du jeu d'abord, le plus près d'être
+// terminé en premier, puis le butin recherché ; ce qui dépasse n'est gardé nulle part ----
 function repartir(objs, avant, saisis) {
   const apports = JSON.parse(JSON.stringify(avant || {}));
   const total = d => Object.values(d.manque).reduce((s, n) => s + n, 0);
   // Ordre fixé avant la répartition : le plus près d'être terminé d'abord, puis l'ordre de la liste.
-  const ordre = [...new Map(objs.map(o => [cleObjectif(o), o])).values()].map(o => ({ cle: cleObjectif(o), manque: manqueObjectif(o, avant) }))
-    .map((d, i) => ({ d, i, t: total(d) })).sort((a, b) => a.t - b.t || a.i - b.i).map(x => x.d);
+  const ordre = [...new Map(objs.map(o => [cleObjectif(o), o])).values()].map(o => ({ cle: cleObjectif(o), manque: manqueObjectif(o, avant), butin: o.type === "butin" }))
+    .map((d, i) => ({ d, i, t: total(d) })).sort((a, b) => a.d.butin - b.d.butin || a.t - b.t || a.i - b.i).map(x => x.d);
   for (const [id, quantite] of Object.entries(saisis)) {
     let reste = quantite;
     for (const d of ordre) {
@@ -368,7 +385,7 @@ function noter(id, d) {
   if (!R) return;
   const max = R.liste.find(x => x.id === id)?.reste ?? 0, n = Math.min(Math.max((R.saisis[id] ?? 0) + d, 0), max);
   if (n) R.saisis[id] = n; else delete R.saisis[id];
-  M.apports = repartir(objectifs(), R.avant, R.saisis);
+  M.apports = repartir(objectifsDuRaid(), R.avant, R.saisis);
 }
 function bilanRaid(avant, apres, termines) {
   const maintenant = new Map(apres.map(x => [x.id, x]));
@@ -384,6 +401,7 @@ function validerRetour() {
   const notes = Object.values(R.saisis).reduce((s, n) => s + n, 0);
   const avant = JSON.stringify({ ...M, apports: R.avant });
   const apres = listeDuRaid(), termines = terminerLesComplets();
+  terminerButin();
   const bilan = bilanRaid(R.liste, apres, termines);
   if (bilan.atteints.length || termines.length) S.celebration = bilan;
   if (notes || termines.length) montrerValidation({ titre: "Retour de raid", avant, objetsNotes: notes, termines });
@@ -442,7 +460,7 @@ function aGarderBuilds(liste = builds()) {
 // Verdict (core/Verdict.kt) : utile seulement pour un objectif en cours (s'il en manque) ou pour un build ;
 // sinon à vendre ou à recycler, selon ce qui rapporte le plus.
 function meilleureSortie(o) { return !o?.recyclage.length ? "VENDRE" : valeurRecyclage(o) > o.valeur ? "RECYCLER" : "VENDRE"; }
-function verdict(id, objs = objectifs(), pourBuilds = aGarderBuilds()) {
+function verdict(id, objs = objectifsDuRaid(), pourBuilds = aGarderBuilds()) {
   const pour = besoinsPourObjet(id, objs), manque = pour.reduce((s, b) => s + b.manque, 0), b = pourBuilds.get(id) || [];
   if (manque > 0) return { type: "garder", manquant: manque, besoin: pour.reduce((s, x) => s + x.quantite, 0), pour, builds: b };
   if (b.length) return { type: "build", builds: b };
@@ -466,7 +484,7 @@ const ONGLETS = [
   ["OBJECTIFS", "Objectifs", "--vert", "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", "05 / MISSIONS"],
   ["BUILDS", "Builds", "--violet", "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z", "06 / ARSENAL"],
 ];
-const S = { onglet: "ACCUEIL", filtre: "TOUS", build: 0, ecran: null, recherche: "", rechercheQuetes: "", recherchePlan: "", rechercheBuild: "", choix: null, validation: null, raid: null, caseBuild: null };
+const S = { onglet: "ACCUEIL", filtre: "TOUS", build: 0, ecran: null, recherche: "", rechercheButin: "", rechercheQuetes: "", recherchePlan: "", rechercheBuild: "", choix: null, validation: null, raid: null, caseBuild: null };
 
 // ---- Écrans ----
 // Motif de chaque section, à droite de son bandeau (BandeauSection.kt), dans une grille de largeur × 132.
@@ -534,7 +552,7 @@ function puceVerdict(v) {
 }
 // Pourquoi ce verdict, en une ligne : pour quel objectif ou quel build, ou ce qu'il rapporte.
 function raisonVerdict(o, v) {
-  if (v.type === "garder") return v.pour.length ? `Pour ${v.pour[0].libelle}${v.pour.length > 1 ? ` et ${pluriel(v.pour.length - 1, "autre", "autres")}` : ""}` : "Pour tes objectifs en cours";
+  if (v.type === "garder") return v.pour.length ? `${v.pour[0].o.type === "butin" ? "Dans ton butin recherché" : `Pour ${v.pour[0].libelle}`}${v.pour.length > 1 ? ` et ${pluriel(v.pour.length - 1, "autre", "autres")}` : ""}` : "Pour tes objectifs en cours";
   if (v.type === "build") return `Pour le build «${NB}${v.builds[0].build}${NB}»`;
   return v.sortie === "RECYCLER" ? `Ses matériaux valent ${valeurRecyclage(o)} pièces` : `Se vend ${o.valeur} pièces`;
 }
@@ -545,7 +563,7 @@ const filtresObjets = () => FILTRES.filter(([k]) => k !== "RECYCLER" || tous.som
 const accepte = (f, v) => f === "TOUS" || (f === "GARDER" ? v.type !== "inutile" : v.type === "inutile" && v.sortie === (f === "VENDRE" ? "VENDRE" : "RECYCLER"));
 
 function ecranObjets() {
-  const objs = objectifs(), pourBuilds = aGarderBuilds();
+  const objs = objectifsDuRaid(), pourBuilds = aGarderBuilds();
   const r = (S.recherche.trim() ? rechercher(S.recherche, 200) : tous).map(o => [o, verdict(o.id, objs, pourBuilds)]).filter(([, v]) => accepte(S.filtre, v));
   const info = !r.length ? "Aucun objet ne correspond."
     : !S.recherche.trim() && S.filtre === "TOUS" ? `${pluriel(r.length, "objet", "objets")} par ordre alphabétique. Touche un objet pour savoir à quoi il sert et où le trouver.`
@@ -568,7 +586,8 @@ function ecranFiche(id) {
   const o = objets.get(id), v = verdict(id), u = usages(id), vr = valeurRecyclage(o), rar = RARETES[o.rarete];
   const sortie = s => s === "RECYCLER" ? `recycle-le${NB}: ses matériaux valent ${vr} pièces, plus que l'objet (${o.valeur}).`
     : !o.recyclage.length ? `vends-le${NB}: il vaut ${o.valeur} pièces et ne se recycle pas.` : `vends-le${NB}: il vaut ${o.valeur} pièces, plus que ses matériaux (${vr}).`;
-  const c = v.type === "garder" ? { titre: "Garde-le", texte: `Il en faut encore ${v.manquant} pour tes objectifs en cours.`, fond: "--vert", pour: v.pour, builds: v.builds }
+  const pourButin = v.type === "garder" ? v.pour.filter(b => b.o.type === "butin").length : 0;
+  const c = v.type === "garder" ? { titre: "Garde-le", texte: `Il en faut encore ${v.manquant} pour ${pourButin === v.pour.length ? "ton butin recherché" : pourButin ? "tes objectifs en cours et ton butin recherché" : "tes objectifs en cours"}.`, fond: "--vert", pour: v.pour, builds: v.builds }
     : v.type === "build" ? { titre: "Garde-le", texte: v.builds.every(b => b.direct) ? "Il fait partie de tes builds." : "Il sert à fabriquer ce qu'il y a dans tes builds.", fond: "--violet", builds: v.builds }
     : { titre: v.sortie === "VENDRE" ? "Vends-le" : "Recycle-le", texte: `Aucun objectif en cours ni aucun build n'en a besoin${NB}: ${sortie(v.sortie)}`, fond: "--releve",
       note: u.aucun ? null : `Il peut quand même servir${NB}: ${resumeUsages(u).join(", ")}. Le détail est plus bas.` };
@@ -580,6 +599,7 @@ function ecranFiche(id) {
   <div class="verdict ${c.fond === "--releve" ? "neutre" : ""}" style="--v:var(${c.fond})"><small>VERDICT</small><h3>${c.titre}</h3><b>${c.texte}</b>
     ${c.pour?.length || c.builds?.length ? `<hr>${(c.pour || []).map(b => `<div class="ligne"><b class="flex">${echap(b.libelle)}</b><b>${Math.min(b.apporte, b.quantite)}/${b.quantite}</b></div>`).join("")}${lignesBuilds}` : ""}
     ${c.note ? `<span class="petit">${c.note}</span>` : ""}</div>
+  <button class="bouton large contour" style="--c:var(--rouge);padding:12px" data-action="butin-ajouter" data-id="${id}">+ ${M.butin?.[id] ? `${BUTIN}${NB}: ${M.butin[id]} · en ajouter un` : "Ajouter au butin recherché"}</button>
   ${sectionUsages(u)}
   ${commentLObtenir(o)}
   <h4>Vente et recyclage</h4><p style="margin:0">Se vend ${o.valeur} pièces l'unité.</p>
@@ -821,7 +841,7 @@ function ecranRaid() {
   const R = S.raid, depart = R.liste.filter(x => !x.trouve), actuels = new Map(listeDuRaid().map(x => [x.id, x]));
   const trouves = depart.filter(a => actuels.get(a.id)?.trouve !== false).length, notes = Object.values(R.saisis).reduce((s, n) => s + n, 0);
   return `${retour("Raid", "--rouge")}<h3>Retour de raid</h3>
-  <p class="doux" style="margin:0">Note ce que tu as rapporté${NB}: chaque objet va aux objectifs qui en ont besoin. À la validation, tout ce qui est complet se termine tout seul.</p>
+  <p class="doux" style="margin:0">Note ce que tu as rapporté${NB}: chaque objet va aux objectifs qui en ont besoin, puis à ton butin recherché. À la validation, tout ce qui est complet se termine tout seul.</p>
   <div class="ligne"><span class="flex">${depart.length ? `<b style="font:600 14px var(--titre);color:var(${trouves ? "--vert" : "--texte-doux"})">${trouves} sur ${depart.length} trouvé${trouves > 1 ? "s" : ""}</b><br>` : ""}<span class="petit" style="color:var(${notes ? "--or" : "--texte-doux"})">${notes ? `${pluriel(notes, "objet noté", "objets notés")}.` : "Rien de noté pour l'instant."}</span></span>
     ${notes ? `<button class="lien" style="--c:var(--texte-doux)" data-action="annuler-raid">Annuler</button>` : ""}<button class="bouton" data-action="valider-retour">Valider</button></div>
   ${!depart.length ? `<p class="doux">Rien à trouver pour l'instant${NB}: indique ce que tu as en cours dans l'onglet Objectifs.</p>` : ""}
@@ -901,6 +921,8 @@ function ecranOngletRaid() {
   ${objs.map(carteObjectif).join("")}` : ""}
   ${!objs.length ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:8px;padding:16px"><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira sur quelle carte aller et où chercher.</span>
     <button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="onglet" data-onglet="OBJECTIFS">Indiquer mes objectifs</button></div>` : ""}
+  <div class="ligne" style="margin-top:8px"><span class="etiquette flex" style="--c:var(--rouge)">${BUTIN}</span><button class="lien" style="--c:var(--rouge)" data-action="butin-ecran">+ Ajouter un objet</button></div>
+  ${objetsRecherches().length ? objetsRecherches().map(ligneButin).join("") : `<p class="petit doux" style="margin:0">Des objets à rapporter pour toi, sans quête ni projet${NB}: ils s'ajoutent à ce qu'il te faut, se décomptent au retour de raid et quittent la liste une fois tous rapportés.</p>`}
   ${detaillees.length ? `${etiquette("Où aller", "--rouge", "h4")}
   ${conseil.parcours.length > 1 ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:4px;padding:14px"><b style="color:var(--rouge);font-family:var(--titre)">Pour tout trouver</b>
     ${conseil.parcours.map((e, i) => `<span>${i + 1}. ${echap(nomC(e.carteId))} · ${i ? "+ " : ""}${pluriel(e.objets.length, "objet", "objets")}</span>`).join("")}
@@ -909,6 +931,27 @@ function ecranOngletRaid() {
   ${autres.length ? `<p class="doux" style="margin:0">Aussi${NB}: ${echap(autres.map(c => `${nomC(c.carteId)} (${pluriel(c.objets.length, "objet", "objets")})`).join(" · "))}</p>` : ""}
   <p class="petit discret" style="margin:0">Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs. Les conditions en cours sur chaque carte s'affichent dans l'appli Android.</p>` : ""}
   ${conseil.sansButin.length ? `${etiquette("Pas dans le butin", "--rouge", "h4")}${conseil.sansButin.map(id => `<button class="carte ligne" style="padding:10px;text-align:left" data-action="fiche" data-id="${id}">${icone(id, 36)}<span class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit doux">${echap(autreMoyen(objets.get(id)))}</span></span></button>`).join("")}` : ""}`;
+}
+
+// Un objet du butin recherché (LigneButin, EcranRaid.kt) : rapportés sur voulus, quantité, retirer.
+function ligneButin(o) {
+  const nom = echap(nomObjet(o.id)), r = rapportesButin(o.id);
+  return `<div class="carte ligne" style="padding:8px 2px 8px 10px;gap:8px" data-butin="${o.id}"><button class="ligne flex" style="text-align:left;gap:10px" data-action="fiche" data-id="${o.id}">${icone(o.id, 40)}
+    <span class="flex"><span class="nom">${nom}</span><br><span class="petit doux" style="font-weight:600">${r}/${o.quantite} rapportés</span></span></button>
+    <button class="rond" style="border-radius:6px;width:40px;height:40px;background:var(--releve)" data-action="butin-moins" data-id="${o.id}" ${o.quantite > r + 1 ? "" : "disabled"} aria-label="Un de moins${NB}: ${nom}">−</button>
+    <b style="font:700 16px var(--titre);color:var(--rouge);font-variant-numeric:tabular-nums">${o.quantite}</b>
+    <button class="rond" style="border-radius:6px;width:40px;height:40px;background:var(--releve)" data-action="butin-plus" data-id="${o.id}" ${o.quantite < BUTIN_MAX ? "" : "disabled"} aria-label="Un de plus${NB}: ${nom}">+</button>
+    <button class="retour" data-action="butin-retirer" data-id="${o.id}" aria-label="Retirer du butin recherché${NB}: ${nom}">✕</button></div>`;
+}
+// Ajouter un objet au butin recherché (EcranChoixButin.kt) : tout le catalogue, avec une recherche.
+function ecranChoixButin() {
+  const r = S.rechercheButin.trim() ? rechercher(S.rechercheButin, 200) : tous;
+  return `${retour("Raid", "--rouge")}<h3>${BUTIN}</h3>
+  <p class="doux" style="margin:0">Choisis un objet à rapporter. Il s'ajoute à ce qu'il te faut et se décompte au retour de raid.</p>
+  <label class="recherche" style="--f:var(--rouge)"><svg class="ic" viewBox="0 0 24 24" style="color:var(--rouge)"><path d="${ONGLETS[1][3]}"/></svg><input id="recherche-butin" type="search" placeholder="Cherche un objet…" value="${echap(S.rechercheButin)}" data-champ="rechercheButin" autocomplete="off"></label>
+  ${r.length ? "" : `<p class="doux">Aucun objet ne correspond.</p>`}
+  ${r.map(o => `<button class="carte ligne" style="padding:10px" data-action="butin-choisir" data-id="${o.id}">${icone(o.id, 44)}
+    <span class="flex"><span class="nom">${echap(o.nom)}</span><br><span class="petit doux">${echap([RARETES[o.rarete]?.[0], o.categorie].filter(Boolean).join(" · "))}</span></span>${M.butin?.[o.id] ? `<small style="color:var(--rouge);font-weight:600">Déjà${NB}: ${M.butin[o.id]}</small>` : ""}</button>`).join("")}`;
 }
 
 // Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien on en a sur
@@ -1048,7 +1091,7 @@ function rendre() {
   document.getElementById("contenu").innerHTML =
     e?.type === "fiche" ? ecranFiche(e.id) : e === "plan" ? ecranPlan() : e === "quetes" ? ecranQuetes() : e === "ateliers" ? ecranAteliers()
     : e === "projets" ? ecranProjets(false) : e === "expeditions" ? ecranProjets(true) : e === "choix-build" ? ecranChoixBuild()
-    : e === "raid" ? ecranRaid() : e === "reglages" ? ecranReglages()
+    : e === "raid" ? ecranRaid() : e === "reglages" ? ecranReglages() : e === "choix-butin" ? ecranChoixButin()
     : { ACCUEIL: ecranAccueil, OBJETS: ecranObjets, RAID: ecranOngletRaid, CARTES: ecranCartes, OBJECTIFS: ecranObjectifs, BUILDS: ecranBuilds }[S.onglet]();
   document.getElementById("nav").innerHTML = ONGLETS.map(([k, t, c, d]) => `<button data-action="onglet" data-onglet="${k}" style="--c:var(${c})" ${S.onglet === k && !S.ecran ? 'aria-current="page"' : ""}><span class="pastille"><svg class="ic" viewBox="0 0 24 24"><path d="${d}"/></svg></span>${t}</button>`).join("");
   document.getElementById("dialogue").innerHTML = bandeauValidation();
@@ -1095,6 +1138,12 @@ document.addEventListener("click", ev => {
     case "region": M.region = id; break;
     case "filtre": S.filtre = id; rendre(); return;
     case "build": S.build = +id; rendre(); return;
+    case "butin-ecran": S.rechercheButin = ""; return ouvrir("choix-butin");
+    case "butin-choisir": changerButin(id, (M.butin?.[id] ?? 0) + 1); S.ecran = null; break;
+    case "butin-ajouter": changerButin(id, (M.butin?.[id] ?? 0) + 1); break;
+    case "butin-plus": changerButin(id, (M.butin?.[id] ?? 0) + 1); break;
+    case "butin-moins": changerButin(id, (M.butin?.[id] ?? 0) - 1); break;
+    case "butin-retirer": changerButin(id, 0); break;
     case "niveau-en-cours": indiquerNiveau(etablis.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
     case "etape-en-cours": indiquerEtape(projets.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
     case "valider-objectif": valider(objectifDepuisCle(b.dataset.cle)); break;

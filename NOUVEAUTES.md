@@ -5,6 +5,12 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.12.0
+
+- **Butin recherché** : une nouvelle partie de l'onglet Raid pour les objets que tu veux rapporter pour toi, sans quête ni projet. Touche « Ajouter un objet » (ou « Ajouter au butin recherché » sur la fiche d'un objet), puis règle la quantité avec − et +.
+- Ces objets s'ajoutent à ce qu'il te faut et à la meilleure carte. Au retour de raid, tu notes ton butin comme d'habitude : il va d'abord à tes objectifs, puis à ton butin recherché. Un objet dont tout a été rapporté quitte la liste tout seul.
+- Tant qu'il en manque, un objet de ton butin recherché est à garder dans l'onglet Objets.
+
 ## 0.11.1
 
 - **Builds** : les six builds s'affichent en deux lignes de trois, sans défiler. Un nom trop long est coupé.
