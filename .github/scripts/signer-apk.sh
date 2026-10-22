@@ -56,8 +56,10 @@ if [[ -z "$signer" || "$signer" != "$expected" ]]; then
   exit 1
 fi
 
-# Alignement : chaque fichier non compressé garde au moins celui de l'APK d'origine (pages de 16 Kio
-# pour les bibliothèques natives, sans quoi elles ne se chargent pas sur les appareils à pages de 16 Kio).
+# Alignement : chaque bibliothèque native garde au moins celui de l'APK d'origine (pages de 16 Kio, sans
+# quoi elle ne se charge pas sur les appareils à pages de 16 Kio) ; les autres fichiers non compressés
+# restent alignés sur 4 octets. apksigner réaligne ces derniers sur 4 octets : un fichier tombé par hasard
+# sur une limite de page dans l'APK d'origine n'a pas à y rester.
 python3 -I - "$in" "$out" <<'PY'
 import struct, sys, zipfile
 
@@ -75,8 +77,12 @@ def data_offsets(path):
 def alignment(offset):
     return next((a for a in (16384, 4096, 4) if offset % a == 0), 1)
 
+def required(name, offset):
+    a = alignment(offset)
+    return a if name.endswith(".so") else min(a, 4)
+
 before, after = data_offsets(sys.argv[1]), data_offsets(sys.argv[2])
-bad = [n for n, o in before.items() if n not in after or alignment(after[n]) < alignment(o)]
+bad = [n for n, o in before.items() if n not in after or alignment(after[n]) < required(n, o)]
 if bad:
     print("::error title=Signature::Alignement perdu après signature : " + ", ".join(sorted(bad)[:5]))
     sys.exit(1)
