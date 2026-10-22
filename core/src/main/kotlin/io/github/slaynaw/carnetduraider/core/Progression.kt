@@ -47,12 +47,27 @@ class SuiviProgression(private val catalogue: Catalogue) {
     fun niveauEnCours(progression: Progression, etabli: Etabli): Int? =
         if (etabli.id in progression.etablisSuivis) prochainNiveau(progression, etabli)?.niveau else null
 
+    /** L'établi est au niveau maximum : toutes ses améliorations sont faites. */
+    fun etabliTermine(progression: Progression, etabli: Etabli): Boolean =
+        etabli.niveaux.isNotEmpty() && prochainNiveau(progression, etabli) == null
+
+    /** Le joueur indique que l'établi est terminé : tous ses niveaux sont faits, plus rien en cours. */
+    fun indiquerEtabliTermine(progression: Progression, etabli: Etabli): Progression = progression.copy(
+        niveauxEtablis = progression.niveauxEtablis + (etabli.id to niveauMax(etabli)),
+        etablisSuivis = progression.etablisSuivis - etabli.id,
+    )
+
     /**
      * Le joueur indique le niveau en cours de l'établi (les précédents sont faits), ou `null` : rien en
-     * cours pour cet établi.
+     * cours pour cet établi (s'il était terminé, il ne l'est plus).
      */
     fun indiquerNiveauEnCours(progression: Progression, etabli: Etabli, niveau: Int?): Progression {
-        if (niveau == null) return progression.copy(etablisSuivis = progression.etablisSuivis - etabli.id)
+        if (niveau == null) {
+            return progression.copy(
+                niveauxEtablis = if (etabliTermine(progression, etabli)) progression.niveauxEtablis - etabli.id else progression.niveauxEtablis,
+                etablisSuivis = progression.etablisSuivis - etabli.id,
+            )
+        }
         val fait = (niveau - 1).coerceIn(niveauDeDepart(etabli), niveauMax(etabli))
         return progression.copy(
             niveauxEtablis = progression.niveauxEtablis + (etabli.id to fait),
@@ -75,9 +90,27 @@ class SuiviProgression(private val catalogue: Catalogue) {
     fun etapeEnCours(progression: Progression, projet: Projet): Int? =
         if (projet.id in progression.projetsSuivis) prochaineEtape(progression, projet) else null
 
-    /** Le joueur indique l'étape en cours du projet (les précédentes sont faites), ou `null` : pas en cours. */
+    /** Toutes les étapes du projet sont faites. */
+    fun projetTermine(progression: Progression, projet: Projet): Boolean =
+        projet.etapes.isNotEmpty() && prochaineEtape(progression, projet) == null
+
+    /** Le joueur indique que le projet (ou l'Expédition) est terminé : toutes ses étapes sont faites. */
+    fun indiquerProjetTermine(progression: Progression, projet: Projet): Progression = progression.copy(
+        etapesProjets = progression.etapesProjets + (projet.id to projet.etapes.size),
+        projetsSuivis = progression.projetsSuivis - projet.id,
+    )
+
+    /**
+     * Le joueur indique l'étape en cours du projet (les précédentes sont faites), ou `null` : pas en cours
+     * (s'il était terminé, il ne l'est plus).
+     */
     fun indiquerEtapeEnCours(progression: Progression, projet: Projet, etape: Int?): Progression {
-        if (etape == null) return progression.copy(projetsSuivis = progression.projetsSuivis - projet.id)
+        if (etape == null) {
+            return progression.copy(
+                etapesProjets = if (projetTermine(progression, projet)) progression.etapesProjets - projet.id else progression.etapesProjets,
+                projetsSuivis = progression.projetsSuivis - projet.id,
+            )
+        }
         return progression.copy(
             etapesProjets = progression.etapesProjets + (projet.id to etape.coerceIn(0, projet.etapes.size)),
             projetsSuivis = progression.projetsSuivis + projet.id,

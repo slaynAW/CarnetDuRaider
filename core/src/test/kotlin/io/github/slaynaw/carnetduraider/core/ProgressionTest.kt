@@ -86,6 +86,37 @@ class ProgressionTest {
     }
 
     @Test
+    fun `atelier, projet et expedition indiques termines`() {
+        val station = catalogue.etabli("utility_bench")!!
+        assertFalse(suivi.etabliTermine(depart, station))
+        val enCours = suivi.indiquerNiveauEnCours(depart, station, 2)
+        val fini = suivi.indiquerEtabliTermine(enCours, station)
+        assertTrue(suivi.etabliTermine(fini, station))
+        assertEquals(suivi.niveauMax(station), suivi.niveau(fini, station))
+        assertNull(suivi.niveauEnCours(fini, station))
+        assertTrue(suivi.objectifs(fini).isEmpty(), "plus rien en cours")
+        // Le dernier niveau construit au fil des raids : terminé aussi.
+        val auMax = suivi.terminer(suivi.terminer(enCours, Objectif.NiveauDEtabli(station.id, 2)), Objectif.NiveauDEtabli(station.id, 3))
+        assertTrue(suivi.etabliTermine(auMax, station))
+        // « Aucun » : il n'est plus terminé, rien en cours.
+        val aucun = suivi.indiquerNiveauEnCours(fini, station, null)
+        assertFalse(suivi.etabliTermine(aucun, station))
+        assertNull(suivi.niveauEnCours(aucun, station))
+        // « Aucun » sur un établi pas terminé ne touche pas à son niveau.
+        assertEquals(1, suivi.niveau(suivi.indiquerNiveauEnCours(enCours, station, null), station))
+
+        val expedition = catalogue.donnees.projets.first { it.expedition }
+        assertFalse(suivi.projetTermine(depart, expedition))
+        val faite = suivi.indiquerProjetTermine(suivi.indiquerEtapeEnCours(depart, expedition, 0), expedition)
+        assertTrue(suivi.projetTermine(faite, expedition))
+        assertNull(suivi.etapeEnCours(faite, expedition))
+        assertTrue(suivi.objectifs(faite).isEmpty())
+        assertFalse(suivi.projetTermine(suivi.indiquerEtapeEnCours(faite, expedition, null), expedition))
+        // Une étape choisie après « Terminé » : de nouveau en cours.
+        assertEquals(1, suivi.etapeEnCours(suivi.indiquerEtapeEnCours(faite, expedition, 1), expedition))
+    }
+
+    @Test
     fun `projets et expeditions - etape en cours, puis la suivante`() {
         val projet = catalogue.projet("trophy_display_project")!!
         assertEquals("Présentoir à trophées", projet.nom)

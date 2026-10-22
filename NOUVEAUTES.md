@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.12.1
+
+- **Terminé** : dans Mes ateliers, Mes projets et Mes expéditions, une nouvelle pastille « Terminé », à côté de « Aucun », pour un établi au niveau maximum ou un projet dont toutes les étapes sont faites. Il s'affiche avec un tampon vert « TERMINÉ ».
+- Un établi ou un projet que tu termines au fil de tes retours de raid s'affiche aussi « Terminé ». « Aucun » ou une étape choisie le remet en cours.
+
 ## 0.12.0
 
 - **Butin recherché** : une nouvelle partie de l'onglet Raid pour les objets que tu veux rapporter pour toi, sans quête ni projet. Touche « Ajouter un objet » (ou « Ajouter au butin recherché » sur la fiche d'un objet), puis règle la quantité avec − et +.
