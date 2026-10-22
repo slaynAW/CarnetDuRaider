@@ -414,7 +414,9 @@ function resumeUsages(u) {
 // les fabriquer ou les améliorer (de proche en proche) sont à garder ----
 const NOMBRE_BUILDS = 6;
 const CASES = [["MODULE", "Module", "MODULE"], ["BOUCLIER", "Bouclier", "BOUCLIER"], ["ARME_1", "Arme 1", "ARME"], ["ARME_2", "Arme 2", "ARME"],
-  ["SOINS", "Soins", "SOINS"], ["GRENADES", "Grenades", "GRENADE"], ["DIVERS", "Divers", "DIVERS"]];
+  ["SOINS", "Soins", "SOINS"], ["GRENADES", "Grenades", "GRENADE"],
+  // Six « Autres » (CaseBuild.AUTRE_1 à 6) ; la première garde la clé de l'ancienne case « Divers ».
+  ...[1, 2, 3, 4, 5, 6].map(n => [n === 1 ? "DIVERS" : `AUTRE_${n}`, `Autre ${n}`, "DIVERS"])];
 const builds = () => Array.from({ length: NOMBRE_BUILDS }, (_, i) => ({ nom: "", objets: {}, ...(M.builds?.[i] || {}) }));
 const nomBuild = (b, i) => b.nom.trim() || `Build ${i + 1}`;
 const choixCase = cle => { const em = CASES.find(c => c[0] === cle)[2]; return tous.filter(o => o.emplacement === em); };
@@ -928,6 +930,11 @@ function carteRaid(c, total, meilleure) {
     ${c.zones.length ? `<h5>Où chercher</h5>${c.zones.map(z => `<button class="carte ligne" style="background:var(--releve);padding:8px 10px;text-align:left" data-action="plan-zone" data-id="${c.carteId}" data-zone="${echap(z.zone)}"><span class="flex"><b>${echap(z.zone)}</b><br><span class="petit doux">${echap(z.objets.map(nomObjet).join(" · "))}</span></span><small style="color:var(--cyan)">Plan ›</small></button>`).join("")}` : ""}</div>`;
 }
 
+// Des cases du build, deux par ligne (GrilleCases, EcranBuilds.kt).
+function grilleCases(b, i, cases) {
+  return `<div class="grille-2">${cases.map(([cle, nom]) => { const id = b.objets[cle]; return `<button class="case-build" data-action="build-case" data-id="${i}" data-case="${cle}">${id ? icone(id, 44) : `<span class="vide"></span>`}
+    <span class="flex" style="min-width:0">${etiquette(nom, "--violet")}<br><span class="nom" style="font-size:14px;color:var(${id ? "--texte" : "--texte-discret"})">${id ? echap(nomObjet(id)) : "Choisir"}</span></span></button>`; }).join("")}</div>`;
+}
 // ---- Mes builds (EcranBuilds.kt) : six builds, une puce par build (deux lignes de trois), ses cases en grille ----
 function ecranBuilds() {
   const liste = builds(), i = Math.min(S.build, liste.length - 1), b = liste[i];
@@ -936,8 +943,9 @@ function ecranBuilds() {
   <p class="doux" style="margin:0">Leurs objets, et tout ce qu'il faut pour les fabriquer, ne sont plus proposés à la vente.</p>
   <div class="grille-3">${liste.map((x, k) => pf(nomBuild(x, k), k === i, "--violet", "build", k)).join("")}</div>
   <label class="petit doux" style="font-weight:600">Nom du build<input class="champ" type="text" maxlength="30" placeholder="Build ${i + 1}" value="${echap(b.nom)}" data-build-nom="${i}" style="margin-top:4px"></label>
-  <div class="grille-2">${CASES.map(([cle, nom]) => { const id = b.objets[cle]; return `<button class="case-build" data-action="build-case" data-id="${i}" data-case="${cle}">${id ? icone(id, 44) : `<span class="vide"></span>`}
-    <span class="flex" style="min-width:0">${etiquette(nom, "--violet")}<br><span class="nom" style="font-size:14px;color:var(${id ? "--texte" : "--texte-discret"})">${id ? echap(nomObjet(id)) : "Choisir"}</span></span></button>`; }).join("")}</div>
+  ${grilleCases(b, i, CASES.filter(c => c[2] !== "DIVERS"))}
+  ${etiquette("Autres", "--violet", "h4")}
+  ${grilleCases(b, i, CASES.filter(c => c[2] === "DIVERS"))}
   ${mat.length ? `<div class="carte" style="display:flex;flex-direction:column;gap:6px;padding:14px 16px">${etiquette("Pour le fabriquer", "--violet")}
     <span>${echap(mat.slice(0, 6).map(nomObjet).join(" · "))}${mat.length > 6 ? ` et ${pluriel(mat.length - 6, "autre", "autres")}` : ""}</span>
     <span class="petit doux">À garder${NB}: ils ne sont plus proposés à la vente.</span></div>` : ""}`;

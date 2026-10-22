@@ -12,7 +12,7 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 - **Raid** : la meilleure carte en tête, puis ce qu'il te faut, le bouton « Retour de raid », tes objectifs et où chercher.
 - **Cartes** : chaque carte avec ses conditions en cours et leur minuteur, puis les plans, les prochaines heures et la prochaine fois.
 - **Objectifs** : les quatre boutons sur deux lignes, et pour chaque objectif ce qui a été rapporté sur ce qu'il faut, avec une barre d'avancement.
-- **Builds** : une puce par build pour passer de l'un à l'autre, en deux lignes de trois, et ses sept cases en grille. Touche une case pour choisir l'objet, voir sa fiche ou vider la case.
+- **Builds** : une puce par build pour passer de l'un à l'autre, en deux lignes de trois, et ses cases en grille. La case « Divers » devient six cases « Autres » (ce que tu y avais choisi passe en « Autre 1 »). Touche une case pour choisir l'objet, voir sa fiche ou vider la case.
 - Un objectif validé s'annonce sur une bande verte « Objectif terminé », avec « Annuler ».
 
 ## 0.10.2

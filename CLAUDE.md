@@ -107,7 +107,8 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   obligatoire.
 - Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build, en deux lignes de
   trois, le build choisi dessous, ses cases en grille), un nom et un objet par case (Module, Bouclier,
-  Arme 1, Arme 2, Soins, Grenades, Divers ; la fiche et « Vider la case » sont dans le choix de l'objet),
+  Arme 1, Arme 2, Soins, Grenades, puis six « Autres » : `CaseBuild.AUTRE_1` garde le nom enregistré
+  « DIVERS » de l'ancienne case ; la fiche et « Vider la case » sont dans le choix de l'objet),
   d'après `Objet.emplacement` (famille de l'objet dans le jeu, produit par le script) ; matériaux d'après
   les recettes et `Obtention.amelioration` (arme du niveau d'avant et coût de l'amélioration). `Memoire`,
   clé « builds » (JSON).
