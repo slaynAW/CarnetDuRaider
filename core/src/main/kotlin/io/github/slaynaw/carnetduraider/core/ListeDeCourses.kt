@@ -1,20 +1,30 @@
 package io.github.slaynaw.carnetduraider.core
 
-/** Ce que le joueur veut atteindre : un niveau d'établi, une quête ou une étape de projet. */
+/**
+ * Ce que le joueur veut atteindre : un niveau d'établi, une quête ou une étape de projet, ou un objet de son
+ * « Butin recherché » ([ObjetRecherche], sans objectif du jeu derrière).
+ */
 sealed interface Objectif {
     data class NiveauDEtabli(val etabliId: String, val niveau: Int) : Objectif
     data class QueteATerminer(val queteId: String) : Objectif
 
     /** [etape] : rang de l'étape dans le projet, à partir de 0. */
     data class EtapeDeProjet(val projetId: String, val etape: Int) : Objectif
+
+    /** Un objet du « Butin recherché » : [quantite] à rapporter, pour le joueur lui-même ([ButinRecherche]). */
+    data class ObjetRecherche(val objetId: String, val quantite: Int) : Objectif
 }
 
-/** Clé stable d'un objectif (« etabli:utility_bench:1 », « quete:clearer_skies », « projet:…:0 »). */
+/**
+ * Clé stable d'un objectif (« etabli:utility_bench:1 », « quete:clearer_skies », « projet:…:0 »,
+ * « butin:arc_alloy » : la quantité voulue n'en fait pas partie, ce qui a été rapporté la suit).
+ */
 val Objectif.cle: String
     get() = when (this) {
         is Objectif.NiveauDEtabli -> "etabli:$etabliId:$niveau"
         is Objectif.QueteATerminer -> "quete:$queteId"
         is Objectif.EtapeDeProjet -> "projet:$projetId:$etape"
+        is Objectif.ObjetRecherche -> "butin:$objetId"
     }
 
 /**
@@ -73,6 +83,7 @@ class Planificateur(private val catalogue: Catalogue) {
         is Objectif.EtapeDeProjet -> catalogue.projet(objectif.projetId).let { projet ->
             "${projet?.nom ?: Catalogue.NOM_A_VERIFIER} · ${nomEtape(projet, objectif.etape)}"
         }
+        is Objectif.ObjetRecherche -> ButinRecherche.TITRE
     }
 
     /** Nom officiel de l'étape, ou « étape 2 » (rang dans le projet) s'il n'est pas vérifié. */
@@ -83,6 +94,7 @@ class Planificateur(private val catalogue: Catalogue) {
             ?.niveaux?.firstOrNull { it.niveau == objectif.niveau }?.cout.orEmpty()
         is Objectif.QueteATerminer -> catalogue.quete(objectif.queteId)?.objets.orEmpty()
         is Objectif.EtapeDeProjet -> catalogue.projet(objectif.projetId)?.etapes?.getOrNull(objectif.etape)?.cout.orEmpty()
+        is Objectif.ObjetRecherche -> listOf(Quantite(objectif.objetId, objectif.quantite))
     }
 
     /** Ce qui manque encore à l'objectif (identifiant → quantité), d'après ce qui a été rapporté. */
@@ -123,15 +135,17 @@ class Planificateur(private val catalogue: Catalogue) {
 
     /**
      * Répartit le butin [saisis] (identifiant → quantité rapportée) entre les objectifs qui le demandent
-     * encore : d'abord le plus près d'être terminé (le moins d'objets qui lui manquent), puis les suivants.
-     * Ce qui dépasse n'est gardé nulle part.
+     * encore : les objectifs du jeu d'abord, le plus près d'être terminé (le moins d'objets qui lui manquent)
+     * en premier, puis le « Butin recherché » avec ce qui reste. Ce qui dépasse n'est gardé nulle part.
      */
     fun repartir(objectifs: List<Objectif>, avant: Apports, saisis: Map<String, Int>): Apports {
         val apports = avant.mapValues { it.value.toMutableMap() }.toMutableMap()
-        // Ordre fixé avant la répartition : le plus près d'être terminé d'abord, puis l'ordre de la liste.
+        // Ordre fixé avant la répartition : objectifs du jeu, le plus près d'être terminé d'abord, puis le
+        // butin recherché ; à égalité, l'ordre de la liste.
         val ordre = objectifs.distinct()
-            .map { o -> o.cle to manque(o, avant).toMutableMap() }
-            .sortedBy { (_, manque) -> manque.values.sum() }
+            .map { o -> Triple(o.cle, manque(o, avant).toMutableMap(), o is Objectif.ObjetRecherche) }
+            .sortedWith(compareBy({ it.third }, { it.second.values.sum() }))
+            .map { (cle, manque) -> cle to manque }
         for ((id, quantite) in saisis) {
             var reste = quantite
             for ((cle, manque) in ordre) {

@@ -3,6 +3,7 @@ package io.github.slaynaw.carnetduraider.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,10 +16,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -29,10 +33,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.slaynaw.carnetduraider.CarnetViewModel
+import io.github.slaynaw.carnetduraider.core.ButinRecherche
 import io.github.slaynaw.carnetduraider.core.CarteConseillee
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.ConseilRaid
@@ -56,6 +63,7 @@ fun EcranRaid(
     ouvrirZone: (carteId: String, zone: String) -> Unit,
     retourDeRaid: () -> Unit,
     choisirObjectifs: () -> Unit,
+    ajouterButin: () -> Unit,
 ) {
     val objectifs = vm.objectifs
     val aTrouver = vm.aTrouver()
@@ -172,6 +180,30 @@ fun EcranRaid(
             }
         }
 
+        // Butin recherché : des objets à rapporter pour soi, sans quête ni projet.
+        item {
+            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Etiquette(ButinRecherche.TITRE, Signal.Rouge, Modifier.weight(1f))
+                TextButton(onClick = ajouterButin) {
+                    Icon(Icons.Filled.Add, contentDescription = null, tint = Signal.Rouge, modifier = Modifier.size(18.dp))
+                    Text("Ajouter un objet", color = Signal.Rouge, modifier = Modifier.padding(start = 4.dp))
+                }
+            }
+        }
+        if (vm.butinRecherche.isEmpty()) {
+            item {
+                Text(
+                    "Des objets à rapporter pour toi, sans quête ni projet\u00a0: ils s'ajoutent à ce qu'il te faut, " +
+                        "se décomptent au retour de raid et quittent la liste une fois tous rapportés.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Signal.TexteDoux,
+                )
+            }
+        }
+        items(vm.butinRecherche.entries.toList(), key = { "butin-${it.key}" }) { (id, voulu) ->
+            LigneButin(vm, id, voulu, ouvrir = { ouvrir(id) })
+        }
+
         if (detaillees.isNotEmpty()) {
             item { TitreRaid("Où aller") }
             if (conseil.parcours.size > 1) {
@@ -213,6 +245,49 @@ fun EcranRaid(
                 }
             }
         }
+    }
+}
+
+/**
+ * Un objet du butin recherché : combien ont été rapportés sur combien il en faut, de quoi changer la
+ * quantité voulue (jamais moins d'un de plus que ce qui a été rapporté) et de quoi le retirer.
+ */
+@Composable
+private fun LigneButin(vm: CarnetViewModel, objetId: String, voulu: Int, ouvrir: () -> Unit) {
+    val nom = vm.catalogue.nomObjet(objetId)
+    val rapportes = ButinRecherche.rapportes(vm.apports, objetId)
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(start = 10.dp, end = 2.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Surface(onClick = ouvrir, color = Signal.Surface, modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    IconeObjet(objetId, vm.catalogue.objet(objetId)?.rarete, 40.dp)
+                    Column {
+                        Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                        Text("$rapportes/$voulu rapportés", style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                    }
+                }
+            }
+            BoutonQuantite("−", "Un de moins\u00a0: $nom", enabled = voulu > rapportes + 1) { vm.changerQuantiteButin(objetId, voulu - 1) }
+            Text("$voulu", style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"), color = Signal.Rouge)
+            BoutonQuantite("+", "Un de plus\u00a0: $nom", enabled = voulu < ButinRecherche.MAXIMUM) { vm.changerQuantiteButin(objetId, voulu + 1) }
+            IconButton(onClick = { vm.changerQuantiteButin(objetId, 0) }) {
+                Icon(Icons.Filled.Close, contentDescription = "Retirer du butin recherché\u00a0: $nom", tint = Signal.TexteDoux)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoutonQuantite(texte: String, description: String, enabled: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        color = Signal.Releve,
+        contentColor = if (enabled) Signal.Texte else Signal.TexteDiscret,
+        shape = RoundedCornerShape(6.dp),
+        modifier = Modifier.size(40.dp).semantics { contentDescription = description },
+    ) {
+        Box(contentAlignment = Alignment.Center) { Text(texte, style = MaterialTheme.typography.titleLarge) }
     }
 }
 

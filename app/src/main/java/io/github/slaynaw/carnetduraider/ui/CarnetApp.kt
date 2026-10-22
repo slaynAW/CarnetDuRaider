@@ -68,6 +68,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     // Case de build à remplir : « rang:CASE ».
     var choixBuild by rememberSaveable { mutableStateOf<String?>(null) }
     var retourRaid by rememberSaveable { mutableStateOf(false) }
+    var choixButin by rememberSaveable { mutableStateOf(false) }
     var planOuvert by rememberSaveable { mutableStateOf<String?>(null) }
     var planRecherche by rememberSaveable { mutableStateOf("") }
     val calendrier by vm.calendrier.etat.collectAsStateWithLifecycle()
@@ -99,6 +100,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
         choixEnCours = null
         choixBuild = null
         retourRaid = false
+        choixButin = false
         planOuvert = null
         onglet = cible
     }
@@ -119,7 +121,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
 
     // Retour : d'abord l'écran ouvert par-dessus l'onglet, puis l'accueil.
     BackHandler(
-        enabled = objetOuvert != null || choixEnCours != null || choixBuild != null || retourRaid || planOuvert != null || reglages ||
+        enabled = objetOuvert != null || choixEnCours != null || choixBuild != null || retourRaid || choixButin || planOuvert != null || reglages ||
             onglet != Onglet.ACCUEIL,
     ) {
         when {
@@ -128,6 +130,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
             choixEnCours != null -> choixEnCours = null
             choixBuild != null -> choixBuild = null
             retourRaid -> retourRaid = false
+            choixButin -> choixButin = false
             reglages -> reglages = false
             else -> onglet = Onglet.ACCUEIL
         }
@@ -142,6 +145,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                     choixEnCours = null
                     choixBuild = null
                     retourRaid = false
+                    choixButin = false
                     planOuvert = null
                     reglages = true
                 }
@@ -194,6 +198,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                         EcranChoixObjetBuild(vm, rang, case, onRetour = { choixBuild = null }, ouvrir = { objetOuvert = it })
                     }
                     retourRaid -> EcranRetourRaid(vm, onRetour = { retourRaid = false })
+                    choixButin -> EcranChoixButin(vm, onRetour = { choixButin = false })
                     reglages -> EcranReglages(
                         vm,
                         vm.miseAJour,
@@ -219,6 +224,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                             },
                             retourDeRaid = { retourRaid = true },
                             choisirObjectifs = { aller(Onglet.OBJECTIFS) },
+                            ajouterButin = { choixButin = true },
                         )
                         Onglet.CARTES -> EcranCartes(vm, ouvrirPlan = {
                             planRecherche = ""
