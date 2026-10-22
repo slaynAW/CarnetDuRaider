@@ -101,7 +101,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   Bouclier, Arme 1, Arme 2, Soins, Grenades, Divers), d'après `Objet.emplacement` (famille de l'objet
   dans le jeu, produit par le script) ; matériaux d'après les recettes et `Obtention.amelioration`
   (arme du niveau d'avant et coût de l'amélioration). `Memoire`, clé « builds » (JSON).
-- Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Ce
+- Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Il
+  reprend les objectifs en cours, avec la même carte que l'onglet Objectifs (`CarteObjectif`) : ce sont
+  les mêmes objectifs, y compris ceux qui ne demandent aucun objet. Ce
   qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs en cours ; cartes classées
   par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
   carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la

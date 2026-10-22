@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -35,6 +36,7 @@ import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.ConseilRaid
 import io.github.slaynaw.carnetduraider.core.ObjetATrouver
 import io.github.slaynaw.carnetduraider.core.Objet
+import io.github.slaynaw.carnetduraider.core.cle
 import io.github.slaynaw.carnetduraider.core.calendrier.Creneau
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
@@ -53,6 +55,7 @@ fun EcranRaid(
     retourDeRaid: () -> Unit,
     choisirObjectifs: () -> Unit,
 ) {
+    val objectifs = vm.objectifs
     val aTrouver = vm.aTrouver()
     val restants = aTrouver.filter { !it.trouve }
     val conseil = remember(restants.map { it.objetId }) { vm.conseilRaid() }
@@ -77,10 +80,10 @@ fun EcranRaid(
                 Bandeau("Raid", Signal.Rouge)
                 Text("Préparer mon raid", style = MaterialTheme.typography.headlineLarge)
                 Text(
-                    if (restants.isEmpty()) {
-                        "Rien à chercher pour l'instant."
-                    } else {
-                        "${pluriel(restants.size, "objet", "objets")} à trouver pour tes objectifs en cours. Voici où aller."
+                    when {
+                        restants.isNotEmpty() -> "${pluriel(restants.size, "objet", "objets")} à trouver pour tes objectifs en cours. Voici où aller."
+                        objectifs.isNotEmpty() -> "Rien à chercher en raid\u00a0: tes objectifs en cours ne demandent aucun objet à rapporter."
+                        else -> "Rien à chercher pour l'instant."
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Signal.TexteDoux,
@@ -101,7 +104,18 @@ fun EcranRaid(
             }
         }
 
-        if (restants.isEmpty()) {
+        // Les mêmes objectifs que dans l'onglet Objectifs, avec leur avancement et « C'est fait ».
+        if (objectifs.isNotEmpty()) {
+            item {
+                Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Mes objectifs", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = choisirObjectifs) { Text("Modifier", color = Signal.Vert) }
+                }
+            }
+            items(objectifs, key = { "objectif-${it.cle}" }) { objectif -> CarteObjectif(vm, objectif) }
+        }
+
+        if (objectifs.isEmpty()) {
             item {
                 Surface(color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -114,7 +128,7 @@ fun EcranRaid(
                         Button(
                             onClick = choisirObjectifs,
                             colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-                        ) { Text("Mes objectifs") }
+                        ) { Text("Indiquer mes objectifs") }
                     }
                 }
             }
