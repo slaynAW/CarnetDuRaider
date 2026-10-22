@@ -15,8 +15,9 @@ import io.github.slaynaw.carnetduraider.core.Rarete
 
 /**
  * Style « Signal » : fond sombre, et les quatre bandes du jeu comme code couleur de l'appli.
- * Chaque domaine a sa couleur : or pour les objets, cyan pour les cartes, vert pour la progression,
- * rouge pour les ARC.
+ * Chaque domaine a sa couleur : or pour les objets, cyan pour les cartes, vert pour les objectifs,
+ * rouge pour le raid et les ARC, violet pour les builds. Chaque onglet s'ouvre sur un bandeau de sa
+ * couleur, avec son motif ([io.github.slaynaw.carnetduraider.ui.BandeauSection]).
  */
 object Signal {
     val Fond = Color(0xFF141417)
@@ -62,6 +63,7 @@ val Barlow = FontFamily(
 private val typographie = Typography(
     headlineLarge = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, lineHeight = 34.sp),
     headlineMedium = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 30.sp),
+    headlineSmall = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 27.sp),
     titleLarge = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 26.sp),
     titleMedium = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 22.sp),
     titleSmall = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),

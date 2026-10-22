@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,13 +49,13 @@ fun EcranAccueil(
     val salutation = if (heure >= 18 || heure < 5) "Bonsoir, Raider" else "Bonjour, Raider"
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(salutation, style = MaterialTheme.typography.headlineMedium)
+        BandeauSection(Onglet.ACCUEIL, salutation)
 
         if (nouvelleVersion != null) {
-            Surface(onClick = afficherMiseAJour, color = Signal.Releve, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+            Surface(onClick = afficherMiseAJour, color = Signal.Releve, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Filled.Refresh, contentDescription = null, tint = Signal.Or)
                     Column {
@@ -69,7 +70,7 @@ fun EcranAccueil(
         Surface(
             onClick = { aller(Onglet.OBJETS) },
             color = Signal.Surface,
-            shape = RoundedCornerShape(26.dp),
+            shape = RoundedCornerShape(6.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(Modifier.padding(horizontal = 18.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -105,11 +106,11 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
         onClick = { aller(if (restants.isEmpty() && vm.objectifs.isEmpty()) Onglet.OBJECTIFS else Onglet.RAID) },
         color = if (premiere != null) Signal.Rouge else Signal.Surface,
         contentColor = if (premiere != null) Signal.SurCouleur else Signal.Texte,
-        shape = RoundedCornerShape(24.dp),
+        shape = FormeCoupee,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("TON PROCHAIN RAID", style = MaterialTheme.typography.labelSmall)
+            Etiquette("Ton prochain raid", LocalContentColor.current)
             when {
                 premiere != null -> {
                     Text("Va sur ${vm.catalogue.carte(premiere.carteId)?.nom ?: Catalogue.NOM_A_VERIFIER}", style = MaterialTheme.typography.headlineSmall)
@@ -157,7 +158,7 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
 @Composable
 private fun MesObjectifs(vm: CarnetViewModel, onClick: () -> Unit) {
     val liste = vm.listeDeCourses()
-    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Objectifs", style = MaterialTheme.typography.titleSmall, color = Signal.Vert)
             if (vm.objectifs.isEmpty()) {
@@ -179,7 +180,7 @@ private fun BlocConditions(vm: CarnetViewModel, calendrier: Calendrier, onClick:
     val t = maintenant(1_000)
     val enCours = calendrier.enCours(vm.region, t)
     val suivantes = calendrier.aVenir(vm.region, t, 6 * Calendrier.UNE_HEURE).take(3 - enCours.size.coerceAtMost(2))
-    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Conditions de la carte", style = MaterialTheme.typography.titleSmall, color = Signal.Cyan)
             if (enCours.isEmpty() && suivantes.isEmpty()) {

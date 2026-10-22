@@ -49,6 +49,15 @@ class Conseiller(private val catalogue: Catalogue, private val planificateur: Pl
     }
 
     /**
+     * Filtres utiles de la liste des objets : « Recycler » seulement si au moins un objet rapporte plus en le
+     * recyclant qu'en le vendant (aucun avec les données actuelles du jeu), pour ne jamais proposer un filtre vide.
+     */
+    val filtres: List<FiltreVerdict> by lazy {
+        val recyclables = catalogue.tous.any { meilleureSortie(it.id) == Sortie.RECYCLER }
+        FiltreVerdict.entries.filter { it != FiltreVerdict.RECYCLER || recyclables }
+    }
+
+    /**
      * Recycler quand les matériaux obtenus valent plus que l'objet lui-même, vendre sinon.
      * Un objet qui ne se recycle pas se vend.
      */
@@ -56,5 +65,21 @@ class Conseiller(private val catalogue: Catalogue, private val planificateur: Pl
         val objet = catalogue.objet(objetId) ?: return Sortie.VENDRE
         if (objet.recyclage.isEmpty()) return Sortie.VENDRE
         return if (catalogue.valeurRecyclage(objet) > objet.valeur) Sortie.RECYCLER else Sortie.VENDRE
+    }
+}
+
+/** Filtres de la liste des objets, d'après leur verdict : « Garder » compte aussi les objets des builds. */
+enum class FiltreVerdict(val libelle: String) {
+    TOUS("Tous"),
+    GARDER("Garder"),
+    VENDRE("Vendre"),
+    RECYCLER("Recycler"),
+    ;
+
+    fun accepte(verdict: Verdict): Boolean = when (this) {
+        TOUS -> true
+        GARDER -> verdict !is Verdict.Inutile
+        VENDRE -> verdict is Verdict.Inutile && verdict.conseil == Sortie.VENDRE
+        RECYCLER -> verdict is Verdict.Inutile && verdict.conseil == Sortie.RECYCLER
     }
 }

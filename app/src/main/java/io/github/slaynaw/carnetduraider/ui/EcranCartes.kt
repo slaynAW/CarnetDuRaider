@@ -1,5 +1,6 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +19,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -32,7 +34,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,25 +65,15 @@ fun EcranCartes(vm: CarnetViewModel, ouvrirPlan: (String) -> Unit) {
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Bandeau("Cartes", Signal.Cyan)
-                Text("Conditions de la carte", style = MaterialTheme.typography.headlineLarge)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                BandeauSection(Onglet.CARTES, "Plans, zones et conditions")
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Region.entries.forEach { r ->
-                        FilterChip(
-                            selected = r == region,
-                            onClick = { vm.changerRegion(r) },
-                            label = { Text(r.libelle) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Signal.Cyan,
-                                selectedLabelColor = Signal.SurCouleur,
-                                labelColor = Signal.TexteDoux,
-                            ),
-                        )
+                        PuceFiltre(r.libelle, choisie = r == region, couleur = Signal.Cyan, onClick = { vm.changerRegion(r) })
                     }
                 }
                 Text(
@@ -89,7 +87,7 @@ fun EcranCartes(vm: CarnetViewModel, ouvrirPlan: (String) -> Unit) {
                 )
                 etat.erreur?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Signal.Rouge) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { runCatching { liens.openUri(Calendrier.ADRESSE) } }) {
+                    OutlinedButton(onClick = { runCatching { liens.openUri(Calendrier.ADRESSE) } }, shape = RoundedCornerShape(6.dp)) {
                         Text("Calendrier officiel", color = Signal.Cyan)
                     }
                     TextButton(onClick = { portee.launch { vm.calendrier.actualiser() } }, enabled = !etat.chargement) {
@@ -99,11 +97,23 @@ fun EcranCartes(vm: CarnetViewModel, ouvrirPlan: (String) -> Unit) {
             }
         }
 
+        // Chaque carte avec ses conditions en cours : on sait tout de suite où il se passe quelque chose.
+        if (calendrier != null) {
+            val enCours = calendrier.enCours(region, t)
+            item { Titre("Conditions de la carte") }
+            val cartes = vm.catalogue.donnees.cartes.map { it.nom } +
+                enCours.map { it.carte }.filter { nom -> vm.catalogue.donnees.cartes.none { it.nom == nom } }.distinct()
+            items(cartes, key = { "maintenant-$it" }) { carte ->
+                val id = vm.catalogue.donnees.cartes.firstOrNull { it.nom == carte }?.id
+                CarteMaintenant(carte, enCours.filter { it.carte == carte }, t, onClick = id?.let { { ouvrirPlan(it) } })
+            }
+        }
+
         item { Titre("Plans des cartes") }
         item {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 vm.catalogue.donnees.cartes.forEach { c ->
-                    Surface(onClick = { ouvrirPlan(c.id) }, color = Signal.Surface, shape = RoundedCornerShape(16.dp)) {
+                    Surface(onClick = { ouvrirPlan(c.id) }, color = Signal.Surface, shape = RoundedCornerShape(6.dp)) {
                         Column(Modifier.width(132.dp)) {
                             ApercuPlan(c.id, Modifier.fillMaxWidth().height(96.dp))
                             Text(c.nom, style = MaterialTheme.typography.labelMedium, maxLines = 2, modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp))
@@ -114,15 +124,6 @@ fun EcranCartes(vm: CarnetViewModel, ouvrirPlan: (String) -> Unit) {
         }
 
         if (calendrier != null) {
-            val enCours = calendrier.enCours(region, t)
-            item { Titre("En ce moment") }
-            val cartes = vm.catalogue.donnees.cartes.map { it.nom } +
-                enCours.map { it.carte }.filter { nom -> vm.catalogue.donnees.cartes.none { it.nom == nom } }.distinct()
-            items(cartes, key = { "maintenant-$it" }) { carte ->
-                val id = vm.catalogue.donnees.cartes.firstOrNull { it.nom == carte }?.id
-                CarteMaintenant(carte, enCours.filter { it.carte == carte }, t, onClick = id?.let { { ouvrirPlan(it) } })
-            }
-
             val aVenir = calendrier.aVenir(region, t, HORIZON_MS)
             item { Titre("Dans les prochaines heures") }
             if (aVenir.isEmpty()) {
@@ -147,7 +148,7 @@ fun EcranCartes(vm: CarnetViewModel, ouvrirPlan: (String) -> Unit) {
 
 @Composable
 private fun Titre(texte: String) {
-    Text(texte, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+    Etiquette(texte, Signal.Cyan, Modifier.padding(top = 12.dp, bottom = 2.dp))
 }
 
 @Composable
@@ -160,31 +161,62 @@ private fun Point(creneau: Creneau) {
     Box(Modifier.size(8.dp).clip(CircleShape).background(if (creneau.majeure) Signal.Rouge else Signal.Cyan))
 }
 
+/** Une carte et ses conditions en cours, avec leur minuteur ; la toucher ouvre son plan. */
 @Composable
 private fun CarteMaintenant(carte: String, creneaux: List<Creneau>, t: Long, onClick: (() -> Unit)?) {
-    Surface(onClick = { onClick?.invoke() }, enabled = onClick != null, color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(carte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                if (onClick != null) Text("Plan ›", style = MaterialTheme.typography.labelMedium, color = Signal.Cyan)
-            }
-            if (creneaux.isEmpty()) {
-                Text("Aucune condition", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
-            }
-            creneaux.forEach { c ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Point(c)
-                    Text(c.condition, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(chrono(c.fin - t), style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.Cyan)
+    Surface(onClick = { onClick?.invoke() }, enabled = onClick != null, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconeCarte(if (creneaux.isEmpty()) Signal.TexteDiscret else Signal.Cyan)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(carte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                if (creneaux.isEmpty()) {
+                    Text("Aucune condition", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret)
                 }
+                creneaux.forEach { c ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            c.condition,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (c.majeure) Signal.Rouge else Signal.Cyan,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(chrono(c.fin - t), style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.TexteDoux)
+                    }
+                }
+            }
+            if (onClick != null) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Plan", tint = Signal.TexteDiscret)
             }
         }
     }
 }
 
+/** Une carte pliée, en traits : l'icône des cartes du jeu dans les listes. */
+@Composable
+private fun IconeCarte(couleur: Color) {
+    Canvas(Modifier.size(22.dp).clearAndSetSemantics { }) {
+        val u = size.width / 24f
+        val trait = Stroke(width = 2f * u, join = StrokeJoin.Round)
+        val contour = Path().apply {
+            moveTo(3f * u, 6f * u)
+            lineTo(9f * u, 4f * u)
+            lineTo(15f * u, 6f * u)
+            lineTo(21f * u, 4f * u)
+            lineTo(21f * u, 18f * u)
+            lineTo(15f * u, 20f * u)
+            lineTo(9f * u, 18f * u)
+            lineTo(3f * u, 20f * u)
+            close()
+        }
+        drawPath(contour, couleur, style = trait)
+        drawLine(couleur, Offset(9f * u, 4f * u), Offset(9f * u, 18f * u), strokeWidth = 2f * u)
+        drawLine(couleur, Offset(15f * u, 6f * u), Offset(15f * u, 20f * u), strokeWidth = 2f * u)
+    }
+}
+
 @Composable
 private fun Horaire(debut: Long, creneaux: List<Creneau>, t: Long) {
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(heureLocale(debut, t), style = MaterialTheme.typography.titleMedium)
@@ -202,7 +234,7 @@ private fun Horaire(debut: Long, creneaux: List<Creneau>, t: Long) {
 
 @Composable
 private fun ProchaineFois(vm: CarnetViewModel, c: Creneau, t: Long) {
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Point(c)
             Column(Modifier.weight(1f)) {

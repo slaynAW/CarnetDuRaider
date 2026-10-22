@@ -15,6 +15,7 @@ import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.ConseilRaid
 import io.github.slaynaw.carnetduraider.core.Conseiller
 import io.github.slaynaw.carnetduraider.core.Etabli
+import io.github.slaynaw.carnetduraider.core.FiltreVerdict
 import io.github.slaynaw.carnetduraider.core.ListeDeCourses
 import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.ObjetATrouver
@@ -233,6 +234,9 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
     fun listeDeCourses(): ListeDeCourses = planificateur.listeDeCourses(objectifs, apports)
 
     fun verdict(objetId: String): Verdict = conseiller.verdict(objetId, objectifs, apports, aGarderPourBuilds)
+
+    /** Filtres de la liste des objets (« Recycler » seulement s'il peut servir). */
+    val filtresObjets: List<FiltreVerdict> get() = conseiller.filtres
 
     /** À quoi peut servir l'objet dans le jeu (explication, sans effet sur le verdict). */
     fun usagesDe(objetId: String): UsagesObjet = usages.pour(objetId)
