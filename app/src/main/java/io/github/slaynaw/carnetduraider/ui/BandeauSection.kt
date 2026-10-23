@@ -127,15 +127,17 @@ fun BandeauSection(onglet: Onglet, sousTitre: String, marge: Dp = 20.dp, repli: 
 }
 
 /**
- * Un onglet : son bandeau, puis sa liste ([contenu], qui défile avec [etat]). Le bandeau se replie dès que
- * la liste défile et se déplie quand on revient tout en haut ; sans animations d'Android, d'un coup.
+ * Un onglet : son bandeau, posé par-dessus sa liste ([contenu], qui défile avec [etat] et laisse en haut la
+ * place du bandeau déplié, [haut]). Le bandeau se replie dès que la liste défile et se déplie quand on
+ * revient tout en haut ; sans animations d'Android, d'un coup. La liste garde toujours la même hauteur : le
+ * repli ne la fait pas sauter, même quand elle dépasse à peine de l'écran.
  */
 @Composable
 fun EcranDeSection(
     onglet: Onglet,
     sousTitre: String,
     etat: LazyListState = rememberLazyListState(),
-    contenu: @Composable (LazyListState) -> Unit,
+    contenu: @Composable (etat: LazyListState, haut: Dp) -> Unit,
 ) {
     val seuil = with(LocalDensity.current) { SEUIL_REPLI.roundToPx() }
     val replie by remember(etat) { derivedStateOf { etat.firstVisibleItemIndex > 0 || etat.firstVisibleItemScrollOffset > seuil } }
@@ -144,9 +146,9 @@ fun EcranDeSection(
         animationSpec = if (animationsActives()) tween(220) else snap(),
         label = "repli",
     )
-    Column(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize()) {
+        contenu(etat, HAUTEUR)
         BandeauSection(onglet, sousTitre, marge = 0.dp, repli = repli)
-        Box(Modifier.weight(1f)) { contenu(etat) }
     }
 }
 

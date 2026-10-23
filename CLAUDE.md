@@ -82,7 +82,8 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   section, coin coupé ; le motif vit en boucle, lentement : reflet, cases de l'inventaire, cible qui cherche puis
   verrouille, repère et son onde, impulsion des chevrons, ligne de scan ; le texte jamais, et rien avec « Supprimer
   les animations »), l'onglet actif prend la même couleur ; il se replie en barre de 56 dp dès que la liste
-  défile (`EcranDeSection`). Cartes à coins presque droits (6 dp), cartes mises en avant au coin coupé
+  défile (`EcranDeSection` : posé par-dessus la liste, qui garde sa hauteur et réserve la place du bandeau
+  déplié ; le repli ne la fait jamais sauter, même quand elle dépasse à peine de l'écran). Cartes à coins presque droits (6 dp), cartes mises en avant au coin coupé
   (`FormeCoupee`), petites étiquettes en capitales (`Etiquette`). Écrans compacts (refonte UX 0.14) : le
   bouton principal fixé en bas (`BoutonFixe`), le secondaire en accordéons (`EnTeteAccordeon` : objectifs et
   détail des cartes du Raid, parties de la fiche d'un objet, « Autres » des builds), listes d'une ligne par
@@ -116,8 +117,8 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   animations »). Ce qui est en cours s'affiche sous les tuiles. Un objectif dont tout a été
   rapporté se valide tout seul (`SuiviProgression.terminerLesComplets`) et la suite s'ajoute (niveau
   suivant, quêtes suivantes d'après l'enchaînement `requiert`, étape suivante). Ce qui est fait autrement
-  se valide en un geste (« C'est fait », `CarnetViewModel.valider`), avec « Annuler » : jamais de saisie
-  obligatoire.
+  se valide en un geste (« C'est fait », `CarnetViewModel.valider`, après le même balayage sur sa carte,
+  `dessinBalayage`), avec « Annuler » : jamais de saisie obligatoire.
 - Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build sur une ligne, avec
   ses cases remplies ; le build préféré, un seul, `Build.prefere`, étoile, en premier et ouvert à l'arrivée :
   `Builds.ordre`, `Builds.ouvert` ; le build choisi dessous, nom changé au crayon, cases groupées

@@ -100,12 +100,12 @@ fun EcranRaid(
             objectifs.isNotEmpty() -> "Rien à chercher en raid"
             else -> "Rien à chercher pour l'instant"
         },
-    ) { defilement ->
+    ) { defilement, haut ->
         Box(Modifier.fillMaxSize()) {
             LazyColumn(
                 Modifier.fillMaxSize(),
                 state = defilement,
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = if (restants.isNotEmpty()) PLACE_BOUTON_FIXE else 16.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = haut + 12.dp, bottom = if (restants.isNotEmpty()) PLACE_BOUTON_FIXE else 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (restants.isEmpty()) {

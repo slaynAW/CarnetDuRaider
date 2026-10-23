@@ -164,7 +164,7 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 /* Projet ou établi terminé (CarteChoix, EcranObjectifs.kt) : une ligne sobre, « ✓ Terminé » et « Modifier ».
    Au passage à « Terminé », le balayage : une fine ligne verte traverse la carte et le fond se teinte derrière
    elle, puis la carte se replie en sa ligne, la teinte s'efface et « ✓ Terminé » apparaît. */
-.carte.choix, .carte.ligne-fin { position: relative; overflow: hidden; }
+.carte.choix, .carte.ligne-fin, .carte.objectif { position: relative; overflow: hidden; }
 .carte.ligne-fin { padding: 4px 6px 4px 14px; display: flex; flex-direction: column; gap: 8px; }
 .carte.balaie { animation: balaie-teinte .48s .12s linear both; }
 .carte.balaie::after { content: ""; position: absolute; top: 0; bottom: 0; left: -56px; width: 56px; pointer-events: none;
@@ -212,10 +212,11 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .m-scan { opacity: 0; animation: m-scan 3.4s cubic-bezier(.45, 0, .25, 1) infinite; }
 @keyframes m-scan { 0% { transform: translateY(-4px); opacity: 0; } 8% { opacity: 1; } 68% { transform: translateY(132px); opacity: 1; } 70%, 100% { transform: translateY(132px); opacity: 0; } }
 /* Bandeau qui se replie quand la page défile (EcranDeSection, BandeauSection.kt). */
-.section { position: sticky; top: var(--haut-entete, 52px); z-index: 4; transition: height .22s ease, clip-path .22s ease; }
+.section { position: sticky; top: var(--haut-entete, 52px); z-index: 4; transition: height .22s ease, margin-bottom .22s ease, clip-path .22s ease; }
 .section h2, .section .code, .section .sous, .section > div { transition: font-size .22s ease, opacity .22s ease, max-height .22s ease, padding .22s ease; }
 .section .code, .section .sous { max-height: 20px; overflow: hidden; }
-.section.replie { height: 56px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%); }
+/* Replié, il garde sa place (marge en dessous) : la page ne change pas de hauteur et ne saute pas. */
+.section.replie { height: 56px; margin-bottom: 76px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%); }
 .section.replie svg { height: 56px; }
 .section.replie > div { padding-top: 12px; }
 .section.replie h2 { font-size: 24px; }
@@ -666,6 +667,7 @@ function ecranAccueil() {
   ${prochainRaid()}
   <button class="carte" data-action="onglet" data-onglet="CARTES" style="display:flex;flex-direction:column;gap:4px;padding:12px 16px"><b style="font:600 14px var(--titre);color:var(--cyan)">Conditions de la carte</b><span class="petit doux">Dans l'appli Android, les conditions en cours et à venir s'affichent ici avec leur minuteur.</span></button>
   ${mesObjectifs()}
+  ${monBuild()}
   <p class="petit discret">Données du jeu ${echap(D.versionJeu)}, noms français officiels uniquement.</p>`;
 }
 
@@ -689,6 +691,17 @@ function mesObjectifs() {
     <b style="font:600 14px var(--titre);color:var(--vert)">Objectifs</b>
     ${objs.length ? `<span>${pluriel(objs.length, "objectif en cours", "objectifs en cours")} · ${pluriel(l.lignes.filter(x => !x.complet).length, "objet", "objets")} à trouver</span><span class="barre" style="--c:var(--vert)"><i style="width:${l.progression * 100}%"></i></span>`
       : `<span class="doux">Rien en cours. Touche ici pour indiquer tes quêtes, ateliers, projets ou expéditions en cours.</span>`}</button>`;
+}
+
+// Le build préféré (sinon le premier rempli) en un coup d'œil (MonBuild, EcranAccueil.kt).
+function monBuild() {
+  const l = builds(), rang = l.findIndex(b => b.prefere && Object.keys(b.objets).length) >= 0 ? l.findIndex(b => b.prefere && Object.keys(b.objets).length) : l.findIndex(b => Object.keys(b.objets).length), b = l[rang];
+  const mat = b ? aFabriquer(b).length : 0;
+  return `<button class="carte" data-action="onglet" data-onglet="BUILDS" style="display:flex;flex-direction:column;gap:8px;padding:14px 16px">
+    <b style="font:600 14px var(--titre);color:var(--violet)">${b?.prefere ? "Mon build préféré" : "Mes builds"}</b>
+    ${b ? `<span class="nom">${echap(nomBuild(b, rang))}</span><span class="ligne" style="gap:6px">${CASES.map(c => b.objets[c[0]]).filter(Boolean).slice(0, 7).map(id => icone(id, 36)).join("")}</span>
+      ${mat ? `<span class="petit doux">Pour le fabriquer${NB}: ${pluriel(mat, "matériau", "matériaux")} à garder</span>` : ""}`
+    : `<span class="doux">Aucun build. Touche ici pour préparer ton équipement${NB}: ses objets passent en «${NB}Garder${NB}».</span>`}</button>`;
 }
 
 // Le verdict en un mot, pour la liste (PuceVerdict, EcranObjets.kt) : Garder (objectifs), Build, Vendre ou Recycler, encadré de sa couleur.
@@ -957,7 +970,7 @@ function carteObjectif(o) {
   const q = o.type === "quete" ? quetes.get(o.id) : null, autres = o.type === "projet" ? projets.get(o.id)?.etapes[o.etape]?.autresObjectifs : 0, b = besoins(o), vide = !b.length;
   const voulu = b.reduce((n, x) => n + x.quantite, 0), rapporte = b.reduce((n, x) => n + Math.min(apporteDe(o, x.id), x.quantite), 0);
   const detail = q?.commercant || (vide ? `Rien à rapporter${NB}: valide-le quand c'est fait en jeu.` : "");
-  return `<div class="carte" style="display:flex;flex-direction:column;gap:8px"><span class="ligne" style="align-items:flex-start;gap:8px"><span class="flex"><span class="nom">${echap(libelle(o))}</span>${detail ? `<br><span class="petit doux" style="font-weight:600">${echap(detail)}</span>` : ""}</span>${voulu ? `<b style="font:600 14px var(--titre);color:var(--vert);font-variant-numeric:tabular-nums">${rapporte}/${voulu}</b>` : ""}</span>
+  return `<div class="carte objectif" style="display:flex;flex-direction:column;gap:8px"><span class="ligne" style="align-items:flex-start;gap:8px"><span class="flex"><span class="nom">${echap(libelle(o))}</span>${detail ? `<br><span class="petit doux" style="font-weight:600">${echap(detail)}</span>` : ""}</span>${voulu ? `<b style="font:600 14px var(--titre);color:var(--vert);font-variant-numeric:tabular-nums">${rapporte}/${voulu}</b>` : ""}</span>
     ${voulu ? `<span class="barre" style="height:4px;--c:var(--vert)"><i style="width:${rapporte / voulu * 100}%"></i></span>
     <div class="pastilles">${b.map(x => { const n = Math.min(apporteDe(o, x.id), x.quantite); return `<span class="pastille-objet${n >= x.quantite ? " complet" : ""}" aria-label="${echap(nomObjet(x.id))}${NB}: ${n}/${x.quantite}">${icone(x.id, 24)}${n}/${x.quantite}</span>`; }).join("")}</div>` : ""}
     ${autres ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}
@@ -1367,7 +1380,13 @@ document.addEventListener("click", ev => {
     case "etape-en-cours": indiquerEtape(projets.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
     case "etabli-termine": if (!etabliTermine(etablis.get(id))) passerTermine(`etabli:${id}`); indiquerEtabliTermine(etablis.get(id)); break;
     case "projet-termine": if (!projetTermine(projets.get(id))) passerTermine(`projet:${id}`); indiquerProjetTermine(projets.get(id)); break;
-    case "valider-objectif": valider(objectifDepuisCle(b.dataset.cle)); break;
+    case "valider-objectif": {
+      // D'abord le balayage traverse la carte, puis l'étape suivante prend sa place (CarteObjectif).
+      const o = objectifDepuisCle(b.dataset.cle), carte = b.closest(".carte");
+      b.disabled = true; carte?.classList.add("balaie");
+      setTimeout(() => { valider(o); enregistrer(); rendre(); }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 760);
+      return;
+    }
     case "build-case": S.caseBuild = { rang: +id, cle: b.dataset.case }; S.rechercheBuild = ""; return ouvrir("choix-build");
     case "build-choisir": { const { rang, cle } = S.caseBuild; changerBuild(rang, x => { if (id) x.objets[cle] = id; else delete x.objets[cle]; }); S.ecran = null; break; }
     case "annuler-validation": if (S.validation) { charger(S.validation.avant); S.validation = null; } break;

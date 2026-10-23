@@ -46,6 +46,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -72,6 +73,7 @@ import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
 import io.github.slaynaw.carnetduraider.core.cle
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
+import kotlinx.coroutines.launch
 
 /** Ce que le joueur peut indiquer en cours, chacun avec sa liste complète. */
 enum class ChoixEnCours(val bouton: String, val court: String, val titre: String, val groupe: String) {
@@ -115,11 +117,11 @@ fun EcranObjectifs(vm: CarnetViewModel, choisir: (ChoixEnCours) -> Unit, voirRai
     EcranDeSection(
         Onglet.OBJECTIFS,
         if (objectifs.isEmpty()) "Rien en cours" else pluriel(objectifs.size, "objectif en cours", "objectifs en cours"),
-    ) { defilement ->
+    ) { defilement, haut ->
         LazyColumn(
             Modifier.fillMaxSize(),
             state = defilement,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 96.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = haut + 14.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // Les quatre tuiles, sur une ligne.
@@ -210,8 +212,9 @@ private fun detailAvancement(vm: CarnetViewModel, objectif: Objectif): String {
 /**
  * Un objectif en cours : ce qu'il demande, en pastilles (icône et « rapportés/voulus »). Il se termine tout
  * seul quand tout est rapporté ; « C'est fait » le valide s'il est fait autrement en jeu (ou s'il n'y a rien
- * à rapporter), avec « Annuler » ensuite. La même carte dans l'onglet Objectifs et dans l'onglet Raid : ce
- * sont les mêmes objectifs.
+ * à rapporter), avec « Annuler » ensuite : d'abord le balayage traverse la carte, puis l'étape suivante
+ * prend sa place (ou l'objectif s'en va s'il était le dernier). La même carte dans l'onglet Objectifs et dans
+ * l'onglet Raid : ce sont les mêmes objectifs.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -224,8 +227,16 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
     val apporte = vm.apports[objectif.cle].orEmpty()
     val voulu = besoins.sumOf { it.quantite }
     val rapporte = besoins.sumOf { minOf(apporte[it.id] ?: 0, it.quantite) }
+    val portee = rememberCoroutineScope()
+    val passage = remember(objectif.cle) { Animatable(1f) }
+    var valide by remember(objectif.cle) { mutableStateOf(false) }
     Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            Modifier
+                .dessinBalayage(actif = { valide }, avancee = { passage.value })
+                .padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
@@ -250,7 +261,19 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 OutlinedButton(
-                    onClick = { vm.valider(objectif) },
+                    onClick = {
+                        valide = true
+                        portee.launch {
+                            // Validé même si l'écran se ferme pendant le balayage.
+                            try {
+                                passage.snapTo(0f)
+                                passage.animateTo(1f, tween(BALAYAGE_MS, easing = LinearEasing))
+                            } finally {
+                                vm.valider(objectif)
+                            }
+                        }
+                    },
+                    enabled = !valide,
                     border = BorderStroke(1.5.dp, Signal.Vert),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Signal.Vert),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -347,6 +370,31 @@ private val EasingPassage = CubicBezierEasing(0.45f, 0f, 0.25f, 1f)
 private const val TEINTE = 0.12f
 
 /**
+ * Le balayage, dessiné sur un élément tant que [actif] : une fine ligne verte le traverse de gauche à droite
+ * selon [avancee] (de 0 à 1, sur [BALAYAGE_MS]) et le fond se teinte de vert derrière elle ; ensuite, la teinte
+ * s'efface selon [effacement] (de 1 à 0). Lu seulement au dessin : rien ne se recompose pendant l'animation.
+ */
+private fun Modifier.dessinBalayage(actif: () -> Boolean, avancee: () -> Float, effacement: () -> Float = { 0f }): Modifier = drawWithContent {
+    // Avancée (de 0 à 1) d'une étape du balayage, de [debut] à [debut] + [duree] millisecondes.
+    fun etape(debut: Int, duree: Int) = ((avancee() * BALAYAGE_MS - debut) / duree).coerceIn(0f, 1f)
+    val enCours = actif()
+    val teinte = if (enCours) TEINTE * etape(120, 480) else TEINTE * effacement()
+    if (teinte > 0f) drawRect(Signal.Vert.copy(alpha = teinte))
+    drawContent()
+    if (enCours && avancee() < 1f) {
+        val trainee = 56.dp.toPx()
+        val trait = 2.dp.toPx()
+        val x = (size.width + trainee) * EasingPassage.transform(etape(0, PASSAGE_MS))
+        drawRect(
+            Brush.horizontalGradient(listOf(Signal.Vert.copy(alpha = 0f), Signal.Vert.copy(alpha = 0.16f)), startX = x - trainee, endX = x),
+            topLeft = Offset(x - trainee, 0f),
+            size = Size(trainee, size.height),
+        )
+        drawRect(Signal.Vert.copy(alpha = 0.75f), topLeft = Offset(x - trait, 0f), size = Size(trait, size.height))
+    }
+}
+
+/**
  * Carte d'un établi ou d'un projet : son nom, son état ([etat] : « Niveau 2 en cours »), puis [contenu] (sa
  * piste). Terminé, elle se réduit à une ligne sobre : le nom, « ✓ Terminé » et « Modifier », qui rouvre la
  * piste pour le remettre en cours.
@@ -377,32 +425,12 @@ private fun CarteChoix(nom: String, termine: Boolean, etat: String?, contenu: @C
     val balaie = termine && (!etaitTermine || balayage.isRunning)
     // Avancée du balayage (1 : rien à animer) ; tout juste terminée, elle part de 0 avant même que l'effet démarre.
     fun avancee() = if (termine && !etaitTermine && !balayage.isRunning) 0f else balayage.value
-    // Avancée (de 0 à 1) d'une étape du balayage, de [debut] à [debut] + [duree] millisecondes.
-    fun etape(debut: Int, duree: Int) = ((avancee() * BALAYAGE_MS - debut) / duree).coerceIn(0f, 1f)
     Surface(
         color = Signal.Surface,
         shape = RoundedCornerShape(6.dp),
         modifier = Modifier.fillMaxWidth().animateContentSize(tween(REPLI_MS)),
     ) {
-        Box(
-            Modifier.drawWithContent {
-                // Le fond se teinte de vert derrière la ligne, puis la teinte s'efface quand la carte se replie.
-                val teinte = if (balaie) TEINTE * etape(120, 480) else TEINTE * effacement.value
-                if (teinte > 0f) drawRect(Signal.Vert.copy(alpha = teinte))
-                drawContent()
-                if (balaie && avancee() < 1f) {
-                    val trainee = 56.dp.toPx()
-                    val trait = 2.dp.toPx()
-                    val x = (size.width + trainee) * EasingPassage.transform(etape(0, PASSAGE_MS))
-                    drawRect(
-                        Brush.horizontalGradient(listOf(Signal.Vert.copy(alpha = 0f), Signal.Vert.copy(alpha = 0.16f)), startX = x - trainee, endX = x),
-                        topLeft = Offset(x - trainee, 0f),
-                        size = Size(trainee, size.height),
-                    )
-                    drawRect(Signal.Vert.copy(alpha = 0.75f), topLeft = Offset(x - trait, 0f), size = Size(trait, size.height))
-                }
-            },
-        ) {
+        Box(Modifier.dessinBalayage(actif = { balaie }, avancee = ::avancee, effacement = { effacement.value })) {
             if (termine && !balaie) {
                 Column {
                     Row(
