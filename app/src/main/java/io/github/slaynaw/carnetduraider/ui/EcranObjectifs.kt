@@ -53,7 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -261,7 +260,7 @@ private fun Pastille(texte: String, choisie: Boolean, description: String, coche
 }
 
 /** Fond d'une carte terminée : la surface, légèrement teintée de vert. */
-private val FondTermine = Signal.Vert.copy(alpha = 0.12f).compositeOver(Signal.Surface)
+private val FondTermine = Signal.SurfaceVerte
 
 /** Les bandes du logo en dégradé de vert, devant « TERMINÉ ». */
 private val BandesVertes = listOf(Color(0xFF3E7A37), Color(0xFF4E9C45), Color(0xFF5DB552), Signal.Vert)

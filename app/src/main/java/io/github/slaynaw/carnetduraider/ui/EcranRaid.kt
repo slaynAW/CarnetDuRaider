@@ -1,6 +1,7 @@
 package io.github.slaynaw.carnetduraider.ui
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,8 +10,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -21,21 +24,27 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.slaynaw.carnetduraider.CarnetViewModel
@@ -69,6 +78,8 @@ fun EcranRaid(
     val aTrouver = vm.aTrouver()
     val restants = aTrouver.filter { !it.trouve }
     val conseil = remember(restants.map { it.objetId }) { vm.conseilRaid() }
+    var objectifsOuverts by rememberSaveable { mutableStateOf(false) }
+    var cartesOuvertes by rememberSaveable { mutableStateOf(false) }
 
     val etat by vm.calendrier.etat.collectAsStateWithLifecycle()
     val calendrier = remember(etat.donnees) { etat.donnees?.let(vm::calendrierOfficiel) }
@@ -82,161 +93,168 @@ fun EcranRaid(
 
     val meilleure = conseil.cartes.firstOrNull()
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                BandeauSection(
-                    Onglet.RAID,
-                    when {
-                        restants.isNotEmpty() -> "${pluriel(restants.size, "objet", "objets")} à trouver"
-                        objectifs.isNotEmpty() -> "Rien à chercher en raid"
-                        else -> "Rien à chercher pour l'instant"
-                    },
-                )
+    EcranDeSection(
+        Onglet.RAID,
+        when {
+            restants.isNotEmpty() -> "${pluriel(restants.size, "objet", "objets")} à trouver"
+            objectifs.isNotEmpty() -> "Rien à chercher en raid"
+            else -> "Rien à chercher pour l'instant"
+        },
+    ) { defilement ->
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                state = defilement,
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = if (restants.isNotEmpty()) PLACE_BOUTON_FIXE else 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 if (restants.isEmpty()) {
-                    Text(
-                        if (objectifs.isNotEmpty()) {
-                            "Tes objectifs en cours ne demandent aucun objet à rapporter."
-                        } else {
-                            "Rien à chercher pour l'instant."
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Signal.TexteDoux,
-                    )
-                }
-            }
-        }
-
-        // La meilleure carte, en un coup d'œil (le détail est dans « Où aller »).
-        if (meilleure != null) {
-            item {
-                CarteMeilleure(
-                    meilleure.carteId,
-                    nomCarte(vm, meilleure.carteId),
-                    buildString {
-                        append("${meilleure.objets.size} de tes ${pluriel(restants.size, "objet", "objets")} à trouver")
-                        meilleure.zones.firstOrNull()?.let { append(" · surtout ${it.zone}") }
-                    },
-                )
-            }
-        }
-
-        if (aTrouver.isNotEmpty()) {
-            item { TitreRaid("Ce qu'il te faut") }
-            items(aTrouver, key = { "atrouver-${it.objetId}" }) { a -> LigneATrouver(vm, a, onClick = { ouvrir(a.objetId) }) }
-        }
-
-        // De retour : saisir le butin, qui se décompte de la liste.
-        if (restants.isNotEmpty()) {
-            item {
-                OutlinedButton(
-                    onClick = retourDeRaid,
-                    border = BorderStroke(2.dp, Signal.Rouge),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Signal.Rouge),
-                    contentPadding = PaddingValues(16.dp),
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                ) { Text("Retour de raid\u00a0: ajouter mon butin", style = MaterialTheme.typography.titleMedium) }
-            }
-        }
-
-        // Les mêmes objectifs que dans l'onglet Objectifs, avec leur avancement et « C'est fait ».
-        if (objectifs.isNotEmpty()) {
-            item {
-                Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Etiquette("Mes objectifs", Signal.Vert, Modifier.weight(1f))
-                    TextButton(onClick = choisirObjectifs) { Text("Modifier", color = Signal.Vert) }
-                }
-            }
-            items(objectifs, key = { "objectif-${it.cle}" }) { objectif -> CarteObjectif(vm, objectif) }
-        }
-
-        if (objectifs.isEmpty()) {
-            item {
-                Surface(color = Signal.Releve, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
                         Text(
-                            "Indique ce que tu as en cours (quêtes, ateliers, projets, Expéditions)\u00a0: " +
-                                "l'appli te dira sur quelle carte aller et où chercher.",
+                            if (objectifs.isNotEmpty()) "Tes objectifs en cours ne demandent aucun objet à rapporter." else "Rien à chercher pour l'instant.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Signal.TexteDoux,
                         )
-                        Button(
-                            onClick = choisirObjectifs,
-                            colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-                        ) { Text("Indiquer mes objectifs") }
                     }
                 }
-            }
-        }
 
-        // Butin recherché : des objets à rapporter pour soi, sans quête ni projet.
-        item {
-            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Etiquette(ButinRecherche.TITRE, Signal.Rouge, Modifier.weight(1f))
-                TextButton(onClick = ajouterButin) {
-                    Icon(Icons.Filled.Add, contentDescription = null, tint = Signal.Rouge, modifier = Modifier.size(18.dp))
-                    Text("Ajouter un objet", color = Signal.Rouge, modifier = Modifier.padding(start = 4.dp))
+                // La meilleure carte en tête, avec ses zones à un geste et la carte suivante du parcours.
+                if (meilleure != null) {
+                    item { CarteMeilleure(vm, meilleure, restants.size, conseil, ouvrirZone) }
                 }
-            }
-        }
-        if (vm.butinRecherche.isEmpty()) {
-            item {
-                Text(
-                    "Des objets à rapporter pour toi, sans quête ni projet\u00a0: ils s'ajoutent à ce qu'il te faut, " +
-                        "se décomptent au retour de raid et quittent la liste une fois tous rapportés.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Signal.TexteDoux,
-                )
-            }
-        }
-        items(vm.butinRecherche.entries.toList(), key = { "butin-${it.key}" }) { (id, voulu) ->
-            LigneButin(vm, id, voulu, ouvrir = { ouvrir(id) })
-        }
 
-        if (detaillees.isNotEmpty()) {
-            item { TitreRaid("Où aller") }
-            if (conseil.parcours.size > 1) {
-                item { Parcours(vm, conseil, avecButin) }
-            }
-            items(detaillees, key = { "carte-${it.carteId}" }) { c ->
-                CarteRaid(vm, c, avecButin, meilleure = c.carteId == conseil.cartes.first().carteId, enCours[c.carteId].orEmpty(), ouvrirZone)
-            }
-            if (autres.isNotEmpty()) {
-                item {
-                    Text(
-                        "Aussi\u00a0: " + autres.joinToString(" · ") { "${nomCarte(vm, it.carteId)} (${pluriel(it.objets.size, "objet", "objets")})" },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Signal.TexteDoux,
-                    )
+                if (aTrouver.isNotEmpty()) {
+                    item {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                            Etiquette("Ce qu'il te faut · ${restants.size}", Signal.Rouge, Modifier.weight(1f))
+                            Text(
+                                "${aTrouver.sumOf { it.trouves }} sur ${aTrouver.sumOf { it.voulu }} rapportés",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Signal.TexteDiscret,
+                            )
+                        }
+                    }
+                    item { ListeATrouver(vm, aTrouver, ouvrir) }
                 }
-            }
-            item {
-                Text(
-                    "Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés\u00a0: le jeu tire le butin sur ses serveurs.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Signal.TexteDiscret,
-                )
-            }
-        }
 
-        if (conseil.sansButin.isNotEmpty()) {
-            item { TitreRaid("Pas dans le butin") }
-            items(conseil.sansButin, key = { "sans-$it" }) { id ->
-                val objet = vm.catalogue.objet(id)
-                Surface(onClick = { ouvrir(id) }, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        IconeObjet(id, objet?.rarete, 36.dp)
-                        Column(Modifier.weight(1f)) {
-                            Text(vm.catalogue.nomObjet(id), style = MaterialTheme.typography.bodyLarge)
-                            Text(objet?.let { autreMoyen(vm.catalogue, it) } ?: "", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                // Les mêmes objectifs que dans l'onglet Objectifs (même carte, « C'est fait »), repliés.
+                if (objectifs.isNotEmpty()) {
+                    item {
+                        EnTeteAccordeon(
+                            "Mes objectifs",
+                            "${pluriel(objectifs.size, "en cours", "en cours")} · d'où vient chaque objet",
+                            objectifsOuverts,
+                            Signal.Vert,
+                            onClick = { objectifsOuverts = !objectifsOuverts },
+                        )
+                    }
+                    if (objectifsOuverts) {
+                        items(objectifs, key = { "objectif-${it.cle}" }) { objectif -> CarteObjectif(vm, objectif) }
+                        item {
+                            TextButton(onClick = choisirObjectifs) { Text("Modifier mes objectifs", color = Signal.Vert) }
+                        }
+                    }
+                } else {
+                    item {
+                        Surface(color = Signal.Releve, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    "Indique ce que tu as en cours (quêtes, ateliers, projets, Expéditions)\u00a0: " +
+                                        "l'appli te dira sur quelle carte aller et où chercher.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Signal.TexteDoux,
+                                )
+                                Button(
+                                    onClick = choisirObjectifs,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
+                                ) { Text("Indiquer mes objectifs") }
+                            }
                         }
                     }
                 }
+
+                // Butin recherché : des objets à rapporter pour soi, sans quête ni projet.
+                item {
+                    Surface(onClick = ajouterButin, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            Modifier.heightIn(min = 52.dp).padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(ButinRecherche.TITRE, style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    if (vm.butinRecherche.isEmpty()) "Des objets pour toi, sans objectif du jeu" else pluriel(vm.butinRecherche.size, "objet", "objets"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Signal.TexteDoux,
+                                )
+                            }
+                            Icon(Icons.Filled.Add, contentDescription = null, tint = Signal.Rouge, modifier = Modifier.size(18.dp))
+                            Text("Ajouter", style = MaterialTheme.typography.titleSmall, color = Signal.Rouge)
+                        }
+                    }
+                }
+                items(vm.butinRecherche.entries.toList(), key = { "butin-${it.key}" }) { (id, voulu) ->
+                    LigneButin(vm, id, voulu, ouvrir = { ouvrir(id) })
+                }
+
+                // Le détail de toutes les cartes conseillées, replié : la meilleure est déjà en tête.
+                if (detaillees.isNotEmpty()) {
+                    item {
+                        EnTeteAccordeon(
+                            "Où aller",
+                            if (conseil.parcours.size > 1) "Parcours en ${conseil.parcours.size} cartes · zones où chercher" else "Zones où chercher",
+                            cartesOuvertes,
+                            Signal.Rouge,
+                            onClick = { cartesOuvertes = !cartesOuvertes },
+                        )
+                    }
+                    if (cartesOuvertes) {
+                        if (conseil.parcours.size > 1) {
+                            item { Parcours(vm, conseil, avecButin) }
+                        }
+                        items(detaillees, key = { "carte-${it.carteId}" }) { c ->
+                            CarteRaid(vm, c, avecButin, meilleure = c.carteId == conseil.cartes.first().carteId, enCours[c.carteId].orEmpty(), ouvrirZone)
+                        }
+                        if (autres.isNotEmpty()) {
+                            item {
+                                Text(
+                                    "Aussi\u00a0: " + autres.joinToString(" · ") { "${nomCarte(vm, it.carteId)} (${pluriel(it.objets.size, "objet", "objets")})" },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Signal.TexteDoux,
+                                )
+                            }
+                        }
+                        item {
+                            Text(
+                                "Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés\u00a0: le jeu tire le butin sur ses serveurs.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Signal.TexteDiscret,
+                            )
+                        }
+                    }
+                }
+
+                if (conseil.sansButin.isNotEmpty()) {
+                    item { TitreRaid("Pas dans le butin") }
+                    items(conseil.sansButin, key = { "sans-$it" }) { id ->
+                        val objet = vm.catalogue.objet(id)
+                        Surface(onClick = { ouvrir(id) }, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+                            Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                IconeObjet(id, objet?.rarete, 36.dp)
+                                Column(Modifier.weight(1f)) {
+                                    Text(vm.catalogue.nomObjet(id), style = MaterialTheme.typography.bodyLarge)
+                                    Text(objet?.let { autreMoyen(vm.catalogue, it) } ?: "", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // De retour : saisir le butin, qui se décompte de la liste. Toujours à portée de pouce.
+            if (restants.isNotEmpty()) {
+                BoutonFixe("Retour de raid\u00a0: ajouter mon butin", Signal.Rouge, retourDeRaid, Modifier.align(Alignment.BottomCenter))
             }
         }
     }
@@ -293,56 +311,147 @@ private fun TitreRaid(texte: String) {
 private fun nomCarte(vm: CarnetViewModel, carteId: String): String = vm.catalogue.carte(carteId)?.nom ?: Catalogue.NOM_A_VERIFIER
 
 /**
- * La meilleure carte, en un coup d'œil : sur une capture en jeu de la carte, assombrie à gauche pour que le
- * texte reste lisible (« ombre latérale ») ; sans capture, sur le rouge du Raid.
+ * La meilleure carte, en tête de l'onglet : sur une capture en jeu de la carte, assombrie à gauche pour que
+ * le texte reste lisible (« ombre latérale ») ; sans capture, sur le rouge du Raid. « Où chercher » déplie
+ * ses zones (chacune ouvre le plan) et la carte suivante du parcours.
  */
 @Composable
-private fun CarteMeilleure(carteId: String, nom: String, detail: String) {
-    val image = rememberFondCarte(carteId)
+private fun CarteMeilleure(
+    vm: CarnetViewModel,
+    c: CarteConseillee,
+    restants: Int,
+    conseil: ConseilRaid,
+    ouvrirZone: (String, String) -> Unit,
+) {
+    val image = rememberFondCarte(c.carteId)
+    var zonesOuvertes by rememberSaveable { mutableStateOf(false) }
+    val texte = if (image != null) Signal.Texte else Signal.SurCouleur
+    val ensuite = conseil.parcours.takeIf { it.firstOrNull()?.carteId == c.carteId }?.getOrNull(1)
     Surface(
         color = if (image != null) Signal.Fond else Signal.Rouge,
-        contentColor = if (image != null) Signal.Texte else Signal.SurCouleur,
+        contentColor = texte,
         shape = FormeCoupee,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Box {
             if (image != null) FondEnJeu(image)
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Etiquette("Meilleure carte", if (image != null) Signal.Rouge else Signal.SurCouleur)
-                Text(nom, style = MaterialTheme.typography.headlineSmall)
-                Text(detail, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(nomCarte(vm, c.carteId), style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    buildString {
+                        append("${c.objets.size} de tes ${pluriel(restants, "objet", "objets")} à trouver")
+                        c.zones.firstOrNull()?.let { append(" · surtout ${it.zone}") }
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (c.zones.isNotEmpty()) {
+                    Surface(
+                        onClick = { zonesOuvertes = !zonesOuvertes },
+                        color = texte.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.padding(top = 8.dp).semantics { stateDescription = if (zonesOuvertes) "Ouvert" else "Fermé" },
+                    ) {
+                        Text(
+                            if (zonesOuvertes) "Masquer les zones" else "Où chercher · ${pluriel(c.zones.size, "zone", "zones")}",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                        )
+                    }
+                }
+                if (zonesOuvertes) {
+                    Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        c.zones.forEach { z ->
+                            Surface(
+                                onClick = { ouvrirZone(c.carteId, z.zone) },
+                                color = Signal.Fond.copy(alpha = 0.72f),
+                                contentColor = Signal.Texte,
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(Modifier.heightIn(min = 44.dp).padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text(z.zone, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                    Text(pluriel(z.objets.size, "objet", "objets"), style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                                    Text("Plan ›", style = MaterialTheme.typography.labelMedium, color = Signal.Cyan)
+                                }
+                            }
+                        }
+                        if (ensuite != null) {
+                            Text(
+                                "Ensuite\u00a0: ${nomCarte(vm, ensuite.carteId)}, pour ${pluriel(ensuite.objets.size, "autre objet", "autres objets")}.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (image != null) Signal.TexteDoux else Signal.SurCouleur,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 /**
- * Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien ont été
- * rapportés sur combien il en faut, et pour quoi.
+ * Ce qu'il te faut, en liste compacte (une ligne par objet) : on en voit une dizaine d'un coup d'œil.
+ * Chaque ligne ouvre la fiche de l'objet.
+ */
+@Composable
+private fun ListeATrouver(vm: CarnetViewModel, aTrouver: List<ObjetATrouver>, ouvrir: (String) -> Unit) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+        Column {
+            aTrouver.forEachIndexed { i, a ->
+                if (i > 0) HorizontalDivider(color = Signal.Releve)
+                LigneATrouver(vm, a, onClick = { ouvrir(a.objetId) })
+            }
+        }
+    }
+}
+
+/**
+ * Un objet à trouver, sur une ligne : combien il en reste (le décompte, mis à jour au retour de raid),
+ * combien ont été rapportés sur combien il en faut, et pour quoi ; « ARC » s'il se trouve sur les ARC.
  */
 @Composable
 private fun LigneATrouver(vm: CarnetViewModel, a: ObjetATrouver, onClick: () -> Unit) {
-    val nom = vm.catalogue.nomObjet(a.objetId)
-    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 10.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            IconeObjet(a.objetId, vm.catalogue.objet(a.objetId)?.rarete, 40.dp)
-            Column(Modifier.weight(1f)) {
-                Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                Text(
-                    "${a.trouves}/${a.voulu} · " + a.pour.joinToString(" · ") { it.libelle },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (a.trouve) Signal.Vert else Signal.TexteDoux,
-                    maxLines = 2,
-                )
-            }
-            if (a.trouve) {
-                Icon(Icons.Filled.Check, contentDescription = "Trouvé", tint = Signal.Vert, modifier = Modifier.size(24.dp))
-            } else {
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 6.dp)) {
-                    Text("${a.reste}", style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"), color = Signal.Or)
-                    Text("à trouver", style = MaterialTheme.typography.labelSmall, color = Signal.TexteDoux)
-                }
-            }
+    val objet = vm.catalogue.objet(a.objetId)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .heightIn(min = 52.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        IconeObjet(a.objetId, objet?.rarete, 36.dp)
+        Column(Modifier.weight(1f)) {
+            Text(vm.catalogue.nomObjet(a.objetId), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                "${a.trouves}/${a.voulu} · " + a.pour.joinToString(" · ") { it.libelle },
+                style = MaterialTheme.typography.labelMedium,
+                color = if (a.trouve) Signal.Vert else Signal.TexteDoux,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (objet != null && "ARC" in objet.lieux) {
+            Text(
+                "ARC",
+                style = MaterialTheme.typography.labelSmall,
+                color = Signal.Rouge,
+                modifier = Modifier.border(1.dp, Signal.Rouge, RoundedCornerShape(4.dp)).padding(horizontal = 5.dp, vertical = 2.dp),
+            )
+        }
+        if (a.trouve) {
+            Icon(Icons.Filled.Check, contentDescription = "Trouvé", tint = Signal.Vert, modifier = Modifier.size(24.dp))
+        } else {
+            Text(
+                "${a.reste}",
+                style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"),
+                color = Signal.Or,
+                modifier = Modifier.widthIn(min = 28.dp).semantics { contentDescription = "${a.reste} à trouver" },
+                textAlign = TextAlign.End,
+            )
         }
     }
 }

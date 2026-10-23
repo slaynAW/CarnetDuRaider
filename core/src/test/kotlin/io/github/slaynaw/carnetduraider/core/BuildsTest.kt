@@ -66,4 +66,44 @@ class BuildsTest {
         assertEquals(plein.first(), Builds.decoder(Builds.encoder(plein)).first())
         assertEquals(listOf(UsageBuild("Pièges", "zipline", direct = true)), builds.aGarder(plein)["zipline"])
     }
+
+    @Test
+    fun `build prefere en premier et ouvert a l'arrivee`() {
+        val liste = Builds.completer(listOf(Build("A"), Build("B"), Build("C")))
+        assertEquals((0 until Builds.NOMBRE).toList(), Builds.ordre(liste))
+        assertEquals(0, Builds.ouvert(liste))
+        val avecC = Builds.preferer(liste, 2)
+        assertEquals(listOf(2, 0, 1, 3, 4, 5), Builds.ordre(avecC))
+        assertEquals(2, Builds.ouvert(avecC))
+        // Un seul préféré : en choisir un autre retire le premier.
+        val avecB = Builds.preferer(avecC, 1)
+        assertEquals(listOf(false, true, false, false, false, false), avecB.map { it.prefere })
+        assertTrue(Builds.preferer(avecB, 1, prefere = false).none { it.prefere })
+        // Enregistré, et un fichier avec deux préférés n'en garde que le premier.
+        assertEquals(avecB, Builds.decoder(Builds.encoder(avecB)))
+        val deux = Builds.completer(listOf(Build("A", prefere = true), Build("B", prefere = true)))
+        assertEquals(listOf(true, false), deux.take(2).map { it.prefere })
+        // Un build d'avant la 0.14 (sans le champ) n'est pas préféré.
+        assertEquals(Build("Vieux"), Builds.decoder("""[{"nom":"Vieux"}]""").first())
+    }
+
+    @Test
+    fun `ce qu'il faut pour fabriquer tout le build, avec les quantites`() {
+        // Ferro III : coût de l'amélioration II → III, celui de I → II, puis la recette de Ferro I.
+        val ferro = catalogue.objet("ferro_iii")!!.obtention
+        val attendu = LinkedHashMap<String, Int>()
+        fun compter(q: List<Quantite>) = q.forEach { attendu[it.id] = (attendu[it.id] ?: 0) + it.quantite }
+        compter(ferro.amelioration!!.ingredients)
+        compter(catalogue.objet("ferro_ii")!!.obtention.amelioration!!.ingredients)
+        compter(catalogue.objet("ferro_i")!!.obtention.fabrications.first().ingredients)
+        val bandage = catalogue.objet("bandage")!!.obtention.fabrications.first().ingredients
+        bandage.forEach { attendu[it.id] = (attendu[it.id] ?: 0) + it.quantite * 2 }
+        val build = Build(objets = mapOf(CaseBuild.ARME_1 to "ferro_iii", CaseBuild.SOINS to "bandage", CaseBuild.AUTRE_1 to "bandage"))
+        val liste = builds.aFabriquer(build)
+        assertEquals(attendu, liste.toMap())
+        // Du plus demandé au moins demandé ; les armes elles-mêmes n'y sont pas.
+        assertEquals(liste.map { it.second }.sortedDescending(), liste.map { it.second })
+        assertTrue(liste.none { it.first.startsWith("ferro") })
+        assertTrue(builds.aFabriquer(Build()).isEmpty())
+    }
 }

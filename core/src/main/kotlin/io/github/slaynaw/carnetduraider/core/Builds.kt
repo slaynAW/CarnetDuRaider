@@ -32,9 +32,12 @@ enum class CaseBuild(val libelle: String, val emplacement: Emplacement) {
     val autre: Boolean get() = emplacement == Emplacement.DIVERS
 }
 
-/** Un build du joueur : son [nom] (vide tant qu'il n'en a pas donné) et l'objet choisi pour chaque case. */
+/**
+ * Un build du joueur : son [nom] (vide tant qu'il n'en a pas donné), l'objet choisi pour chaque case et s'il
+ * est son build [prefere] (un seul à la fois : premier de la liste, ouvert en arrivant sur l'onglet).
+ */
 @Serializable
-data class Build(val nom: String = "", val objets: Map<CaseBuild, String> = emptyMap()) {
+data class Build(val nom: String = "", val objets: Map<CaseBuild, String> = emptyMap(), val prefere: Boolean = false) {
     val vide: Boolean get() = objets.isEmpty()
 }
 
@@ -67,6 +70,30 @@ class Builds(private val catalogue: Catalogue) {
         return vus
     }
 
+    /**
+     * Ce qu'il faut pour fabriquer tout le build, avec les quantités, du plus demandé au moins demandé : pour
+     * chaque case, la première recette de l'objet ou, pour une arme améliorée, le coût de l'amélioration
+     * plus ce qu'il faut pour l'arme d'avant. Les matériaux ne sont pas eux-mêmes détaillés.
+     */
+    fun aFabriquer(build: Build): List<Pair<String, Int>> {
+        val total = LinkedHashMap<String, Int>()
+        fun ajouter(objetId: String, fois: Int, profondeur: Int) {
+            val obtention = catalogue.objet(objetId)?.obtention ?: return
+            val amelioration = obtention.amelioration
+            val ingredients = when {
+                amelioration != null && profondeur < PROFONDEUR_MAX -> {
+                    ajouter(amelioration.depuis, fois, profondeur + 1)
+                    amelioration.ingredients
+                }
+                else -> obtention.fabrications.firstOrNull()?.ingredients.orEmpty()
+            }
+            ingredients.forEach { total[it.id] = (total[it.id] ?: 0) + it.quantite * fois }
+        }
+        CaseBuild.entries.mapNotNull { build.objets[it] }.forEach { ajouter(it, 1, 0) }
+        return total.entries.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { catalogue.nomObjet(it.key) })
+            .map { it.key to it.value }
+    }
+
     private fun directs(objetId: String): List<String> {
         val obtention = catalogue.objet(objetId)?.obtention ?: return emptyList()
         return obtention.fabrications.flatMap { f -> f.ingredients.map { it.id } } +
@@ -93,6 +120,22 @@ class Builds(private val catalogue: Catalogue) {
 
     companion object {
         const val NOMBRE = 6
+
+        /** Garde-fou contre une chaîne d'améliorations qui bouclerait. */
+        private const val PROFONDEUR_MAX = 8
+
+        /** Rangs des builds dans l'ordre affiché : le préféré d'abord, puis les autres dans l'ordre. */
+        fun ordre(builds: List<Build>): List<Int> {
+            val prefere = builds.indexOfFirst { it.prefere }
+            return if (prefere < 0) builds.indices.toList() else listOf(prefere) + builds.indices.filter { it != prefere }
+        }
+
+        /** Build ouvert en arrivant sur l'onglet : le préféré, sinon le premier. */
+        fun ouvert(builds: List<Build>): Int = builds.indexOfFirst { it.prefere }.coerceAtLeast(0)
+
+        /** Fait du build [rang] le préféré ; [prefere] faux le retire. Jamais plus d'un préféré. */
+        fun preferer(builds: List<Build>, rang: Int, prefere: Boolean = true): List<Build> =
+            builds.mapIndexed { i, b -> b.copy(prefere = prefere && i == rang) }
         private val json = Json { ignoreUnknownKeys = true }
         private val serialiseur = ListSerializer(Build.serializer())
 
@@ -106,6 +149,10 @@ class Builds(private val catalogue: Catalogue) {
         }
 
         /** Exactement [NOMBRE] builds : les manquants sont vides, ceux en trop sont ignorés. */
-        fun completer(builds: List<Build>): List<Build> = (builds + List(NOMBRE) { Build() }).take(NOMBRE)
+        fun completer(builds: List<Build>): List<Build> {
+            val liste = (builds + List(NOMBRE) { Build() }).take(NOMBRE)
+            val prefere = liste.indexOfFirst { it.prefere }
+            return if (prefere < 0) liste else preferer(liste, prefere)
+        }
     }
 }

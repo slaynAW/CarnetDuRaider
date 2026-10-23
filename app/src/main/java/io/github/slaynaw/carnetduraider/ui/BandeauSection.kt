@@ -4,8 +4,10 @@ import android.provider.Settings
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -14,10 +16,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,8 +38,10 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -41,13 +49,21 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import io.github.slaynaw.carnetduraider.ui.theme.Barlow
 import io.github.slaynaw.carnetduraider.ui.theme.Prompt
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
+import kotlin.math.roundToInt
 
 /** Hauteur du bandeau de section, et de la grille dans laquelle ses motifs sont dessinés. */
 private val HAUTEUR = 132.dp
+
+/** Hauteur du bandeau replié, quand la liste de l'onglet défile. */
+private val HAUTEUR_REPLIEE = 56.dp
+
+/** Le bandeau se replie dès que la liste a défilé de plus que cela. */
+private val SEUIL_REPLI = 24.dp
 private const val GRILLE = 132f
 
 /** Carte mise en avant (prochain raid, objectif terminé…) : coin bas droit coupé, comme les bandeaux. */
@@ -63,27 +79,38 @@ val FormeCoupee = CutCornerShape(bottomEnd = 14.dp)
  * une à une, la cible cherche puis verrouille, le repère flotte et émet une onde, une impulsion pousse les
  * chevrons, une ligne de scan descend sur le plan. Le texte ne bouge jamais. Avec « Supprimer les
  * animations » d'Android, le motif reste immobile.
+ *
+ * [repli] (de 0 à 1) le réduit à une barre de 56 dp, avec le nom seul : la liste de l'onglet gagne de la
+ * place quand elle défile ([EcranDeSection]).
  */
 @Composable
-fun BandeauSection(onglet: Onglet, sousTitre: String, marge: Dp = 20.dp) {
+fun BandeauSection(onglet: Onglet, sousTitre: String, marge: Dp = 20.dp, repli: Float = 0f) {
     val temps = if (animationsActives()) tempsEnBoucle(periode(onglet)) else null
+    val visible = 1f - repli
     Box(
         Modifier
             .pleineLargeur(marge)
-            .height(HAUTEUR)
-            .clip(CutCornerShape(bottomEnd = 34.dp))
+            .height(lerp(HAUTEUR, HAUTEUR_REPLIEE, repli))
+            .clip(CutCornerShape(bottomEnd = lerp(34.dp, 22.dp, repli)))
             .background(onglet.couleur),
     ) {
         Canvas(Modifier.fillMaxSize().clearAndSetSemantics { }) { motif(onglet, temps?.value) }
-        Column(Modifier.padding(start = 20.dp, top = 18.dp, end = 20.dp)) {
+        Column(Modifier.padding(start = 20.dp, top = lerp(18.dp, 12.dp, repli), end = 20.dp)) {
             Text(
                 onglet.code,
                 style = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 3.sp),
                 color = Signal.SurCouleur,
+                modifier = Modifier.reduit(visible),
             )
             Text(
                 onglet.titre.uppercase(),
-                style = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.ExtraBold, fontSize = 40.sp, lineHeight = 44.sp, letterSpacing = 1.sp),
+                style = TextStyle(
+                    fontFamily = Prompt,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = (40f - 16f * repli).sp,
+                    lineHeight = (44f - 14f * repli).sp,
+                    letterSpacing = 1.sp,
+                ),
                 color = Signal.SurCouleur,
                 maxLines = 1,
                 modifier = Modifier.semantics { heading() },
@@ -93,14 +120,47 @@ fun BandeauSection(onglet: Onglet, sousTitre: String, marge: Dp = 20.dp) {
                 style = TextStyle(fontFamily = Barlow, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 18.sp),
                 color = Signal.SurCouleur,
                 maxLines = 1,
+                modifier = Modifier.reduit(visible),
             )
         }
     }
 }
 
+/**
+ * Un onglet : son bandeau, puis sa liste ([contenu], qui défile avec [etat]). Le bandeau se replie dès que
+ * la liste défile et se déplie quand on revient tout en haut ; sans animations d'Android, d'un coup.
+ */
+@Composable
+fun EcranDeSection(
+    onglet: Onglet,
+    sousTitre: String,
+    etat: LazyListState = rememberLazyListState(),
+    contenu: @Composable (LazyListState) -> Unit,
+) {
+    val seuil = with(LocalDensity.current) { SEUIL_REPLI.roundToPx() }
+    val replie by remember(etat) { derivedStateOf { etat.firstVisibleItemIndex > 0 || etat.firstVisibleItemScrollOffset > seuil } }
+    val repli by animateFloatAsState(
+        targetValue = if (replie) 1f else 0f,
+        animationSpec = if (animationsActives()) tween(220) else snap(),
+        label = "repli",
+    )
+    Column(Modifier.fillMaxSize()) {
+        BandeauSection(onglet, sousTitre, marge = 0.dp, repli = repli)
+        Box(Modifier.weight(1f)) { contenu(etat) }
+    }
+}
+
+/** Réduit la hauteur de l'élément à [part] de la sienne (0 : caché), en le rendant transparent d'autant. */
+private fun Modifier.reduit(part: Float): Modifier = this
+    .graphicsLayer { alpha = part }
+    .layout { mesurable, contraintes ->
+        val place = mesurable.measure(contraintes)
+        layout(place.width, (place.height * part).roundToInt()) { place.place(0, 0) }
+    }
+
 /** Faux si le joueur a coupé les animations d'Android (échelle de durée des animations à 0). */
 @Composable
-private fun animationsActives(): Boolean {
+fun animationsActives(): Boolean {
     val contexte = LocalContext.current
     return remember(contexte) {
         Settings.Global.getFloat(contexte.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f

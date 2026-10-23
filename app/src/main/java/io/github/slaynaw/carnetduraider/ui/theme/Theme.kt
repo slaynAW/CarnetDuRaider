@@ -5,6 +5,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -33,6 +34,9 @@ object Signal {
     val Vert = Color(0xFF6CCB5F)
     val Rouge = Color(0xFFF0544A)
     val Violet = Color(0xFFB48CF2)
+
+    /** Fond d'un élément terminé ou complet : la surface teintée de vert. */
+    val SurfaceVerte = Vert.copy(alpha = 0.12f).compositeOver(Surface)
 
     /** Texte posé sur une des quatre couleurs. */
     val SurCouleur = Color(0xFF141417)
