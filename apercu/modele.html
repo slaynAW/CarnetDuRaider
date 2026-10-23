@@ -1401,7 +1401,7 @@ document.addEventListener("click", ev => {
         if (!derniere || !carte) { fin(); return; }
         const x = o.type === "etabli" ? etablis.get(o.id) : projets.get(o.id), n = o.type === "etabli" ? x.niveaux.length : x.etapes.length;
         carte.insertAdjacentHTML("beforeend", `<div class="cloture" role="status" aria-label="Terminé${NB}: ${echap(x.nom)}"><span><strong>TERMINÉ</strong><small>${echap(x.nom)} · ${pluriel(n, o.type === "etabli" ? "niveau" : "étape", o.type === "etabli" ? "niveaux" : "étapes")} sur ${n}</small></span><span class="tampon" aria-hidden="true">VALIDÉ</span></div>`);
-        setTimeout(fin, 1300);
+        setTimeout(fin, 1300 + 3000);
       }, 760);
       return;
     }

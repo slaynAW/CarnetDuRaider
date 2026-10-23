@@ -82,6 +82,7 @@ import io.github.slaynaw.carnetduraider.core.Quantite
 import io.github.slaynaw.carnetduraider.core.cle
 import io.github.slaynaw.carnetduraider.ui.theme.Prompt
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Ce que le joueur peut indiquer en cours, chacun avec sa liste complète. */
@@ -242,6 +243,7 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
     var valide by remember(objectif.cle) { mutableStateOf(false) }
     // La dernière étape (ou le dernier niveau) a droit à sa fin : la clôture, après le balayage.
     val derniere = remember(objectif) { vm.planificateur.derniereEtape(objectif) }
+    val anime = animationsActives()
     Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
         Box {
             Column(
@@ -281,7 +283,11 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
                                 try {
                                     passage.snapTo(0f)
                                     passage.animateTo(1f, tween(BALAYAGE_MS, easing = LinearEasing))
-                                    if (derniere) cloture.animateTo(1f, tween(CLOTURE_MS, easing = LinearEasing))
+                                    if (derniere) {
+                                        cloture.animateTo(1f, tween(CLOTURE_MS, easing = LinearEasing))
+                                        // « TERMINÉ » reste affiché un moment avant que l'objectif s'en aille.
+                                        if (anime) delay(TENUE_MS)
+                                    }
                                 } finally {
                                     vm.valider(objectif)
                                 }
@@ -305,6 +311,9 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
 
 /** Durée de la clôture, après le balayage, quand on valide la dernière étape. */
 private const val CLOTURE_MS = 1300
+
+/** Durée pendant laquelle « TERMINÉ » reste affiché, après la clôture. */
+private const val TENUE_MS = 3_000L
 
 /** Le tampon arrive avec un léger rebond. */
 private val EasingTampon = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
