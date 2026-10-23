@@ -57,7 +57,7 @@ h4.etiquette { margin-top: 12px; }
   color: var(--sur-couleur); background: var(--c, var(--texte)); padding: 6px 10px; border-radius: 99px; }
 .carte { background: var(--surface); border-radius: 6px; padding: 12px 14px; }
 .ligne { display: flex; align-items: center; gap: 12px; }
-.ligne > .flex { flex: 1; min-width: 0; }
+.ligne > .flex, .flex { flex: 1; min-width: 0; }
 .nom { font-weight: 600; font-size: 16px; }
 button.carte { text-align: left; width: 100%; }
 button.carte:hover { background: var(--releve); }
@@ -215,6 +215,74 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 @keyframes m-pousse { 0%, 5% { transform: none; } 10% { transform: translateX(6px); } 22%, 100% { transform: none; } }
 .m-scan { opacity: 0; animation: m-scan 3.4s cubic-bezier(.45, 0, .25, 1) infinite; }
 @keyframes m-scan { 0% { transform: translateY(-4px); opacity: 0; } 8% { opacity: 1; } 68% { transform: translateY(132px); opacity: 1; } 70%, 100% { transform: translateY(132px); opacity: 0; } }
+/* Bandeau qui se replie quand la page défile (EcranDeSection, BandeauSection.kt). */
+.section { position: sticky; top: var(--haut-entete, 52px); z-index: 4; transition: height .22s ease, clip-path .22s ease; }
+.section h2, .section .code, .section .sous, .section > div { transition: font-size .22s ease, opacity .22s ease, max-height .22s ease, padding .22s ease; }
+.section .code, .section .sous { max-height: 20px; overflow: hidden; }
+.section.replie { height: 56px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%); }
+.section.replie svg { height: 56px; }
+.section.replie > div { padding-top: 12px; }
+.section.replie h2 { font-size: 24px; }
+.section.replie .code, .section.replie .sous { opacity: 0; max-height: 0; }
+/* Bouton principal fixé en bas, au-dessus des onglets (BoutonFixe, Composants.kt). */
+.action-fixe { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 5; pointer-events: none;
+  padding: 18px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(180deg, rgba(20,20,23,0), var(--fond) 30%); }
+.action-fixe button { pointer-events: auto; display: block; width: 100%; max-width: 428px; margin: 0 auto; min-height: 52px; padding: 14px 16px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  background: var(--c, var(--or)); color: var(--sur-couleur); font: 700 16px/1.2 var(--titre); }
+.place-fixe { flex: none; height: 64px; }
+/* Accordéon (EnTeteAccordeon, Composants.kt) : le secondaire à un geste. */
+.accordeon { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 12px 8px 14px; background: var(--surface); border-radius: 6px; text-align: left; }
+.accordeon b { font: 600 15px/1.3 var(--titre); }
+.accordeon .fleche { flex: none; color: var(--c, var(--or)); font: 700 18px/1 var(--titre); transition: transform .2s; }
+.accordeon[aria-expanded="true"] .fleche { transform: rotate(180deg); }
+.detail-accordeon { display: flex; flex-direction: column; gap: 6px; padding: 4px 14px 6px; }
+/* Liste compacte : une ligne par objet, dans un seul bloc. */
+.compacte { background: var(--surface); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+.compacte > * + * { border-top: 1px solid var(--releve); }
+.ligne-compacte { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px; width: 100%; text-align: left; }
+.ligne-compacte .nom, .ligne-compacte .petit { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ligne-compacte.complet { background: color-mix(in srgb, var(--vert) 12%, var(--surface)); }
+.tag-arc { flex: none; font: 700 10px/1 var(--titre); letter-spacing: 1px; color: var(--rouge); border: 1px solid var(--rouge); border-radius: 4px; padding: 3px 5px; }
+.nombre { flex: none; min-width: 28px; text-align: right; font: 700 20px/1 var(--titre); color: var(--or); font-variant-numeric: tabular-nums; }
+.pas { flex: none; width: 36px; height: 44px; display: grid; place-items: center; font: 700 20px/1 var(--titre); color: var(--c, var(--texte)); }
+.pas:disabled { color: var(--trait); cursor: default; }
+.icone-plus { position: relative; flex: none; border-radius: 9px; }
+.icone-plus em { position: absolute; top: -7px; right: -7px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--or); color: var(--sur-couleur); font: 700 11px/22px var(--titre); font-style: normal; text-align: center; }
+/* Quatre tuiles de l'onglet Objectifs, piste des ateliers, pastilles d'objets. */
+.tuiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tuile { min-height: 76px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; text-align: left; background: var(--surface); border-radius: 6px; }
+.tuile b { font: 800 24px/1 var(--titre); color: var(--c); font-variant-numeric: tabular-nums; }
+.tuile span { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.piste { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; }
+.piste button { height: 44px; border-radius: 4px; background: var(--releve); color: var(--texte-doux); font: 700 14px/1 var(--titre); }
+.piste button.fait { background: color-mix(in srgb, var(--vert) 14%, var(--surface)); color: var(--vert); }
+.piste button[aria-checked="true"] { background: var(--vert); color: var(--sur-couleur); }
+.pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
+.pastille-objet { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 3px; border-radius: 99px; background: var(--releve); font-size: 12px; font-weight: 600; }
+.pastille-objet.complet { background: color-mix(in srgb, var(--vert) 12%, var(--surface)); color: var(--vert); }
+.valider.contour { background: none; color: var(--vert); border: 1.5px solid var(--vert); align-self: flex-end; padding: 8px 12px; }
+.lettre { position: sticky; top: calc(var(--haut-entete, 52px) + 56px); z-index: 2; background: var(--fond); font: 600 14px var(--titre); color: var(--or); padding: 4px 0; margin: 0; }
+/* Une carte sur sa capture en jeu (CarteMaintenant, EcranCartes.kt) et les deux vues du calendrier. */
+.carte-photo { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 92px; padding: 12px 10px 12px 16px; border-radius: 6px; text-align: left; overflow: hidden;
+  background: linear-gradient(90deg, rgba(20,20,23,.94) 0%, rgba(20,20,23,.74) 48%, rgba(20,20,23,.12) 100%), var(--photo, none) center / cover, var(--surface); }
+.carte-photo::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--trait); }
+.carte-photo strong { font: 700 17px/1.2 var(--titre); }
+.bouton-plan { flex: none; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 6px; background: rgba(20,20,23,.72); border: 1px solid rgba(60,196,216,.4); color: var(--cyan); font: 600 13px var(--titre); }
+.onglets-vue { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; background: var(--surface); border-radius: 99px; }
+.onglets-vue button { min-height: 40px; border-radius: 99px; color: var(--texte-doux); font: 700 14px var(--titre); }
+.onglets-vue button[aria-selected="true"] { background: var(--cyan); color: var(--sur-couleur); }
+.pastille-region { flex: none; appearance: none; border: 1.5px solid var(--cyan); border-radius: 99px; background: var(--fond); color: var(--cyan); font: 600 13px var(--titre); padding: 7px 28px 7px 12px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--cyan) 50%), linear-gradient(135deg, var(--cyan) 50%, transparent 50%); background-position: calc(100% - 14px) 52%, calc(100% - 9px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+/* Builds : puces sur une ligne, case vide en pointillés, matériaux. */
+.puces-builds { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 0 max(16px, env(safe-area-inset-left, 0px)); }
+.puces-builds::-webkit-scrollbar { display: none; }
+.puces-builds .pf small { font: 600 12px var(--corps); opacity: .75; margin-left: 6px; }
+.case-build .vide { border-style: dashed; border-radius: 8px; display: grid; place-items: center; color: var(--texte-discret); font: 400 22px var(--titre); }
+.case-build { min-height: 64px; }
+.materiaux { border-left: 3px solid var(--violet); display: flex; flex-direction: column; gap: 10px; }
+.icone-bouton { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.icone-bouton:hover { background: var(--surface); }
+@media (prefers-reduced-motion: reduce) { .section, .section *, .accordeon .fleche { transition: none !important; } }
 @media (prefers-reduced-motion: reduce) { .celebration, .atteint, .pop, .banniere::before, .banniere h2, .tampon, .carte.terminee.balaie, .carte.terminee.balaie::after, .carte.terminee.balaie .termine-ligne, .carte.terminee.balaie .coin-valide { animation: none; } .section svg * { animation: none !important; } .gerbe { display: none; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s; } }
 </style>
@@ -489,7 +557,28 @@ const CASES = [["MODULE", "Module", "MODULE"], ["BOUCLIER", "Bouclier", "BOUCLIE
   ["SOINS", "Soins", "SOINS"], ["GRENADES", "Grenades", "GRENADE"],
   // Six « Autres » (CaseBuild.AUTRE_1 à 6) ; la première garde la clé de l'ancienne case « Divers ».
   ...[1, 2, 3, 4, 5, 6].map(n => [n === 1 ? "DIVERS" : `AUTRE_${n}`, `Autre ${n}`, "DIVERS"])];
-const builds = () => Array.from({ length: NOMBRE_BUILDS }, (_, i) => ({ nom: "", objets: {}, ...(M.builds?.[i] || {}) }));
+const builds = () => {
+  const l = Array.from({ length: NOMBRE_BUILDS }, (_, i) => ({ nom: "", objets: {}, prefere: false, ...(M.builds?.[i] || {}) }));
+  // Un seul build préféré (Builds.completer) : le premier marqué.
+  const p = l.findIndex(b => b.prefere);
+  return l.map((b, i) => ({ ...b, prefere: i === p }));
+};
+// Le préféré d'abord, puis les autres dans l'ordre (Builds.ordre) ; ouvert à l'arrivée sur l'onglet (Builds.ouvert).
+const ordreBuilds = l => { const p = l.findIndex(b => b.prefere); return p < 0 ? l.map((_, i) => i) : [p, ...l.map((_, i) => i).filter(i => i !== p)]; };
+// Ce qu'il faut pour fabriquer tout le build, avec les quantités (Builds.aFabriquer) : première recette, ou coût de
+// l'amélioration plus l'arme d'avant ; du plus demandé au moins demandé.
+function aFabriquer(b) {
+  const total = new Map();
+  const ajouter = (id, prof) => {
+    const ob = objets.get(id)?.obtention || {};
+    let ingr;
+    if (ob.amelioration && prof < 8) { ajouter(ob.amelioration.depuis, prof + 1); ingr = ob.amelioration.ingredients; }
+    else ingr = ob.fabrications?.[0]?.ingredients || [];
+    for (const q of ingr) total.set(q.id, (total.get(q.id) || 0) + q.quantite);
+  };
+  for (const [cle] of CASES) if (b.objets[cle]) ajouter(b.objets[cle], 0);
+  return [...total].sort((a, x) => x[1] - a[1] || normaliser(nomObjet(a[0])).localeCompare(normaliser(nomObjet(x[0]))));
+}
 const nomBuild = (b, i) => b.nom.trim() || `Build ${i + 1}`;
 const choixCase = cle => { const em = CASES.find(c => c[0] === cle)[2]; return tous.filter(o => o.emplacement === em); };
 function materiaux(id) {
@@ -538,7 +627,7 @@ const ONGLETS = [
   ["OBJECTIFS", "Objectifs", "--vert", "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", "05 / MISSIONS"],
   ["BUILDS", "Builds", "--violet", "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z", "06 / ARSENAL"],
 ];
-const S = { onglet: "ACCUEIL", filtre: "TOUS", build: 0, ecran: null, recherche: "", rechercheButin: "", rechercheQuetes: "", recherchePlan: "", rechercheBuild: "", choix: null, validation: null, raid: null, caseBuild: null };
+const S = { onglet: "ACCUEIL", filtre: "TOUS", build: null, ouverts: new Set(["À quoi il peut servir"]), aVenir: false, renommer: false, ecran: null, recherche: "", rechercheButin: "", rechercheQuetes: "", recherchePlan: "", rechercheBuild: "", choix: null, validation: null, raid: null, caseBuild: null };
 
 // ---- Écrans ----
 // Motif de chaque section, à droite de son bandeau (BandeauSection.kt), dans une grille de largeur × 132 ; il vit
@@ -557,9 +646,14 @@ const MOTIFS = {
 // Bandeau en tête de chaque onglet : on sait d'un coup d'œil sur quelle section on est.
 function bandeauSection(k, sous) {
   const [, titre, c, , code] = ONGLETS.find(o => o[0] === k), [l, motif] = MOTIFS[k];
-  return `<header class="section" style="--c:var(${c})"><svg width="${l}" height="132" viewBox="0 0 ${l} 132" aria-hidden="true">${motif}</svg>
+  return `<header class="section${replie ? " replie" : ""}" style="--c:var(${c})"><svg width="${l}" height="132" viewBox="0 0 ${l} 132" aria-hidden="true">${motif}</svg>
   <div><span class="code">${code}</span><h2>${titre.toUpperCase()}</h2><span class="sous">${echap(sous)}</span></div></header>`;
 }
+// En-tête d'accordéon (EnTeteAccordeon) : titre, résumé d'une ligne, flèche ; S.ouverts garde ce qui est ouvert.
+const ouvert = cle => S.ouverts.has(cle);
+const accordeon = (cle, titre, resume, c) => `<button class="accordeon" style="--c:var(${c})" data-action="basculer" data-id="${echap(cle)}" aria-expanded="${ouvert(cle)}"><span class="flex"><b>${echap(titre)}</b>${resume ? `<br><span class="petit doux">${echap(resume)}</span>` : ""}</span><span class="fleche" aria-hidden="true">⌄</span></button>`;
+// Bouton principal fixé en bas (BoutonFixe) ; la liste garde de la place pour lui (.place-fixe).
+const actionFixe = (texte, c, action) => `<div class="place-fixe"></div><div class="action-fixe"><button style="--c:var(${c})" data-action="${action}">${texte}</button></div>`;
 const etiquette = (texte, c, balise = "span") => `<${balise} class="etiquette" style="--c:var(${c})">${echap(texte)}</${balise}>`;
 const pf = (texte, choisie, c, action, id) => `<button class="pf" style="--c:var(${c})" aria-pressed="${choisie}" data-action="${action}" data-id="${id}">${echap(texte)}</button>`;
 const bandeau = (texte, c) => `<span class="bandeau" style="--c:var(${c})">${echap(texte)}</span>`;
@@ -619,20 +713,28 @@ const FILTRES = [["TOUS", "Tous"], ["GARDER", "Garder"], ["VENDRE", "Vendre"], [
 const filtresObjets = () => FILTRES.filter(([k]) => k !== "RECYCLER" || tous.some(o => meilleureSortie(o) === "RECYCLER"));
 const accepte = (f, v) => f === "TOUS" || (f === "GARDER" ? v.type !== "inutile" : v.type === "inutile" && v.sortie === (f === "VENDRE" ? "VENDRE" : "RECYCLER"));
 
+// Première lettre du nom, sans accent ; « # » pour un chiffre ou un signe.
+const initiale = nom => { const c = normaliser(nom).trim()[0]?.toUpperCase(); return c && /[A-Z]/.test(c) ? c : "#"; };
+const ligneObjet = (o, v) => `<button class="carte ligne" style="padding:7px 10px" data-action="fiche" data-id="${o.id}">${icone(o.id, 40)}
+    <span class="flex" style="min-width:0"><span class="nom" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${echap(o.nom)}</span><span class="petit doux" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${echap(raisonVerdict(o, v))}</span></span>
+    ${puceVerdict(v)}</button>`;
 function ecranObjets() {
   const objs = objectifsDuRaid(), pourBuilds = aGarderBuilds();
-  const r = (S.recherche.trim() ? rechercher(S.recherche, 200) : tous).map(o => [o, verdict(o.id, objs, pourBuilds)]).filter(([, v]) => accepte(S.filtre, v));
-  const info = !r.length ? "Aucun objet ne correspond."
-    : !S.recherche.trim() && S.filtre === "TOUS" ? `${pluriel(r.length, "objet", "objets")} par ordre alphabétique. Touche un objet pour savoir à quoi il sert et où le trouver.`
-    : pluriel(r.length, "objet trouvé", "objets trouvés");
+  const resultats = (S.recherche.trim() ? rechercher(S.recherche, 200) : tous).map(o => [o, verdict(o.id, objs, pourBuilds)]);
+  const r = resultats.filter(([, v]) => accepte(S.filtre, v));
+  // Sans recherche ni filtre : ce qui est à garder d'abord, puis le reste par lettre.
+  const parSections = !S.recherche.trim() && S.filtre === "TOUS";
+  const aGarder = parSections ? r.filter(([, v]) => v.type !== "inutile") : [], reste = parSections ? r.filter(([, v]) => v.type === "inutile") : r;
+  const lettres = [];
+  if (parSections) for (const x of reste) { const l = initiale(x[0].nom); if (lettres.at(-1)?.[0] !== l) lettres.push([l, []]); lettres.at(-1)[1].push(x); }
   return `${bandeauSection("OBJETS", "Garder, vendre ou recycler")}
   <label class="recherche"><svg class="ic" viewBox="0 0 24 24" style="color:var(--or)"><path d="${ONGLETS[1][3]}"/></svg>
   <input id="recherche-objets" type="search" placeholder="Cherche un objet…" value="${echap(S.recherche)}" data-champ="recherche" autocomplete="off"></label>
-  <div class="chips">${filtresObjets().map(([k, t]) => pf(t, S.filtre === k, "--or", "filtre", k)).join("")}</div>
-  <p class="doux" style="margin:0">${info}</p>
-  <div id="liste-objets" style="display:flex;flex-direction:column;gap:8px">${r.map(([o, v]) => `<button class="carte ligne" style="padding:10px 12px" data-action="fiche" data-id="${o.id}">${icone(o.id, 48)}
-    <span class="flex"><span class="nom">${echap(o.nom)}</span><br><span class="petit doux">${echap(raisonVerdict(o, v))}</span></span>
-    ${puceVerdict(v)}</button>`).join("")}</div>`;
+  <div class="chips">${filtresObjets().map(([k, t]) => pf(`${t} · ${k === "TOUS" ? resultats.length : resultats.filter(([, v]) => accepte(k, v)).length}`, S.filtre === k, "--or", "filtre", k)).join("")}</div>
+  ${!r.length ? `<p class="doux" style="margin:0">Aucun objet ne correspond.</p>` : !parSections ? `<p class="petit discret" style="margin:0">${pluriel(r.length, "objet trouvé", "objets trouvés")}</p>` : ""}
+  <div id="liste-objets" style="display:flex;flex-direction:column;gap:6px">
+  ${aGarder.length ? `${etiquette(`À garder · ${aGarder.length}`, "--vert", "h4")}${aGarder.map(([o, v]) => ligneObjet(o, v)).join("")}` : ""}
+  ${parSections && reste.length ? `${etiquette(`À vendre ou recycler · ${reste.length}`, "--or", "h4")}${lettres.map(([l, xs]) => `<h5 class="lettre">${l}</h5>${xs.map(([o, v]) => ligneObjet(o, v)).join("")}`).join("")}` : reste.map(([o, v]) => ligneObjet(o, v)).join("")}</div>`;
 }
 
 // Fiche d'un objet, dans l'ordre où le joueur se pose les questions : verdict, à quoi il peut servir, où le trouver, ce qu'il rapporte.
@@ -650,24 +752,25 @@ function ecranFiche(id) {
       note: u.aucun ? null : `Il peut quand même servir${NB}: ${resumeUsages(u).join(", ")}. Le détail est plus bas.` };
   const lignesBuilds = (c.builds || []).map(b => `<b>Build «${NB}${echap(b.build)}${NB}»${b.direct ? "" : `${NB}: pour ${echap(nomObjet(b.objet))}`}</b>`).join("");
   return `${retour("Objet", "--or")}
-  <div class="ligne" style="gap:16px">${icone(id, 104)}<div class="flex" style="display:flex;flex-direction:column;gap:8px">
-    <h3>${echap(o.nom)}</h3>${rar ? `<span class="puce" style="--r:var(${rar[1]});align-self:flex-start"><i></i>${rar[0]}</span>` : ""}
-    ${o.categorie ? `<span class="puce doux" style="align-self:flex-start">${echap(o.categorie)}</span>` : ""}</div></div>
+  <div class="ligne" style="gap:14px">${icone(id, 64)}<div class="flex"><h3 style="font-size:22px">${echap(o.nom)}</h3>
+    <span class="petit doux">${echap([rar?.[0], o.categorie, `se vend ${o.valeur}`].filter(Boolean).join(" · "))}</span></div></div>
   <div class="verdict ${c.fond === "--releve" ? "neutre" : ""}" style="--v:var(${c.fond})"><small>VERDICT</small><h3>${c.titre}</h3><b>${c.texte}</b>
     ${c.pour?.length || c.builds?.length ? `<hr>${(c.pour || []).map(b => `<div class="ligne"><b class="flex">${echap(b.libelle)}</b><b>${Math.min(b.apporte, b.quantite)}/${b.quantite}</b></div>`).join("")}${lignesBuilds}` : ""}
     ${c.note ? `<span class="petit">${c.note}</span>` : ""}</div>
   <button class="bouton large contour" style="--c:var(--rouge);padding:12px" data-action="butin-ajouter" data-id="${id}">+ ${M.butin?.[id] ? `${BUTIN}${NB}: ${M.butin[id]} · en ajouter un` : "Ajouter au butin recherché"}</button>
   ${sectionUsages(u)}
   ${commentLObtenir(o)}
-  <h4>Vente et recyclage</h4><p style="margin:0">Se vend ${o.valeur} pièces l'unité.</p>
-  ${o.recyclage.length ? `<p class="doux" style="margin:0">Recyclage en (matériaux${NB}: ${vr} pièces)${NB}:</p>${o.recyclage.map(ligneQte).join("")}` : `<p class="doux" style="margin:0">Ne se recycle pas.</p>`}`;
+  ${section("Vente et recyclage", `Se vend ${o.valeur} pièces · ${o.recyclage.length ? "se recycle" : "ne se recycle pas"}`, `<p style="margin:0">Se vend ${o.valeur} pièces l'unité.</p>
+  ${o.recyclage.length ? `<p class="doux" style="margin:0">Recyclage en (matériaux${NB}: ${vr} pièces)${NB}:</p>${o.recyclage.map(ligneQte).join("")}` : `<p class="doux" style="margin:0">Ne se recycle pas.</p>`}`)}`;
 }
 
 // À quoi peut servir l'objet (SectionUsages, EcranObjets.kt) : description officielle, puis tout ce qui le demande.
 const abrege = (noms, n = 3) => noms.slice(0, n).join(", ") + (noms.length > n ? ` et ${noms.length - n} autres` : "");
+// Une partie de la fiche, en accordéon (Section, EcranObjets.kt) : la fiche tient sur un écran.
+const section = (titre, resume, contenu) => `<div>${accordeon(titre, titre, resume, "--or")}${ouvert(titre) ? `<div class="detail-accordeon">${contenu}</div>` : ""}</div>`;
 function sectionUsages(u) {
   const ut = u.ut, ligne = (titre, texte) => `<div class="usage"><b>${titre}</b><br>${echap(texte)}</div>`;
-  let h = `<h4>À quoi il peut servir</h4>`;
+  let h = "";
   if (u.description) h += `<p style="margin:0">${echap(u.description)}</p>`;
   if (u.aucun) h += `<p class="doux" style="margin:0">Rien d'autre que la vente ou le recyclage, d'après les données du jeu.</p>`;
   if (ut.cle) h += ligne("Clé", `Elle ouvre une porte ou une salle${NB}: voir la description.`);
@@ -686,7 +789,8 @@ function sectionUsages(u) {
   if (ut.avantPoste.length) h += ligne("Avant-poste", abrege(ut.avantPoste));
   if (ut.echanges.length) h += ligne("Échanges", ut.echanges.slice(0, 4).map(e => `${e.commercant}${NB}: ${e.donne} contre ${e.quantite} × ${nomObjet(e.objet)}`).join(" · ") + (ut.echanges.length > 4 ? ` · et ${ut.echanges.length - 4} autres` : ""));
   if (ut.echangesValeur.length) h += ligne("Échanges", `${ut.echangesValeur.join(", ")} l'accepte en échange, au prix de sa valeur.`);
-  return h;
+  const resume = resumeUsages(u).join(", ");
+  return section("À quoi il peut servir", resume ? resume[0].toUpperCase() + resume.slice(1) : "Vente ou recyclage seulement", h);
 }
 
 // Comment obtenir l'objet (CommentLObtenir, EcranObjets.kt) : butin, commerçants, fabrication, recyclage, récompenses.
@@ -702,22 +806,22 @@ function commentLObtenir(o) {
   const ob = o.obtention || {}, rec = sourcesRecyclage(o.id);
   let h = "";
   if (o.lieux.length || ob.cartes?.length || ob.zones?.length) {
-    h += `<h4>Où le trouver</h4>`;
-    if (o.lieux.length) h += `<p style="margin:0">Dans les zones${NB}: ${echap(o.lieux.join(" · "))}</p>`;
-    if (ob.cartes?.length) h += `<h5>Meilleures cartes</h5>${ob.cartes.map(c => ligneIndice(cartes.get(c.carte)?.nom ?? NOM_A_VERIFIER, null, c.indice)).join("")}`;
-    if (ob.zones?.length) h += `<h5>Meilleures zones</h5>${ob.zones.slice(0, 5).map(z => ligneIndice(z.zone, cartes.get(z.carte)?.nom, z.indice, `data-action="plan-zone" data-id="${z.carte}" data-zone="${echap(z.zone)}"`)).join("")}
+    let c = "";
+    if (o.lieux.length) c += `<p style="margin:0">Dans les zones${NB}: ${echap(o.lieux.join(" · "))}</p>`;
+    if (ob.cartes?.length) c += `<h5>Meilleures cartes</h5>${ob.cartes.map(x => ligneIndice(cartes.get(x.carte)?.nom ?? NOM_A_VERIFIER, null, x.indice)).join("")}`;
+    if (ob.zones?.length) c += `<h5>Meilleures zones</h5>${ob.zones.slice(0, 5).map(z => ligneIndice(z.zone, cartes.get(z.carte)?.nom, z.indice, `data-action="plan-zone" data-id="${z.carte}" data-zone="${echap(z.zone)}"`)).join("")}
       <p class="petit doux" style="margin:0">Classement d'après les tables de butin du jeu (condition normale), 100 pour le meilleur endroit. Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs.</p>`;
+    h += section("Où le trouver", ob.cartes?.length ? `Surtout ${cartes.get(ob.cartes[0].carte)?.nom ?? NOM_A_VERIFIER}` : o.lieux.join(" · "), c);
   }
-  if (ob.achats?.length) h += `<h4>Chez les commerçants</h4>${ob.achats.map(a => {
+  if (ob.achats?.length) h += section("Chez les commerçants", [...new Set(ob.achats.map(a => a.commercant))].join(" · "), ob.achats.map(a => {
     const prix = [a.pieces ? `${a.pieces} pièces` : "", a.valeurObjets ? `des objets valant ${a.valeurObjets} pièces` : ""].filter(Boolean).join(" + ");
     return `<div style="display:flex;flex-direction:column;gap:2px"><span>${echap(a.commercant)}${prix ? `${NB}: ${a.quantite > 1 ? `${a.quantite} pour ` : ""}${prix}` : ""}</span>${(a.objets || []).map(ligneQte).join("")}${a.limite ? `<small class="doux">${a.parJour ? `${a.limite} par jour au plus` : pluriel(a.limite, "achat possible", "achats possibles")}</small>` : ""}</div>`;
-  }).join("")}`;
-  if (ob.fabrications?.length) h += `<h4>Fabrication</h4>${ob.fabrications.map(f => {
-    const ou = f.etabli ? (f.niveau ? `${f.etabli} · niveau ${f.niveau}` : f.etabli) : "Pendant un raid";
-    return `<div style="display:flex;flex-direction:column;gap:2px"><span>${echap(f.quantite > 1 ? `${ou} (en donne ${f.quantite})` : ou)}</span>${f.plan ? `<small class="doux">Plan à débloquer${NB}: ${echap(f.plan)}</small>` : ""}${f.ingredients.map(ligneQte).join("")}</div>`;
-  }).join("")}`;
-  if (rec.length) h += `<h4>En recyclant</h4>${rec.slice(0, 6).map(q => `<button class="ligne" data-action="fiche" data-id="${q.id}" style="text-align:left">${icone(q.id, 32)}<span class="flex">${echap(nomObjet(q.id))}</span><small class="doux">en donne ${q.quantite}</small></button>`).join("")}${rec.length > 6 ? `<p class="petit doux" style="margin:0">Et ${pluriel(rec.length - 6, "autre objet", "autres objets")}.</p>` : ""}`;
-  if (ob.recompenses?.length) h += `<h4>En récompense</h4>${ob.recompenses.map(r => `<p style="margin:0">${echap(r)}</p>`).join("")}`;
+  }).join(""));
+  const ou = f => f.etabli ? (f.niveau ? `${f.etabli} · niveau ${f.niveau}` : f.etabli) : "Pendant un raid";
+  if (ob.fabrications?.length) h += section("Fabrication", ou(ob.fabrications[0]), ob.fabrications.map(f =>
+    `<div style="display:flex;flex-direction:column;gap:2px"><span>${echap(f.quantite > 1 ? `${ou(f)} (en donne ${f.quantite})` : ou(f))}</span>${f.plan ? `<small class="doux">Plan à débloquer${NB}: ${echap(f.plan)}</small>` : ""}${f.ingredients.map(ligneQte).join("")}</div>`).join(""));
+  if (rec.length) h += section("En recyclant", pluriel(rec.length, "objet en donne", "objets en donnent"), `${rec.slice(0, 6).map(q => `<button class="ligne" data-action="fiche" data-id="${q.id}" style="text-align:left">${icone(q.id, 32)}<span class="flex">${echap(nomObjet(q.id))}</span><small class="doux">en donne ${q.quantite}</small></button>`).join("")}${rec.length > 6 ? `<p class="petit doux" style="margin:0">Et ${pluriel(rec.length - 6, "autre objet", "autres objets")}.</p>` : ""}`);
+  if (ob.recompenses?.length) h += section("En récompense", pluriel(ob.recompenses.length, "quête", "quêtes"), ob.recompenses.map(r => `<p style="margin:0">${echap(r)}</p>`).join(""));
   return h;
 }
 
@@ -726,13 +830,13 @@ const iconeCarte = c => `<svg width="22" height="22" viewBox="0 0 24 24" fill="n
 function ecranCartes() {
   const regions = [["EUROPE", "Europe"], ["AMERIQUE_DU_NORD", "Amérique du Nord"], ["AMERIQUE_DU_SUD", "Amérique du Sud"], ["ASIE", "Asie"], ["OCEANIE", "Océanie"]];
   return `${bandeauSection("CARTES", "Plans, zones et conditions")}
-  <div class="chips">${regions.map(([k, n]) => pf(n, M.region === k, "--cyan", "region", k)).join("")}</div>
-  <div class="note-apercu petit doux">Dans l'appli Android, cet onglet lit le calendrier officiel d'Embark${NB}: chaque carte avec ses conditions en cours et leur minuteur, les prochaines heures, la prochaine fois et les alertes. L'aperçu web ne peut pas joindre le site d'Embark${NB}: ouvre-le directement.</div>
-  <a class="lien" style="--c:var(--cyan)" href="https://arcraiders.com/map-conditions" target="_blank" rel="noopener">Ouvrir le calendrier officiel</a>
-  ${etiquette("Conditions de la carte", "--cyan", "h4")}
-  ${D.cartes.map(c => `<button class="carte ligne" data-action="plan" data-id="${c.id}">${iconeCarte("--texte-discret")}<span class="flex"><span class="nom">${echap(c.nom)}</span><br><span class="petit discret">En direct dans l'appli Android</span></span><span aria-hidden="true" style="color:var(--texte-discret);font:700 20px var(--titre)">›</span></button>`).join("")}
-  ${etiquette("Plans des cartes", "--cyan", "h4")}<div class="apercus">${D.cartes.map(c => `<button data-action="plan" data-id="${c.id}"><img src="cartes/${c.id}.webp" alt="" loading="lazy"><span>${echap(c.nom)}</span></button>`).join("")}</div>
-  ${etiquette("Toutes les conditions", "--cyan", "h4")}${[...D.conditions].sort((a, b) => b.majeure - a.majeure || a.nom.localeCompare(b.nom)).map(c => `<div class="carte ligne"><span class="puce" style="--r:var(${c.majeure ? "--rouge" : "--cyan"});background:none;padding:0"><i></i></span><span class="nom flex">${echap(c.nom)}</span></div>`).join("")}`;
+  <div class="ligne" style="gap:8px"><span class="petit discret flex">Calendrier officiel d'Embark${NB}: en direct dans l'appli Android</span>
+    <select class="pastille-region" data-region aria-label="Région du calendrier">${regions.map(([k, n]) => `<option value="${k}" ${M.region === k ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+  <a class="lien" style="--c:var(--cyan);padding:0;align-self:flex-start" href="https://arcraiders.com/map-conditions" target="_blank" rel="noopener">Ouvrir le calendrier officiel</a>
+  <div class="onglets-vue" role="tablist">${[[false, "En ce moment"], [true, "À venir"]].map(([v, t]) => `<button role="tab" aria-selected="${S.aVenir === v}" data-action="vue-cartes" data-id="${v}">${t}</button>`).join("")}</div>
+  ${!S.aVenir ? D.cartes.map(c => `<button class="carte-photo" data-action="plan" data-id="${c.id}"${FONDS.has(c.id) ? ` style="--photo:url('fonds/${c.id}.webp')"` : ""}><span class="flex" style="display:flex;flex-direction:column;gap:6px"><strong>${echap(c.nom)}</strong><span class="petit discret">Conditions en cours${NB}: dans l'appli Android</span></span><span class="bouton-plan">${iconeCarte("--cyan")}Plan</span></button>`).join("")
+    : `<div class="note-apercu petit doux">Dans l'appli Android, cette vue lit le calendrier officiel d'Embark${NB}: les prochaines heures et la prochaine fois de chaque condition, avec une cloche par ligne pour être prévenu. L'aperçu web ne peut pas joindre le site d'Embark.</div>
+  ${etiquette("Toutes les conditions", "--cyan", "h4")}${[...D.conditions].sort((a, b) => b.majeure - a.majeure || a.nom.localeCompare(b.nom)).map(c => `<div class="carte ligne"><span class="puce" style="--r:var(${c.majeure ? "--rouge" : "--cyan"});background:none;padding:0"><i></i></span><span class="nom flex">${echap(c.nom)}</span></div>`).join("")}`}`;
 }
 
 // ---- Plan interactif d'une carte (EcranPlan.kt) ----
@@ -831,8 +935,11 @@ addEventListener("resize", () => { if (S.ecran === "plan") placerPlan(); });
 
 // ---- Onglet Objectifs (EcranObjectifs.kt) : tout est fait d'office, sauf ce que le joueur indique en cours.
 // Au départ, il n'y a que les quatre boutons ; ce qui est en cours s'affiche dessous ----
-const CHOIX_EN_COURS = [["quetes", "Indiquer mes quêtes en cours", "Mes quêtes"], ["ateliers", "Indiquer mes ateliers en cours", "Mes ateliers"],
-  ["projets", "Indiquer mes projets en cours", "Mes projets"], ["expeditions", "Indiquer mes expéditions en cours", "Mes expéditions"]];
+const CHOIX_EN_COURS = [["quetes", "Indiquer mes quêtes en cours", "Quêtes"], ["ateliers", "Indiquer mes ateliers en cours", "Ateliers"],
+  ["projets", "Indiquer mes projets en cours", "Projets"], ["expeditions", "Indiquer mes expéditions en cours", "Expéditions"]];
+// Le groupe d'un objectif dans l'onglet Objectifs : ateliers, projets, Expéditions, puis quêtes.
+const groupeObjectif = o => o.type === "etabli" ? "ateliers" : o.type === "projet" ? (estExpedition(projets.get(o.id) || { id: "" }) ? "expeditions" : "projets") : "quetes";
+const ORDRE_GROUPES = [["ateliers", "Ateliers"], ["projets", "Projets"], ["expeditions", "Expéditions"], ["quetes", "Quêtes"]];
 function nombreEnCours(choix) {
   if (choix === "quetes") return quetesEnCours().length;
   if (choix === "ateliers") return D.etablis.filter(e => niveauEnCours(e) != null).length;
@@ -841,37 +948,42 @@ function nombreEnCours(choix) {
 const coche = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
 function ecranObjectifs() {
   const l = listeDeCourses(), objs = objectifs();
+  const total = l.lignes.reduce((n, x) => n + x.besoin, 0), apporte = l.lignes.reduce((n, x) => n + x.apporte, 0), aTrouverN = l.lignes.filter(x => !x.complet).length;
   return `${bandeauSection("OBJECTIFS", objs.length ? pluriel(objs.length, "objectif en cours", "objectifs en cours") : "Rien en cours")}
-  <p class="doux" style="margin:0">Tout ce que tu n'indiques pas est considéré comme déjà fait. Indique ce que tu as en cours${NB}: ce que tu rapportes de raid s'y ajoute, et tout se valide tout seul.</p>
-  <div class="grille-2">${CHOIX_EN_COURS.map(([cle, bouton, court]) => { const n = nombreEnCours(cle); return `<button class="choix-en-cours" data-action="en-cours" data-id="${cle}" aria-label="${bouton}${NB}: ${n ? `${n} en cours` : "rien en cours"}"><span class="flex"><b>${court}</b><br><span class="petit" style="font-weight:600;color:var(${n ? "--vert" : "--texte-discret"})">${n ? `${n} en cours` : "Rien en cours"}</span></span><span aria-hidden="true" style="color:var(--vert);font:700 22px var(--titre)">›</span></button>`; }).join("")}</div>
-  ${objs.length ? `<button class="carte" data-action="onglet" data-onglet="RAID" style="display:flex;flex-direction:column;gap:8px;padding:16px;margin-top:8px">
-    <span class="ligne"><b class="flex" style="font:600 14px var(--titre)">${pluriel(objs.length, "objectif en cours", "objectifs en cours")} · ${pluriel(l.lignes.filter(x => !x.complet).length, "objet", "objets")} à trouver</b><b style="font:700 14px var(--titre);color:var(--rouge)">Raid ›</b></span>
-    <span class="barre" style="height:8px;--c:var(--vert)"><i style="width:${l.progression * 100}%"></i></span></button>
-  ${etiquette("En cours", "--vert", "h4")}
-  ${objs.map(carteObjectif).join("")}` : ""}`;
+  <div class="tuiles">${CHOIX_EN_COURS.map(([cle, bouton, court]) => { const n = nombreEnCours(cle); return `<button class="tuile" style="--c:var(${n ? "--vert" : "--texte-discret"})" data-action="en-cours" data-id="${cle}" aria-label="${bouton}, ${n} en cours"><b>${n}</b><span>${court}</span></button>`; }).join("")}</div>
+  ${!objs.length ? `<p class="doux" style="margin:0">Tout ce que tu n'indiques pas est considéré comme déjà fait. Touche une tuile pour indiquer ce que tu as en cours.</p>` : `
+  <button class="carte ligne" data-action="onglet" data-onglet="RAID" style="padding:12px 14px"><span class="flex"><b style="font:600 14px var(--titre)">${aTrouverN ? `${pluriel(aTrouverN, "objet", "objets")} à trouver en raid` : "Rien à trouver en raid"}</b>${total ? `<br><span class="petit doux">${apporte} sur ${total} rapportés</span>` : ""}</span>
+    <span class="bouton" style="--c:var(--rouge);padding:9px 12px;font-size:13px">Préparer le raid ›</span></button>
+  ${ORDRE_GROUPES.map(([g, titre]) => { const dedans = objs.filter(o => groupeObjectif(o) === g); return dedans.length ? `${etiquette(titre, "--vert", "h4")}${dedans.map(carteObjectif).join("")}` : ""; }).join("")}`}`;
 }
-// Un objectif en cours (CarteObjectif) : la même carte dans l'onglet Objectifs et dans l'onglet Raid.
+// Un objectif en cours (CarteObjectif) : la même carte dans l'onglet Objectifs et dans l'onglet Raid ; les objets
+// demandés en pastilles (icône, rapportés/voulus).
 function carteObjectif(o) {
   const q = o.type === "quete" ? quetes.get(o.id) : null, autres = o.type === "projet" ? projets.get(o.id)?.etapes[o.etape]?.autresObjectifs : 0, b = besoins(o), vide = !b.length;
   const voulu = b.reduce((n, x) => n + x.quantite, 0), rapporte = b.reduce((n, x) => n + Math.min(apporteDe(o, x.id), x.quantite), 0);
-  return `<div class="carte" style="display:flex;flex-direction:column;gap:6px"><span class="ligne" style="align-items:flex-start;gap:8px"><span class="nom flex">${echap(libelle(o))}</span>${voulu ? `<b style="font:600 14px var(--titre);color:var(--vert);font-variant-numeric:tabular-nums">${rapporte}/${voulu}</b>` : ""}</span>${q?.commercant ? `<span class="petit doux" style="font-weight:600">${echap(q.commercant)}</span>` : ""}
-    ${voulu ? `<span class="barre" style="--c:var(--vert)"><i style="width:${rapporte / voulu * 100}%"></i></span>` : ""}
-    <span class="petit doux">${vide ? `Rien à rapporter${NB}: valide-le quand c'est fait en jeu.` : detailAvancement(o)}</span>${autres ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}
-    <button class="valider" data-action="valider-objectif" data-cle="${cleObjectif(o)}" aria-label="C'est fait${NB}: ${echap(libelle(o))}">${coche}C'est fait</button></div>`;
+  const detail = q?.commercant || (vide ? `Rien à rapporter${NB}: valide-le quand c'est fait en jeu.` : "");
+  return `<div class="carte" style="display:flex;flex-direction:column;gap:8px"><span class="ligne" style="align-items:flex-start;gap:8px"><span class="flex"><span class="nom">${echap(libelle(o))}</span>${detail ? `<br><span class="petit doux" style="font-weight:600">${echap(detail)}</span>` : ""}</span>${voulu ? `<b style="font:600 14px var(--titre);color:var(--vert);font-variant-numeric:tabular-nums">${rapporte}/${voulu}</b>` : ""}</span>
+    ${voulu ? `<span class="barre" style="height:4px;--c:var(--vert)"><i style="width:${rapporte / voulu * 100}%"></i></span>
+    <div class="pastilles">${b.map(x => { const n = Math.min(apporteDe(o, x.id), x.quantite); return `<span class="pastille-objet${n >= x.quantite ? " complet" : ""}" aria-label="${echap(nomObjet(x.id))}${NB}: ${n}/${x.quantite}">${icone(x.id, 24)}${n}/${x.quantite}</span>`; }).join("")}</div>` : ""}
+    ${autres ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}
+    <button class="valider contour" data-action="valider-objectif" data-cle="${cleObjectif(o)}" aria-label="C'est fait${NB}: ${echap(libelle(o))}">${coche}C'est fait</button></div>`;
 }
 
 // Mes quêtes en cours : cochées dans le journal de quêtes ; tout le reste est fait d'office.
 function ecranQuetes() {
-  if (!S.choix) S.choix = new Set(quetesEnCours().map(q => q.id));
+  if (!S.choix) {
+    S.choix = new Set(quetesEnCours().map(q => q.id));
+    // Ordre figé à l'ouverture (cochées d'abord) : une quête cochée ne saute pas sous le doigt.
+    S.ordreQuetes = [...histoire].sort((a, b) => (!S.choix.has(a.id)) - (!S.choix.has(b.id)) || (a.commercant || "").localeCompare(b.commercant || "") || a.nom.localeCompare(b.nom));
+  }
   const cle = normaliser(S.rechercheQuetes);
-  const liste = histoire.filter(q => !cle || normaliser(q.nom).includes(cle) || normaliser(q.commercant || "").includes(cle))
-    .sort((a, b) => (!S.choix.has(a.id)) - (!S.choix.has(b.id)) || (a.commercant || "").localeCompare(b.commercant || "") || a.nom.localeCompare(b.nom));
-  return `${retour("Objectifs", "--vert")}<h3>Mes quêtes en cours</h3>
-  <p class="doux" style="margin:0">Coche les quêtes en cours dans ton journal de quêtes. Toutes les autres sont considérées comme faites${NB}; celles qui viennent après s'ajouteront toutes seules.</p>
+  const liste = S.ordreQuetes.filter(q => !cle || normaliser(q.nom).includes(cle) || normaliser(q.commercant || "").includes(cle));
+  return `${enTeteChoix("Mes quêtes en cours", pluriel(S.choix.size, "quête cochée", "quêtes cochées"))}
+  <p class="petit discret" style="margin:0">Coche les quêtes en cours dans ton journal de quêtes. Les autres sont considérées comme faites${NB}; celles qui viennent après s'ajouteront toutes seules.</p>
   <label class="recherche"><input id="recherche-quetes" type="search" placeholder="Chercher une quête ou un commerçant" value="${echap(S.rechercheQuetes)}" data-champ="rechercheQuetes" autocomplete="off"></label>
-  <button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="valider-quetes">Valider (${pluriel(S.choix.size, "quête", "quêtes")})</button>
-  ${liste.map(q => { const c = S.choix.has(q.id), detail = [q.commercant, detailCout(q.objets)].filter(Boolean).join(" · "); return `<button class="carte ligne" data-action="cocher" data-id="${q.id}" aria-pressed="${c}"><span class="case ${c ? "coche" : ""}">${c ? "✓" : ""}</span>
-    <span class="flex"><span class="nom">${echap(q.nom)}</span>${detail ? `<br><span class="petit doux">${detail}</span>` : ""}</span></button>`; }).join("")}`;
+  ${liste.map(q => { const c = S.choix.has(q.id), detail = [q.commercant, detailCout(q.objets)].filter(Boolean).join(" · "); return `<button class="carte ligne" data-action="cocher" data-id="${q.id}" aria-pressed="${c}"${c ? ` style="background:color-mix(in srgb, var(--vert) 12%, var(--surface))"` : ""}><span class="case ${c ? "coche" : ""}">${c ? "✓" : ""}</span>
+    <span class="flex"><span class="nom">${echap(q.nom)}</span>${detail ? `<br><span class="petit doux">${detail}</span>` : ""}</span></button>`; }).join("")}
+  ${actionFixe(`Valider · ${pluriel(S.choix.size, "quête", "quêtes")}`, "--vert", "valider-quetes")}`;
 }
 
 // Nom d'un établi ou d'un projet ; terminé, suivi des bandes du logo en vert, de « TERMINÉ » et de ce qui a été
@@ -880,50 +992,63 @@ const COIN_VALIDE = `<svg class="coin-valide" width="52" height="52" viewBox="0 
 const BANDES_VERTES = `<svg width="22" height="12" viewBox="0 0 35 20" aria-hidden="true"><path d="M0 20h5l7.2-20h-5z" fill="#3E7A37"/><path d="M7.5 20h5l7.2-20h-5z" fill="#4E9C45"/><path d="M15 20h5l7.2-20h-5z" fill="#5DB552"/><path d="M22.5 20h5l7.2-20h-5z" fill="#6CCB5F"/></svg>`;
 // Le balayage ne joue qu'au passage à « Terminé » (S.balayage, effacé au rendu suivant), jamais à l'ouverture de la liste.
 const balaie = (type, id, fin) => fin && S.balayage === `${type}:${id}` ? "balaie" : "";
-const titreChoix = (nom, fin, fait) => `${fin ? COIN_VALIDE : ""}<div class="titre-choix"><span class="nom">${echap(nom)}</span>${fin ? `<div class="termine-ligne">${BANDES_VERTES}${etiquette("Terminé", "--vert")}<span class="petit doux">· ${fait}</span></div>` : ""}</div>`;
+// En-tête des écrans de choix : retour, titre et résumé d'une ligne.
+const enTeteChoix = (titre, resume) => `<div class="ligne" style="gap:4px"><button class="retour" data-action="fermer" aria-label="Retour aux objectifs"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg></button><span class="flex"><h3 style="font-size:22px">${titre}</h3><span class="petit doux">${echap(resume)}</span></span></div>`;
+// Piste « — 1 2 3 ✓ » (Piste, EcranObjectifs.kt) : le choix plein de vert, ce qui est déjà fait teinté de vert.
+const piste = (nom, choix, choisi, fin, action, actionFin, id) => `<div class="piste" role="radiogroup" aria-label="${echap(nom)}">
+  <button role="radio" aria-checked="${choisi == null && !fin}" data-action="${action}" data-id="${id}" data-n="" aria-label="${echap(nom)}${NB}: rien en cours">—</button>
+  ${choix.map(([n, court, desc], i) => `<button role="radio" class="${fin || (choisi != null && i < choix.findIndex(x => x[0] === choisi)) ? "fait" : ""}" aria-checked="${choisi === n}" data-action="${action}" data-id="${id}" data-n="${n}" aria-label="${echap(nom)}${NB}: ${echap(desc)}">${court}</button>`).join("")}
+  <button role="radio" aria-checked="${fin}" data-action="${actionFin}" data-id="${id}" aria-label="${echap(nom)}${NB}: terminé">✓</button></div>`;
+const titreChoix = (nom, fin, fait, etat) => `${fin ? COIN_VALIDE : ""}<div class="titre-choix"><div class="ligne"><span class="nom flex">${echap(nom)}</span>${fin ? "" : etiquette(etat || "Pas en cours", etat ? "--vert" : "--texte-discret")}</div>${fin ? `<div class="termine-ligne">${BANDES_VERTES}${etiquette("Terminé", "--vert")}<span class="petit doux">· ${fait}</span></div>` : ""}</div>`;
 // Mes ateliers en cours : le niveau en cours de chaque établi, « Aucun » ou « Terminé ». Chaque choix s'applique tout de suite.
 function ecranAteliers() {
-  return `${retour("Objectifs", "--vert")}<h3>Mes ateliers en cours</h3>
-  <p class="doux" style="margin:0">Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer, ou «${NB}Terminé${NB}» s'il est au niveau maximum. Une fois un niveau terminé, le suivant s'ajoute tout seul.</p>
-  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveauEnCours(e), fin = etabliTermine(e); return `<div class="carte ${fin ? "terminee" : ""} ${balaie("etabli", e.id, fin)}" style="display:flex;flex-direction:column;gap:8px">
-    ${titreChoix(e.nom, fin, `${pluriel(e.niveaux.length, "niveau", "niveaux")} sur ${e.niveaux.length}`)}
-    <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="" aria-pressed="${n == null && !fin}" aria-label="${echap(e.nom)}${NB}: rien en cours">Aucun</button><button class="chip fin" data-action="etabli-termine" data-id="${e.id}" aria-pressed="${fin}" aria-label="${echap(e.nom)}${NB}: terminé, tous les niveaux sont faits">✓ Terminé</button>${[...e.niveaux].sort((a, b) => a.niveau - b.niveau).map(x => `<button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="${x.niveau}" aria-pressed="${n === x.niveau}" aria-label="${echap(e.nom)}${NB}: niveau ${x.niveau} en cours">Niveau ${x.niveau}</button>`).join("")}</div>
-    ${n != null ? `<span class="petit" style="color:var(--or)">Niveau ${n}${NB}: ${detailAvancement({ type: "etabli", id: e.id, niveau: n })}</span>` : ""}</div>`; }).join("")}`;
+  const liste = [...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom));
+  const enCours = liste.filter(e => niveauEnCours(e) != null).length, finis = liste.filter(etabliTermine).length;
+  return `${enTeteChoix("Mes ateliers en cours", `${enCours} en cours · ${pluriel(finis, "terminé", "terminés")}`)}
+  <p class="petit discret" style="margin:0">Touche le niveau que tu améliores. Quand tout est rapporté, le suivant s'ajoute tout seul.</p>
+  ${liste.map(e => { const n = niveauEnCours(e), fin = etabliTermine(e), niv = [...e.niveaux].sort((a, b) => a.niveau - b.niveau); return `<div class="carte ${fin ? "terminee" : ""} ${balaie("etabli", e.id, fin)}" style="display:flex;flex-direction:column;gap:10px">
+    ${titreChoix(e.nom, fin, `${pluriel(e.niveaux.length, "niveau", "niveaux")} sur ${e.niveaux.length}`, n != null ? `Niveau ${n} en cours` : null)}
+    ${piste(e.nom, niv.map(x => [x.niveau, `${x.niveau}`, `niveau ${x.niveau} en cours`]), n, fin, "niveau-en-cours", "etabli-termine", e.id)}
+    ${n != null ? `<span class="petit doux">Il faut${NB}: ${detailAvancement({ type: "etabli", id: e.id, niveau: n })}</span>` : ""}</div>`; }).join("")}`;
 }
 
-// Mes projets (ou mes Expéditions) en cours : l'étape en cours de chacun, « Aucune » ou « Terminé ».
+// Mes projets (ou mes Expéditions) en cours : l'étape en cours de chacun, sur une piste.
 function ecranProjets(expeditions) {
-  return `${retour("Objectifs", "--vert")}<h3>${expeditions ? "Mes expéditions en cours" : "Mes projets en cours"}</h3>
-  <p class="doux" style="margin:0">Choisis l'étape en cours de chacun, ou «${NB}Terminé${NB}» s'il est fini. Une fois une étape terminée, la suivante s'ajoute toute seule.</p>
-  ${(D.projets || []).filter(p => estExpedition(p) === expeditions).map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p); return `<div class="carte ${fin ? "terminee" : ""} ${balaie("projet", p.id, fin)}" style="display:flex;flex-direction:column;gap:8px">
-    ${titreChoix(p.nom, fin, `${pluriel(p.etapes.length, "étape", "étapes")} sur ${p.etapes.length}`)}
-    <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="" aria-pressed="${e == null && !fin}" aria-label="${echap(p.nom)}${NB}: pas en cours">Aucune</button><button class="chip fin" data-action="projet-termine" data-id="${p.id}" aria-pressed="${fin}" aria-label="${echap(p.nom)}${NB}: terminé, toutes les étapes sont faites">✓ Terminé</button>${p.etapes.map((_, i) => `<button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="${i}" aria-pressed="${e === i}" aria-label="${echap(p.nom)}${NB}: ${echap(nomEtape(p, i))} en cours">Étape ${i + 1}</button>`).join("")}</div>
-    ${et ? `<span class="petit doux" style="font-weight:600">${echap(nomEtape(p, e))}</span>${et.cout.length ? `<span class="petit" style="color:var(--or)">${detailAvancement({ type: "projet", id: p.id, etape: e })}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}</div>`; }).join("")}`;
+  const liste = (D.projets || []).filter(p => estExpedition(p) === expeditions);
+  const enCours = liste.filter(p => etapeEnCours(p) != null).length, finis = liste.filter(projetTermine).length;
+  return `${enTeteChoix(expeditions ? "Mes expéditions en cours" : "Mes projets en cours", `${enCours} en cours · ${pluriel(finis, "terminé", "terminés")}`)}
+  <p class="petit discret" style="margin:0">Touche l'étape en cours. Quand tout est rapporté, la suivante s'ajoute toute seule.</p>
+  ${liste.map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p); return `<div class="carte ${fin ? "terminee" : ""} ${balaie("projet", p.id, fin)}" style="display:flex;flex-direction:column;gap:10px">
+    ${titreChoix(p.nom, fin, `${pluriel(p.etapes.length, "étape", "étapes")} sur ${p.etapes.length}`, e != null ? `Étape ${e + 1} en cours` : null)}
+    ${piste(p.nom, p.etapes.map((_, i) => [i, `${i + 1}`, `${nomEtape(p, i)} en cours`]), e, fin, "etape-en-cours", "projet-termine", p.id)}
+    ${et ? `<span class="petit doux" style="font-weight:600">${echap(nomEtape(p, e))}</span>${et.cout.length ? `<span class="petit doux">Il faut${NB}: ${detailAvancement({ type: "projet", id: p.id, etape: e })}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}</div>`; }).join("")}`;
 }
 
 function ecranRaid() {
   const R = S.raid, depart = R.liste.filter(x => !x.trouve), actuels = new Map(listeDuRaid().map(x => [x.id, x]));
-  const trouves = depart.filter(a => actuels.get(a.id)?.trouve !== false).length, notes = Object.values(R.saisis).reduce((s, n) => s + n, 0);
-  return `${retour("Raid", "--rouge")}<h3>Retour de raid</h3>
-  <p class="doux" style="margin:0">Note ce que tu as rapporté${NB}: chaque objet va aux objectifs qui en ont besoin, puis à ton butin recherché. À la validation, tout ce qui est complet se termine tout seul.</p>
-  <div class="ligne"><span class="flex">${depart.length ? `<b style="font:600 14px var(--titre);color:var(${trouves ? "--vert" : "--texte-doux"})">${trouves} sur ${depart.length} trouvé${trouves > 1 ? "s" : ""}</b><br>` : ""}<span class="petit" style="color:var(${notes ? "--or" : "--texte-doux"})">${notes ? `${pluriel(notes, "objet noté", "objets notés")}.` : "Rien de noté pour l'instant."}</span></span>
-    ${notes ? `<button class="lien" style="--c:var(--texte-doux)" data-action="annuler-raid">Annuler</button>` : ""}<button class="bouton" data-action="valider-retour">Valider</button></div>
-  ${!depart.length ? `<p class="doux">Rien à trouver pour l'instant${NB}: indique ce que tu as en cours dans l'onglet Objectifs.</p>` : ""}
-  ${depart.map(a => ligneSaisie(actuels.get(a.id) ?? a, R.saisis[a.id] ?? 0)).join("")}`;
+  const lignes = depart.map(a => actuels.get(a.id) ?? a), complets = lignes.filter(a => a.trouve).length, notes = Object.values(R.saisis).reduce((s, n) => s + n, 0);
+  const voulus = lignes.reduce((n, a) => n + a.voulu, 0), rapportes = lignes.reduce((n, a) => n + Math.min(a.trouves, a.voulu), 0);
+  return `<div class="ligne" style="gap:4px"><button class="retour" data-action="fermer" aria-label="Retour"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg></button><h3 class="flex" style="font-size:22px">Retour de raid</h3>
+    ${notes ? `<button class="lien" style="--c:var(--texte-doux)" data-action="annuler-raid">Annuler</button>` : bandeau("Raid", "--rouge")}</div>
+  ${depart.length ? `<div class="ligne"><b class="flex" style="font:600 15px var(--titre);color:var(${notes ? "--or" : "--texte"})">${notes ? pluriel(notes, "objet noté", "objets notés") : "Rien de noté pour l'instant"}</b><span class="petit" style="color:var(${complets ? "--vert" : "--texte-doux"})">${complets} sur ${depart.length} complet${complets > 1 ? "s" : ""}</span></div>
+  <span class="barre"><i style="width:${voulus ? rapportes / voulus * 100 : 0}%"></i></span>
+  <p class="petit doux" style="margin:0">Touche l'icône d'un objet pour en ajouter 1 (appui long${NB}: +5). Le butin va aux objectifs qui le demandent, puis à ton butin recherché.</p>
+  <div class="compacte">${lignes.map(a => ligneSaisie(a, R.saisis[a.id] ?? 0)).join("")}</div>`
+  : `<p class="doux">Rien à trouver pour l'instant${NB}: indique ce que tu as en cours dans l'onglet Objectifs.</p>`}
+  ${actionFixe(notes ? `Valider · ${pluriel(notes, "objet", "objets")}` : "Valider", "--or", "valider-retour")}`;
 }
 
-// Un objet à rapporter : son décompte, pour quoi il est demandé, et ce qui a été noté (LigneSaisie, EcranRetourRaid.kt).
+// Un objet à rapporter, sur une ligne (LigneSaisie, EcranRetourRaid.kt) : l'icône ajoute un objet (appui long : cinq),
+// « − n/voulu + » ; complet, la ligne passe au vert.
 function ligneSaisie(a, note) {
   const nom = echap(nomObjet(a.id));
-  const detail = a.trouve ? `Trouvé${NB}! ${a.voulu}/${a.voulu}` : `Encore ${a.reste} à trouver · ${a.trouves}/${a.voulu}`;
-  return `<div class="carte" style="display:flex;flex-direction:column;gap:8px;padding:10px">
-    <div class="ligne">${icone(a.id, 52)}<div class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : note ? "--or" : "--texte-doux"})">${detail}${note ? `  (+${note})` : ""}</span><br><span class="petit discret">${echap(pourQui(a))}</span></div>${a.trouve ? `<span role="img" aria-label="Trouvé" style="color:var(--vert);font:700 24px var(--titre);padding-right:6px">✓</span>` : ""}</div>
-    <div class="ligne" style="justify-content:flex-end;gap:8px"><button class="rond" style="width:48px;height:48px;background:var(--releve)" data-action="noter" data-id="${a.id}" data-d="-1" ${note ? "" : "disabled"} aria-label="En retirer un${NB}: ${nom}">−</button>
-    <button class="rond" style="width:48px;height:48px;background:var(--releve);color:var(--or);font-size:16px" data-action="noter" data-id="${a.id}" data-d="5" ${a.trouve ? "disabled" : ""} aria-label="En ajouter cinq${NB}: ${nom}">+5</button>
-    <button class="rond plein" style="width:72px;height:48px;border-radius:24px" data-action="noter" data-id="${a.id}" data-d="1" ${a.trouve ? "disabled" : ""} aria-label="En ajouter un${NB}: ${nom}">+1</button></div></div>`;
+  return `<div class="ligne-compacte${a.trouve ? " complet" : ""}" style="min-height:62px">
+    <button class="icone-plus" data-action="noter" data-id="${a.id}" data-d="1" data-appui-long="5" ${a.trouve ? "disabled" : ""} aria-label="En ajouter un${NB}: ${nom}">${icone(a.id, 46)}${note ? `<em>+${note}</em>` : ""}</button>
+    <span class="flex" style="min-width:0"><span class="nom">${nom}</span><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : "--texte-doux"})">${a.trouve ? `Complet${NB}!` : echap(pourQui(a))}</span></span>
+    <button class="pas" data-action="noter" data-id="${a.id}" data-d="-1" ${note ? "" : "disabled"} aria-label="En retirer un${NB}: ${nom}">−</button>
+    <b style="min-width:44px;text-align:center;font:700 15px var(--titre);font-variant-numeric:tabular-nums;color:var(${a.trouve ? "--vert" : "--texte"})">${a.trouves}<small class="discret" style="font-size:12px">/${a.voulu}</small></b>
+    <button class="pas" style="--c:var(--or)" data-action="noter" data-id="${a.id}" data-d="1" ${a.trouve ? "disabled" : ""} aria-label="En ajouter un${NB}: ${nom}">+</button></div>`;
 }
-
-
 
 // ---- Où aller pour trouver ce qui manque (PreparationRaid.kt) ----
 function conseilRaid(ids) {
@@ -974,27 +1099,32 @@ function ecranOngletRaid() {
   if (!detaillees.length) detaillees = conseil.cartes.slice(0, 1);
   const autres = conseil.cartes.filter(c => !detaillees.includes(c)), avecButin = new Set(conseil.cartes.flatMap(c => c.objets)).size;
   const couverts = conseil.parcours.reduce((n, e) => n + e.objets.length, 0), meilleure = conseil.cartes[0];
+  const ensuite = meilleure && conseil.parcours[0]?.carteId === meilleure.carteId ? conseil.parcours[1] : null;
+  const zonesOuvertes = ouvert("raid:zones");
   return `${bandeauSection("RAID", restants.length ? `${pluriel(restants.length, "objet", "objets")} à trouver` : objs.length ? "Rien à chercher en raid" : "Rien à chercher pour l'instant")}
   ${restants.length ? "" : `<p class="doux" style="margin:0">${objs.length ? "Tes objectifs en cours ne demandent aucun objet à rapporter." : "Rien à chercher pour l'instant."}</p>`}
   ${meilleure ? `<div class="prochain plein${FONDS.has(meilleure.carteId) ? ` photo" style="--photo:url('fonds/${meilleure.carteId}.webp')` : ""}"><small>MEILLEURE CARTE</small><strong>${echap(nomC(meilleure.carteId))}</strong>
-    <b>${meilleure.objets.length} de tes ${pluriel(restants.length, "objet", "objets")} à trouver${meilleure.zones[0] ? ` · surtout ${echap(meilleure.zones[0].zone)}` : ""}</b></div>` : ""}
-  ${liste.length ? `${etiquette("Ce qu'il te faut", "--rouge", "h4")}
-  ${liste.map(ligneATrouver).join("")}` : ""}
-  ${restants.length ? `<button class="bouton large contour" style="--c:var(--rouge)" data-action="raid">Retour de raid${NB}: ajouter mon butin</button>` : ""}
-  ${objs.length ? `<div class="ligne" style="margin-top:8px"><span class="etiquette flex" style="--c:var(--vert)">Mes objectifs</span><button class="lien" style="--c:var(--vert)" data-action="onglet" data-onglet="OBJECTIFS">Modifier</button></div>
-  ${objs.map(carteObjectif).join("")}` : ""}
-  ${!objs.length ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:8px;padding:16px"><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira sur quelle carte aller et où chercher.</span>
-    <button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="onglet" data-onglet="OBJECTIFS">Indiquer mes objectifs</button></div>` : ""}
-  <div class="ligne" style="margin-top:8px"><span class="etiquette flex" style="--c:var(--rouge)">${BUTIN}</span><button class="lien" style="--c:var(--rouge)" data-action="butin-ecran">+ Ajouter un objet</button></div>
-  ${objetsRecherches().length ? objetsRecherches().map(ligneButin).join("") : `<p class="petit doux" style="margin:0">Des objets à rapporter pour toi, sans quête ni projet${NB}: ils s'ajoutent à ce qu'il te faut, se décomptent au retour de raid et quittent la liste une fois tous rapportés.</p>`}
-  ${detaillees.length ? `${etiquette("Où aller", "--rouge", "h4")}
-  ${conseil.parcours.length > 1 ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:4px;padding:14px"><b style="color:var(--rouge);font-family:var(--titre)">Pour tout trouver</b>
+    <b>${meilleure.objets.length} de tes ${pluriel(restants.length, "objet", "objets")} à trouver${meilleure.zones[0] ? ` · surtout ${echap(meilleure.zones[0].zone)}` : ""}</b>
+    ${meilleure.zones.length ? `<button class="pf" style="align-self:flex-start;margin-top:8px;background:color-mix(in srgb, currentColor 12%, transparent);color:inherit" data-action="basculer" data-id="raid:zones" aria-expanded="${zonesOuvertes}">${zonesOuvertes ? "Masquer les zones" : `Où chercher · ${pluriel(meilleure.zones.length, "zone", "zones")}`}</button>` : ""}
+    ${zonesOuvertes ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">${meilleure.zones.map(z => `<button class="ligne" style="background:rgba(20,20,23,.72);color:var(--texte);border-radius:6px;padding:8px 10px;min-height:44px;text-align:left" data-action="plan-zone" data-id="${meilleure.carteId}" data-zone="${echap(z.zone)}"><b class="flex" style="font-size:14px">${echap(z.zone)}</b><span class="petit doux">${pluriel(z.objets.length, "objet", "objets")}</span><span class="petit" style="color:var(--cyan);font-weight:600">Plan ›</span></button>`).join("")}
+      ${ensuite ? `<span class="petit">Ensuite${NB}: ${echap(nomC(ensuite.carteId))}, pour ${pluriel(ensuite.objets.length, "autre objet", "autres objets")}.</span>` : ""}</div>` : ""}</div>` : ""}
+  ${liste.length ? `<div class="ligne" style="margin-top:4px"><span class="etiquette flex" style="--c:var(--rouge)">Ce qu'il te faut · ${restants.length}</span><span class="petit discret">${liste.reduce((n, a) => n + a.trouves, 0)} sur ${liste.reduce((n, a) => n + a.voulu, 0)} rapportés</span></div>
+  <div class="compacte">${liste.map(ligneATrouver).join("")}</div>` : ""}
+  ${objs.length ? `${accordeon("raid:objectifs", "Mes objectifs", `${objs.length} en cours · d'où vient chaque objet`, "--vert")}
+  ${ouvert("raid:objectifs") ? `${objs.map(carteObjectif).join("")}<button class="lien" style="--c:var(--vert);align-self:flex-start" data-action="onglet" data-onglet="OBJECTIFS">Modifier mes objectifs</button>` : ""}`
+  : `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:8px;padding:16px"><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira sur quelle carte aller et où chercher.</span>
+    <button class="bouton" style="--c:var(--vert);align-self:flex-start" data-action="onglet" data-onglet="OBJECTIFS">Indiquer mes objectifs</button></div>`}
+  <button class="accordeon" data-action="butin-ecran"><span class="flex"><b>${BUTIN}</b><br><span class="petit doux">${objetsRecherches().length ? pluriel(objetsRecherches().length, "objet", "objets") : "Des objets pour toi, sans objectif du jeu"}</span></span><b style="color:var(--rouge)">+ Ajouter</b></button>
+  ${objetsRecherches().map(ligneButin).join("")}
+  ${detaillees.length ? `${accordeon("raid:cartes", "Où aller", conseil.parcours.length > 1 ? `Parcours en ${conseil.parcours.length} cartes · zones où chercher` : "Zones où chercher", "--rouge")}
+  ${ouvert("raid:cartes") ? `${conseil.parcours.length > 1 ? `<div class="carte" style="background:var(--releve);display:flex;flex-direction:column;gap:4px;padding:14px"><b style="color:var(--rouge);font-family:var(--titre)">Pour tout trouver</b>
     ${conseil.parcours.map((e, i) => `<span>${i + 1}. ${echap(nomC(e.carteId))} · ${i ? "+ " : ""}${pluriel(e.objets.length, "objet", "objets")}</span>`).join("")}
     ${couverts < avecButin ? `<span class="petit doux">${pluriel(avecButin - couverts, "autre objet", "autres objets")} sur d'autres cartes.</span>` : ""}</div>` : ""}
   ${detaillees.map(c => carteRaid(c, avecButin, c === conseil.cartes[0])).join("")}
   ${autres.length ? `<p class="doux" style="margin:0">Aussi${NB}: ${echap(autres.map(c => `${nomC(c.carteId)} (${pluriel(c.objets.length, "objet", "objets")})`).join(" · "))}</p>` : ""}
-  <p class="petit discret" style="margin:0">Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs. Les conditions en cours sur chaque carte s'affichent dans l'appli Android.</p>` : ""}
-  ${conseil.sansButin.length ? `${etiquette("Pas dans le butin", "--rouge", "h4")}${conseil.sansButin.map(id => `<button class="carte ligne" style="padding:10px;text-align:left" data-action="fiche" data-id="${id}">${icone(id, 36)}<span class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit doux">${echap(autreMoyen(objets.get(id)))}</span></span></button>`).join("")}` : ""}`;
+  <p class="petit discret" style="margin:0">Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs. Les conditions en cours sur chaque carte s'affichent dans l'appli Android.</p>` : ""}` : ""}
+  ${conseil.sansButin.length ? `${etiquette("Pas dans le butin", "--rouge", "h4")}${conseil.sansButin.map(id => `<button class="carte ligne" style="padding:10px;text-align:left" data-action="fiche" data-id="${id}">${icone(id, 36)}<span class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit doux">${echap(autreMoyen(objets.get(id)))}</span></span></button>`).join("")}` : ""}
+  ${restants.length ? actionFixe(`Retour de raid${NB}: ajouter mon butin`, "--rouge", "raid") : ""}`;
 }
 
 // Un objet du butin recherché (LigneButin, EcranRaid.kt) : rapportés sur voulus, quantité, retirer.
@@ -1021,11 +1151,11 @@ function ecranChoixButin() {
 // Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien on en a sur
 // combien il en faut, et pour quoi.
 function ligneATrouver(a) {
-  const nom = echap(nomObjet(a.id));
-  return `<div class="carte ligne" style="padding:8px 4px 8px 10px;gap:10px"><button class="ligne flex" style="text-align:left;gap:10px" data-action="fiche" data-id="${a.id}">${icone(a.id, 40)}
-    <span class="flex"><span class="nom">${nom}</span><br><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : "--texte-doux"})">${a.trouves}/${a.voulu} · ${echap(pourQui(a))}</span></span></button>
-    ${a.trouve ? `<span role="img" aria-label="Trouvé" style="color:var(--vert);font:700 22px var(--titre);padding:0 10px">✓</span>`
-      : `<span class="reste"><b>${a.reste}</b><small>à trouver</small></span>`}</div>`;
+  const nom = echap(nomObjet(a.id)), arc = objets.get(a.id)?.lieux.includes("ARC");
+  return `<button class="ligne-compacte" data-action="fiche" data-id="${a.id}">${icone(a.id, 36)}
+    <span class="flex" style="min-width:0"><span class="nom" style="font-size:15px">${nom}</span><span class="petit" style="font-weight:600;color:var(${a.trouve ? "--vert" : "--texte-doux"})">${a.trouves}/${a.voulu} · ${echap(pourQui(a))}</span></span>
+    ${arc ? `<span class="tag-arc">ARC</span>` : ""}
+    ${a.trouve ? `<span role="img" aria-label="Trouvé" style="color:var(--vert);font:700 22px var(--titre)">✓</span>` : `<span class="nombre" aria-label="${a.reste} à trouver">${a.reste}</span>`}</button>`;
 }
 
 // Une carte conseillée : ce qu'on y trouve et les zones où chercher (CarteRaid, EcranRaid.kt).
@@ -1037,25 +1167,34 @@ function carteRaid(c, total, meilleure) {
     ${c.zones.length ? `<h5>Où chercher</h5>${c.zones.map(z => `<button class="carte ligne" style="background:var(--releve);padding:8px 10px;text-align:left" data-action="plan-zone" data-id="${c.carteId}" data-zone="${echap(z.zone)}"><span class="flex"><b>${echap(z.zone)}</b><br><span class="petit doux">${echap(z.objets.map(nomObjet).join(" · "))}</span></span><small style="color:var(--cyan)">Plan ›</small></button>`).join("")}` : ""}</div>`;
 }
 
-// Des cases du build, deux par ligne (GrilleCases, EcranBuilds.kt).
+// Des cases du build, deux par ligne (GrilleCases, EcranBuilds.kt) ; une case vide en pointillés.
 function grilleCases(b, i, cases) {
-  return `<div class="grille-2">${cases.map(([cle, nom]) => { const id = b.objets[cle]; return `<button class="case-build" data-action="build-case" data-id="${i}" data-case="${cle}">${id ? icone(id, 44) : `<span class="vide"></span>`}
-    <span class="flex" style="min-width:0">${etiquette(nom, "--violet")}<br><span class="nom" style="font-size:14px;color:var(${id ? "--texte" : "--texte-discret"})">${id ? echap(nomObjet(id)) : "Choisir"}</span></span></button>`; }).join("")}</div>`;
+  return `<div class="grille-2">${cases.map(([cle, nom]) => { const id = b.objets[cle]; return `<button class="case-build" data-action="build-case" data-id="${i}" data-case="${cle}">${id ? icone(id, 44) : `<span class="vide" aria-hidden="true">+</span>`}
+    <span class="flex" style="min-width:0"><span class="etiquette" style="--c:var(--texte-discret);font-size:10px;letter-spacing:1.5px">${echap(nom)}</span><br><span class="nom" style="font-size:14px;color:var(${id ? "--texte" : "--texte-discret"})">${id ? echap(nomObjet(id)) : "Choisir"}</span></span></button>`; }).join("")}</div>`;
 }
-// ---- Mes builds (EcranBuilds.kt) : six builds, une puce par build (deux lignes de trois), ses cases en grille ----
+const ETOILE = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
+const GROUPES_CASES = [["Équipement", ["MODULE", "BOUCLIER"]], ["Armes", ["ARME_1", "ARME_2"]], ["Consommables", ["SOINS", "GRENADES"]]];
+// ---- Mes builds (EcranBuilds.kt) : six builds en puces sur une ligne, le préféré en premier (étoile) et ouvert à
+// l'arrivée ; ses cases groupées, « Autres » repliées, puis ce qu'il faut pour le fabriquer. ----
 function ecranBuilds() {
-  const liste = builds(), i = Math.min(S.build, liste.length - 1), b = liste[i];
-  const mat = [...aGarderBuilds([b]).entries()].filter(([, u]) => u.every(x => !x.direct)).map(([id]) => id);
-  return `${bandeauSection("BUILDS", `Mes ${liste.length} builds`)}
-  <p class="doux" style="margin:0">Leurs objets, et tout ce qu'il faut pour les fabriquer, ne sont plus proposés à la vente.</p>
-  <div class="grille-3">${liste.map((x, k) => pf(nomBuild(x, k), k === i, "--violet", "build", k)).join("")}</div>
-  <label class="petit doux" style="font-weight:600">Nom du build<input class="champ" type="text" maxlength="30" placeholder="Build ${i + 1}" value="${echap(b.nom)}" data-build-nom="${i}" style="margin-top:4px"></label>
-  ${grilleCases(b, i, CASES.filter(c => c[2] !== "DIVERS"))}
-  ${etiquette("Autres", "--violet", "h4")}
-  ${grilleCases(b, i, CASES.filter(c => c[2] === "DIVERS"))}
-  ${mat.length ? `<div class="carte" style="display:flex;flex-direction:column;gap:6px;padding:14px 16px">${etiquette("Pour le fabriquer", "--violet")}
-    <span>${echap(mat.slice(0, 6).map(nomObjet).join(" · "))}${mat.length > 6 ? ` et ${pluriel(mat.length - 6, "autre", "autres")}` : ""}</span>
-    <span class="petit doux">À garder${NB}: ils ne sont plus proposés à la vente.</span></div>` : ""}`;
+  const liste = builds();
+  if (S.build == null) S.build = Math.max(0, liste.findIndex(b => b.prefere));
+  const i = Math.min(S.build, liste.length - 1), b = liste[i], remplis = liste.filter(x => Object.keys(x.objets).length).length;
+  const mat = aFabriquer(b), tous6 = ouvert(`build:${i}:materiaux`), autres = CASES.filter(c => c[2] === "DIVERS");
+  return `${bandeauSection("BUILDS", `${pluriel(remplis, "build", "builds")} sur ${liste.length} ${remplis > 1 ? "remplis" : "rempli"}`)}
+  <div class="puces-builds">${ordreBuilds(liste).map(k => { const x = liste[k], n = Object.keys(x.objets).length; return `<button class="pf" style="--c:var(--violet)" aria-pressed="${k === i}" data-action="build" data-id="${k}"${x.prefere ? ' aria-description="Build préféré"' : ""}>${x.prefere ? "★ " : ""}${echap(nomBuild(x, k))}${n ? `<small>${n}/${CASES.length}</small>` : ""}</button>`; }).join("")}</div>
+  <div class="ligne" style="gap:4px"><span class="flex" style="min-width:0">${b.prefere ? `${etiquette("Build préféré", "--violet")}<br>` : ""}
+    ${S.renommer ? `<input class="champ" type="text" maxlength="30" placeholder="Build ${i + 1}" value="${echap(b.nom)}" data-build-nom="${i}" aria-label="Nom du build">` : `<h3 style="font-size:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${echap(nomBuild(b, i))}</h3>`}</span>
+    <button class="icone-bouton" style="color:var(${b.prefere ? "--violet" : "--texte-discret"})" data-action="build-prefere" data-id="${i}" aria-pressed="${b.prefere}" aria-label="${b.prefere ? "Ne plus en faire mon build préféré" : "En faire mon build préféré"}">${ETOILE}</button>
+    <button class="icone-bouton" style="color:var(--violet)" data-action="build-renommer" aria-label="${S.renommer ? "Terminer" : "Renommer le build"}">${S.renommer ? "✓" : `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>`}</button></div>
+  ${GROUPES_CASES.map(([titre, cles]) => `${etiquette(titre, "--violet", "h4")}${grilleCases(b, i, cles.map(k => CASES.find(c => c[0] === k)))}`).join("")}
+  ${accordeon(`build:${i}:autres`, "Autres", `${autres.filter(c => b.objets[c[0]]).length} sur ${autres.length}`, "--violet")}
+  ${ouvert(`build:${i}:autres`) ? grilleCases(b, i, autres) : ""}
+  ${mat.length ? `<div class="carte materiaux"><div class="ligne"><b class="flex" style="font:600 15px var(--titre)">Pour le fabriquer</b><span class="petit doux">${pluriel(mat.length, "matériau", "matériaux")}</span></div>
+    <div class="pastilles">${(tous6 ? mat : mat.slice(0, 6)).map(([id, n]) => `<span class="pastille-objet">${icone(id, 24)}${echap(nomObjet(id))} ×${n}</span>`).join("")}</div>
+    ${mat.length > 6 ? `<button class="lien" style="--c:var(--violet);align-self:flex-start;padding:0" data-action="basculer" data-id="build:${i}:materiaux">${tous6 ? "Voir moins" : `Voir les ${mat.length} matériaux`}</button>` : ""}
+    <span class="petit discret">Ces objets passent en «${NB}Garder${NB}» dans la liste des objets.</span></div>`
+  : !Object.keys(b.objets).length ? `<p class="doux carte" style="margin:0;background:none;border:1.5px dashed var(--trait)">Touche une case pour choisir un objet. Ce qu'il faut pour le fabriquer s'affiche ici.</p>` : ""}`;
 }
 // Choix de l'objet d'une case : seulement les objets de son emplacement (EcranChoixObjetBuild).
 function ecranChoixBuild() {
@@ -1147,6 +1286,12 @@ function valider(o) {
 
 // ---- Rendu ----
 let celebrationAffichee = null;
+// Bandeau replié dès que la page défile (au-delà de 24 px), déplié tout en haut (sous 4 px) : pas d'aller-retour.
+let replie = false;
+addEventListener("scroll", () => {
+  const r = replie ? scrollY > 4 : scrollY > 24;
+  if (r !== replie) { replie = r; document.querySelector(".section")?.classList.toggle("replie", r); }
+}, { passive: true });
 function rendre() {
   // Retour de raid quitté (Valider, retour, autre onglet, réglages) : il est validé.
   if (S.raid && S.ecran !== "raid") validerRetour();
@@ -1166,10 +1311,11 @@ function rendre() {
   }
   if (e === "plan") brancherPlan();
   S.balayage = null;
+  document.documentElement.style.setProperty("--haut-entete", `${document.querySelector(".entete").offsetHeight}px`);
   document.getElementById("bouton-reglages").style.color = S.ecran === "reglages" ? "var(--or)" : "var(--texte-doux)";
   if (champ) { const el = document.querySelector(`[data-champ="${champ}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} } }
 }
-function ouvrir(ecran) { S.ecran = ecran; rendre(); window.scrollTo(0, 0); }
+function ouvrir(ecran) { S.ecran = ecran; replie = false; rendre(); window.scrollTo(0, 0); }
 
 // ---- Actions ----
 function objectifDepuisCle(cle) {
@@ -1187,7 +1333,11 @@ document.addEventListener("click", ev => {
   if (!b || b.disabled) return;
   const id = b.dataset.id;
   switch (b.dataset.action) {
-    case "onglet": S.onglet = b.dataset.onglet; S.ecran = null; rendre(); window.scrollTo(0, 0); return;
+    case "onglet": if (b.dataset.onglet === "BUILDS" && S.onglet !== "BUILDS") S.build = null; S.onglet = b.dataset.onglet; S.ecran = null; replie = false; S.renommer = false; rendre(); window.scrollTo(0, 0); return;
+    case "basculer": S.ouverts.has(id) ? S.ouverts.delete(id) : S.ouverts.add(id); rendre(); return;
+    case "vue-cartes": S.aVenir = id === "true"; rendre(); return;
+    case "build-prefere": changerBuild(+id, () => {}); M.builds = builds().map((x, k) => ({ ...x, prefere: k === +id ? !x.prefere : false })); break;
+    case "build-renommer": S.renommer = !S.renommer; rendre(); if (S.renommer) document.querySelector("[data-build-nom]")?.focus(); return;
     case "fiche": S.precedent = S.ecran; return ouvrir({ type: "fiche", id });
     case "fermer": S.ecran = S.ecran === "plan" && P.depuis ? P.depuis : S.ecran?.type === "fiche" && S.precedent ? S.precedent : null; P.depuis = null; S.precedent = null; rendre(); return;
     case "reglages": return ouvrir("reglages");
@@ -1202,7 +1352,7 @@ document.addEventListener("click", ev => {
     case "fin-celebration": S.celebration = null; if (S.validation) montrerValidation(S.validation); rendre(); return;
     case "region": M.region = id; break;
     case "filtre": S.filtre = id; rendre(); return;
-    case "build": S.build = +id; rendre(); return;
+    case "build": S.build = +id; S.renommer = false; rendre(); return;
     case "butin-ecran": S.rechercheButin = ""; return ouvrir("choix-butin");
     case "butin-choisir": changerButin(id, (M.butin?.[id] ?? 0) + 1); S.ecran = null; break;
     case "butin-ajouter": changerButin(id, (M.butin?.[id] ?? 0) + 1); break;
@@ -1231,6 +1381,22 @@ document.addEventListener("click", ev => {
   enregistrer();
   rendre();
 });
+// Région du calendrier (pastille « Europe ▾ »).
+document.addEventListener("change", ev => {
+  if (!ev.target.matches?.("[data-region]")) return;
+  M.region = ev.target.value; enregistrer(); rendre();
+});
+// Appui long sur l'icône d'un objet du retour de raid : cinq d'un coup (le clic qui suit est ignoré).
+let appuiLong = null, appuiFait = false;
+document.addEventListener("pointerdown", ev => {
+  const b = ev.target.closest("[data-appui-long]");
+  if (!b || b.disabled) return;
+  appuiFait = false;
+  appuiLong = setTimeout(() => { appuiFait = true; noter(b.dataset.id, +b.dataset.appuiLong); enregistrer(); rendre(); }, 500);
+});
+for (const t of ["pointerup", "pointercancel", "pointerleave"]) document.addEventListener(t, () => clearTimeout(appuiLong));
+document.addEventListener("click", ev => { if (appuiFait && ev.target.closest("[data-appui-long]")) { appuiFait = false; ev.stopImmediatePropagation(); } }, true);
+document.addEventListener("contextmenu", ev => { if (ev.target.closest("[data-appui-long]")) ev.preventDefault(); });
 document.addEventListener("input", ev => {
   // Nom d'un build : enregistré sans tout redessiner (le champ garde la main).
   const rang = ev.target.dataset?.buildNom;

@@ -1,6 +1,7 @@
 package io.github.slaynaw.carnetduraider.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -23,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -44,7 +46,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.Besoin
@@ -59,6 +64,7 @@ import io.github.slaynaw.carnetduraider.core.UsagesObjet
 import io.github.slaynaw.carnetduraider.core.Verdict
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) -> Unit, ouvrir: (String) -> Unit) {
     var filtre by rememberSaveable { mutableStateOf(FiltreVerdict.TOUS) }
@@ -66,62 +72,91 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
     val resultats = remember(recherche) {
         if (recherche.isBlank()) vm.catalogue.tous else vm.catalogue.rechercher(recherche, limite = 200)
     }
-    val affiches = if (filtre == FiltreVerdict.TOUS) resultats else resultats.filter { filtre.accepte(vm.verdict(it.id)) }
+    val verdicts = resultats.associate { it.id to vm.verdict(it.id) }
+    val affiches = if (filtre == FiltreVerdict.TOUS) resultats else resultats.filter { filtre.accepte(verdicts.getValue(it.id)) }
+    // Sans recherche ni filtre : ce qui est à garder d'abord, puis le reste par lettre.
+    val parSections = recherche.isBlank() && filtre == FiltreVerdict.TOUS
+    val aGarder = if (parSections) affiches.filter { verdicts.getValue(it.id) !is Verdict.Inutile } else emptyList()
+    val reste = if (parSections) affiches.filter { verdicts.getValue(it.id) is Verdict.Inutile } else affiches
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 6.dp)) {
-                BandeauSection(Onglet.OBJETS, "Garder, vendre ou recycler")
-                OutlinedTextField(
-                    value = recherche,
-                    onValueChange = onRecherche,
-                    placeholder = { Text("Cherche un objet…") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Or) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(6.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Signal.Or,
-                        unfocusedBorderColor = Signal.Trait,
-                        focusedContainerColor = Signal.Surface,
-                        unfocusedContainerColor = Signal.Surface,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    vm.filtresObjets.forEach { f ->
-                        PuceFiltre(f.libelle, choisie = f == filtre, couleur = Signal.Or, onClick = { filtre = f })
+    EcranDeSection(Onglet.OBJETS, "Garder, vendre ou recycler") { defilement ->
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            state = defilement,
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(bottom = 4.dp)) {
+                    OutlinedTextField(
+                        value = recherche,
+                        onValueChange = onRecherche,
+                        placeholder = { Text("Cherche un objet…") },
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Or) },
+                        trailingIcon = if (recherche.isNotEmpty()) {
+                            { IconButton(onClick = { onRecherche("") }) { Icon(Icons.Filled.Close, contentDescription = "Effacer la recherche", tint = Signal.TexteDoux) } }
+                        } else {
+                            null
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(6.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Signal.Or,
+                            unfocusedBorderColor = Signal.Trait,
+                            focusedContainerColor = Signal.Surface,
+                            unfocusedContainerColor = Signal.Surface,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        vm.filtresObjets.forEach { f ->
+                            val n = if (f == FiltreVerdict.TOUS) resultats.size else resultats.count { f.accepte(verdicts.getValue(it.id)) }
+                            PuceFiltre("${f.libelle} · $n", choisie = f == filtre, couleur = Signal.Or, onClick = { filtre = f })
+                        }
+                    }
+                    if (affiches.isEmpty()) {
+                        Text("Aucun objet ne correspond.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+                    } else if (!parSections) {
+                        Text(pluriel(affiches.size, "objet trouvé", "objets trouvés"), style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret)
                     }
                 }
-                Text(
-                    when {
-                        affiches.isEmpty() -> "Aucun objet ne correspond."
-                        recherche.isBlank() && filtre == FiltreVerdict.TOUS ->
-                            "${pluriel(affiches.size, "objet", "objets")} par ordre alphabétique. Touche un objet pour savoir à quoi il sert et où le trouver."
-                        else -> pluriel(affiches.size, "objet trouvé", "objets trouvés")
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Signal.TexteDoux,
-                )
             }
-        }
-        items(affiches, key = { it.id }) { objet ->
-            LigneObjet(vm, objet, vm.verdict(objet.id), onClick = { ouvrir(objet.id) })
+            if (aGarder.isNotEmpty()) {
+                item(key = "titre-garder") { Etiquette("À garder · ${aGarder.size}", Signal.Vert, Modifier.padding(top = 4.dp)) }
+                items(aGarder, key = { it.id }) { objet -> LigneObjet(vm, objet, verdicts.getValue(objet.id), onClick = { ouvrir(objet.id) }) }
+            }
+            if (parSections && reste.isNotEmpty()) {
+                item(key = "titre-reste") { Etiquette("À vendre ou recycler · ${reste.size}", Signal.Or, Modifier.padding(top = 10.dp)) }
+                reste.groupBy { initiale(it.nom) }.forEach { (lettre, objets) ->
+                    stickyHeader(key = "lettre-$lettre") {
+                        Text(
+                            lettre,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Signal.Or,
+                            modifier = Modifier.fillMaxWidth().background(Signal.Fond).padding(vertical = 4.dp).semantics { heading() },
+                        )
+                    }
+                    items(objets, key = { it.id }) { objet -> LigneObjet(vm, objet, verdicts.getValue(objet.id), onClick = { ouvrir(objet.id) }) }
+                }
+            } else if (!parSections) {
+                items(reste, key = { it.id }) { objet -> LigneObjet(vm, objet, verdicts.getValue(objet.id), onClick = { ouvrir(objet.id) }) }
+            }
         }
     }
 }
 
+/** Première lettre du nom, sans accent (« É » → « E ») ; « # » pour un chiffre ou un signe. */
+private fun initiale(nom: String): String =
+    Catalogue.normaliser(nom).firstOrNull { !it.isWhitespace() }?.uppercaseChar()?.takeIf { it.isLetter() }?.toString() ?: "#"
+
 @Composable
 private fun LigneObjet(vm: CarnetViewModel, objet: Objet, verdict: Verdict, onClick: () -> Unit) {
     Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconeObjet(objet.id, objet.rarete, 48.dp)
+        Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconeObjet(objet.id, objet.rarete, 40.dp)
             Column(Modifier.weight(1f)) {
-                Text(objet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                Text(raisonVerdict(vm, objet, verdict), style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, maxLines = 2)
+                Text(objet.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(raisonVerdict(vm, objet, verdict), style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             PuceVerdict(verdict)
         }
@@ -171,7 +206,7 @@ fun EcranFiche(
     val objet = vm.catalogue.objet(objetId)
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconButton(onClick = onRetour) {
@@ -191,14 +226,15 @@ fun EcranFiche(
             return@Column
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            IconeObjet(objet.id, objet.rarete, 104.dp)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(objet.nom, style = MaterialTheme.typography.headlineMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PuceRarete(objet.rarete)
-                }
-                objet.categorie?.let { Puce(it, couleur = Signal.TexteDoux) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            IconeObjet(objet.id, objet.rarete, 64.dp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(objet.nom, style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    listOfNotNull(objet.rarete?.libelle, objet.categorie, "se vend ${objet.valeur}").joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Signal.TexteDoux,
+                )
             }
         }
 
@@ -207,7 +243,7 @@ fun EcranFiche(
         BoutonButinRecherche(vm, objet.id)
         SectionUsages(vm, usages, ouvrir)
         CommentLObtenir(vm, objet, ouvrir, ouvrirZone)
-        Section("Vente et recyclage") {
+        Section("Vente et recyclage", "Se vend ${objet.valeur} pièces" + if (objet.recyclage.isEmpty()) " · ne se recycle pas" else " · se recycle") {
             Text("Se vend ${objet.valeur} pièces l'unité.", style = MaterialTheme.typography.bodyLarge)
             if (objet.recyclage.isEmpty()) {
                 Text("Ne se recycle pas.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
@@ -249,7 +285,10 @@ private fun CommentLObtenir(vm: CarnetViewModel, objet: Objet, ouvrir: (String) 
     val o = objet.obtention
     val recyclage = vm.catalogue.sourcesRecyclage(objet.id)
     if (objet.lieux.isNotEmpty() || o.cartes.isNotEmpty() || o.zones.isNotEmpty()) {
-        Section("Où le trouver") {
+        Section(
+            "Où le trouver",
+            o.cartes.firstOrNull()?.let { "Surtout ${vm.catalogue.carte(it.carte)?.nom ?: Catalogue.NOM_A_VERIFIER}" } ?: objet.lieux.joinToString(" · "),
+        ) {
             if (objet.lieux.isNotEmpty()) {
                 Text("Dans les zones\u00a0: ${objet.lieux.joinToString(" · ")}", style = MaterialTheme.typography.bodyLarge)
             }
@@ -272,7 +311,7 @@ private fun CommentLObtenir(vm: CarnetViewModel, objet: Objet, ouvrir: (String) 
         }
     }
     if (o.achats.isNotEmpty()) {
-        Section("Chez les commerçants") {
+        Section("Chez les commerçants", o.achats.map { it.commercant }.distinct().joinToString(" · ")) {
             o.achats.forEach { a ->
                 Column(Modifier.padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     val prix = buildList {
@@ -294,7 +333,7 @@ private fun CommentLObtenir(vm: CarnetViewModel, objet: Objet, ouvrir: (String) 
         }
     }
     if (o.fabrications.isNotEmpty()) {
-        Section("Fabrication") {
+        Section("Fabrication", o.fabrications.first().let { f -> f.etabli?.let { e -> f.niveau?.let { "$e · niveau $it" } ?: e } ?: "Pendant un raid" }) {
             o.fabrications.forEach { f ->
                 Column(Modifier.padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     val ou = f.etabli?.let { e -> f.niveau?.let { "$e · niveau $it" } ?: e } ?: "Pendant un raid"
@@ -306,7 +345,7 @@ private fun CommentLObtenir(vm: CarnetViewModel, objet: Objet, ouvrir: (String) 
         }
     }
     if (recyclage.isNotEmpty()) {
-        Section("En recyclant") {
+        Section("En recyclant", pluriel(recyclage.size, "objet en donne", "objets en donnent")) {
             recyclage.take(6).forEach { q ->
                 Surface(onClick = { ouvrir(q.id) }, color = Signal.Fond, shape = RoundedCornerShape(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -322,7 +361,7 @@ private fun CommentLObtenir(vm: CarnetViewModel, objet: Objet, ouvrir: (String) 
         }
     }
     if (o.recompenses.isNotEmpty()) {
-        Section("En récompense") {
+        Section("En récompense", pluriel(o.recompenses.size, "quête", "quêtes")) {
             o.recompenses.forEach { Text(it, style = MaterialTheme.typography.bodyLarge) }
         }
     }
@@ -353,11 +392,18 @@ private fun LigneIndice(nom: String, sousTitre: String?, indice: Int, onClick: (
     }
 }
 
+/**
+ * Une partie de la fiche, en accordéon : son titre et un [resume] d'une ligne ; le détail se déplie d'un
+ * geste. La fiche tient ainsi sur un écran, l'essentiel (le verdict) en tête.
+ */
 @Composable
-private fun Section(titre: String, contenu: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(titre, style = MaterialTheme.typography.titleMedium)
-        contenu()
+private fun Section(titre: String, resume: String = "", ouvertAuDepart: Boolean = false, contenu: @Composable () -> Unit) {
+    var ouvert by rememberSaveable(titre) { mutableStateOf(ouvertAuDepart) }
+    Column {
+        EnTeteAccordeon(titre, resume, ouvert, Signal.Or, onClick = { ouvert = !ouvert })
+        if (ouvert) {
+            Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { contenu() }
+        }
     }
 }
 
@@ -435,7 +481,11 @@ private fun CarteVerdict(verdict: Verdict, objet: Objet, usages: UsagesObjet, vm
 @Composable
 private fun SectionUsages(vm: CarnetViewModel, u: UsagesObjet, ouvrir: (String) -> Unit) {
     val ut = u.utilisations
-    Section("À quoi il peut servir") {
+    Section(
+        "À quoi il peut servir",
+        u.resume().joinToString(", ").replaceFirstChar { it.uppercase() }.ifEmpty { "Vente ou recyclage seulement" },
+        ouvertAuDepart = true,
+    ) {
         u.description?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
         if (u.aucun) {
             Text("Rien d'autre que la vente ou le recyclage, d'après les données du jeu.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)

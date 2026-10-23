@@ -273,6 +273,13 @@ class CarnetViewModel(application: Application) : AndroidViewModel(application) 
         memoire.ecrireBuilds(builds)
     }
 
+    /** Fait du build [rang] le build préféré (un seul à la fois), ou le retire ([prefere] faux). */
+    fun preferer(rang: Int, prefere: Boolean = true) {
+        if (rang !in builds.indices) return
+        builds = Builds.preferer(builds, rang, prefere)
+        memoire.ecrireBuilds(builds)
+    }
+
     fun changerRegion(nouvelle: Region) {
         region = nouvelle
         memoire.region = nouvelle

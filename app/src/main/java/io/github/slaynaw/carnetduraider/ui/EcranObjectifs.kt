@@ -4,35 +4,40 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -53,14 +59,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.Catalogue
@@ -72,12 +80,23 @@ import io.github.slaynaw.carnetduraider.core.cle
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
 /** Ce que le joueur peut indiquer en cours, chacun avec sa liste complète. */
-enum class ChoixEnCours(val bouton: String, val court: String, val titre: String) {
-    QUETES("Indiquer mes quêtes en cours", "Mes quêtes", "Mes quêtes en cours"),
-    ATELIERS("Indiquer mes ateliers en cours", "Mes ateliers", "Mes ateliers en cours"),
-    PROJETS("Indiquer mes projets en cours", "Mes projets", "Mes projets en cours"),
-    EXPEDITIONS("Indiquer mes expéditions en cours", "Mes expéditions", "Mes expéditions en cours"),
+enum class ChoixEnCours(val bouton: String, val court: String, val titre: String, val groupe: String) {
+    QUETES("Indiquer mes quêtes en cours", "Quêtes", "Mes quêtes en cours", "Quêtes"),
+    ATELIERS("Indiquer mes ateliers en cours", "Ateliers", "Mes ateliers en cours", "Ateliers"),
+    PROJETS("Indiquer mes projets en cours", "Projets", "Mes projets en cours", "Projets"),
+    EXPEDITIONS("Indiquer mes expéditions en cours", "Expéditions", "Mes expéditions en cours", "Expéditions"),
 }
+
+/** Le groupe d'un objectif dans l'onglet Objectifs (le butin recherché n'y est jamais). */
+private fun groupe(vm: CarnetViewModel, objectif: Objectif): ChoixEnCours? = when (objectif) {
+    is Objectif.NiveauDEtabli -> ChoixEnCours.ATELIERS
+    is Objectif.EtapeDeProjet -> if (vm.catalogue.projet(objectif.projetId)?.expedition == true) ChoixEnCours.EXPEDITIONS else ChoixEnCours.PROJETS
+    is Objectif.QueteATerminer -> ChoixEnCours.QUETES
+    else -> null
+}
+
+/** Ordre des groupes dans la liste : ateliers, projets, Expéditions, puis quêtes. */
+private val ORDRE_GROUPES = listOf(ChoixEnCours.ATELIERS, ChoixEnCours.PROJETS, ChoixEnCours.EXPEDITIONS, ChoixEnCours.QUETES)
 
 /** Nombre d'éléments indiqués en cours pour ce choix. */
 private fun nombreEnCours(vm: CarnetViewModel, choix: ChoixEnCours): Int = when (choix) {
@@ -89,83 +108,96 @@ private fun nombreEnCours(vm: CarnetViewModel, choix: ChoixEnCours): Int = when 
 
 /**
  * Onglet Objectifs : tout est considéré comme déjà fait, sauf ce que le joueur indique en cours (quatre
- * boutons, chacun vers la liste complète). Au départ, il n'y a que ces boutons. Ce qui est en cours s'affiche
- * dessous, avec ce qui a déjà été rapporté ; tout se valide tout seul au retour de raid, et la suite s'ajoute.
+ * tuiles avec leur nombre en cours, chacune vers la liste complète). Dessous, ce qu'il reste à trouver en
+ * raid, puis ce qui est en cours, par groupe (ateliers, projets, Expéditions, quêtes), avec les objets
+ * demandés en pastilles ; tout se valide tout seul au retour de raid, et la suite s'ajoute.
  */
 @Composable
 fun EcranObjectifs(vm: CarnetViewModel, choisir: (ChoixEnCours) -> Unit, voirRaid: () -> Unit) {
     val objectifs = vm.objectifs
     val liste = vm.listeDeCourses()
+    val groupes = objectifs.groupBy { groupe(vm, it) }
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                BandeauSection(
-                    Onglet.OBJECTIFS,
-                    if (objectifs.isEmpty()) "Rien en cours" else pluriel(objectifs.size, "objectif en cours", "objectifs en cours"),
-                )
-                Text(
-                    "Tout ce que tu n'indiques pas est considéré comme déjà fait. Indique ce que tu as en cours\u00a0: " +
-                        "ce que tu rapportes de raid s'y ajoute, et tout se valide tout seul.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Signal.TexteDoux,
-                )
-            }
-        }
-        // Les quatre boutons, deux par ligne.
-        items(ChoixEnCours.entries.chunked(2), key = { "choix-${it.first().name}" }) { ligne ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ligne.forEach { choix ->
-                    BoutonEnCours(choix, nombreEnCours(vm, choix), onClick = { choisir(choix) }, modifier = Modifier.weight(1f))
-                }
-            }
-        }
-
-        if (objectifs.isNotEmpty()) {
+    EcranDeSection(
+        Onglet.OBJECTIFS,
+        if (objectifs.isEmpty()) "Rien en cours" else pluriel(objectifs.size, "objectif en cours", "objectifs en cours"),
+    ) { defilement ->
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            state = defilement,
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // Les quatre tuiles, sur une ligne.
             item {
-                Surface(onClick = voirRaid, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "${pluriel(objectifs.size, "objectif en cours", "objectifs en cours")} · ${pluriel(liste.objetsATrouver, "objet", "objets")} à trouver",
-                                style = MaterialTheme.typography.titleSmall,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text("Raid ›", style = MaterialTheme.typography.labelLarge, color = Signal.Rouge)
-                        }
-                        Barre(liste.progression.toFloat(), Signal.Vert, epaisseur = 8.dp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ChoixEnCours.entries.forEach { choix ->
+                        TuileEnCours(choix, nombreEnCours(vm, choix), onClick = { choisir(choix) }, modifier = Modifier.weight(1f))
                     }
                 }
             }
-            item { Etiquette("En cours", Signal.Vert, Modifier.padding(top = 8.dp)) }
-            items(objectifs, key = { "objectif-${it.cle}" }) { objectif -> CarteObjectif(vm, objectif) }
+            if (objectifs.isEmpty()) {
+                item {
+                    Text(
+                        "Tout ce que tu n'indiques pas est considéré comme déjà fait. Touche une tuile pour indiquer ce que tu as en cours.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Signal.TexteDoux,
+                    )
+                }
+            } else {
+                item {
+                    Surface(onClick = voirRaid, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    if (liste.objetsATrouver == 0) "Rien à trouver en raid" else "${pluriel(liste.objetsATrouver, "objet", "objets")} à trouver en raid",
+                                    style = MaterialTheme.typography.titleSmall,
+                                )
+                                val total = liste.lignes.sumOf { it.besoin }
+                                if (total > 0) {
+                                    Text("${liste.lignes.sumOf { it.apporte }} sur $total rapportés", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                                }
+                            }
+                            Text(
+                                "Préparer le raid ›",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Signal.SurCouleur,
+                                modifier = Modifier.background(Signal.Rouge, RoundedCornerShape(50)).padding(horizontal = 12.dp, vertical = 9.dp),
+                            )
+                        }
+                    }
+                }
+                ORDRE_GROUPES.forEach { g ->
+                    val dedans = groupes[g].orEmpty()
+                    if (dedans.isNotEmpty()) {
+                        item(key = "groupe-${g.name}") { Etiquette(g.groupe, Signal.Vert, Modifier.padding(top = 6.dp)) }
+                        items(dedans, key = { "objectif-${it.cle}" }) { objectif -> CarteObjectif(vm, objectif) }
+                    }
+                }
+            }
         }
     }
 }
 
-/** Un des quatre boutons : vers la liste complète, avec le nombre d'éléments en cours. */
+/** Une des quatre tuiles : le nombre d'éléments en cours, en grand, et vers la liste complète. */
 @Composable
-private fun BoutonEnCours(choix: ChoixEnCours, enCours: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun TuileEnCours(choix: ChoixEnCours, enCours: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
-        color = Signal.Releve,
+        color = Signal.Surface,
         shape = RoundedCornerShape(6.dp),
-        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = choix.bouton },
+        modifier = modifier.heightIn(min = 76.dp).semantics(mergeDescendants = true) {
+            contentDescription = "${choix.bouton}, $enCours en cours"
+        },
     ) {
-        Row(Modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(choix.court, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                Text(
-                    if (enCours == 0) "Rien en cours" else "$enCours en cours",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (enCours == 0) Signal.TexteDiscret else Signal.Vert,
-                )
-            }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Signal.Vert)
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 10.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                "$enCours",
+                style = MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings = "tnum"),
+                fontWeight = FontWeight.ExtraBold,
+                color = if (enCours == 0) Signal.TexteDiscret else Signal.Vert,
+            )
+            Text(choix.court, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -182,10 +214,12 @@ private fun detailAvancement(vm: CarnetViewModel, objectif: Objectif): String {
 }
 
 /**
- * Un objectif en cours : ce qu'il demande et ce qui a été rapporté. Il se termine tout seul quand tout est
- * rapporté ; « C'est fait » le valide s'il est fait autrement en jeu (ou s'il n'y a rien à rapporter).
- * La même carte dans l'onglet Objectifs et dans l'onglet Raid : ce sont les mêmes objectifs.
+ * Un objectif en cours : ce qu'il demande, en pastilles (icône et « rapportés/voulus »). Il se termine tout
+ * seul quand tout est rapporté ; « C'est fait » le valide s'il est fait autrement en jeu (ou s'il n'y a rien
+ * à rapporter), avec « Annuler » ensuite. La même carte dans l'onglet Objectifs et dans l'onglet Raid : ce
+ * sont les mêmes objectifs.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
     val libelle = vm.planificateur.libelle(objectif)
@@ -197,71 +231,123 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
     val voulu = besoins.sumOf { it.quantite }
     val rapporte = besoins.sumOf { minOf(apporte[it.id] ?: 0, it.quantite) }
     Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Column(Modifier.weight(1f)) {
+                    Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    val detail = commercant ?: if (besoins.isEmpty()) "Rien à rapporter\u00a0: valide-le quand c'est fait en jeu." else null
+                    detail?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
+                }
                 if (voulu > 0) {
                     Text("$rapporte/$voulu", style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.Vert)
                 }
             }
-            commercant?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
-            if (voulu > 0) Barre(rapporte.toFloat() / voulu, Signal.Vert)
-            Text(
-                if (besoins.isEmpty()) "Rien à rapporter\u00a0: valide-le quand c'est fait en jeu." else detailAvancement(vm, objectif),
-                style = MaterialTheme.typography.bodySmall,
-                color = Signal.TexteDoux,
-            )
+            if (voulu > 0) {
+                Barre(rapporte.toFloat() / voulu, Signal.Vert, epaisseur = 4.dp)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    besoins.forEach { b ->
+                        val n = minOf(apporte[b.id] ?: 0, b.quantite)
+                        PastilleObjet(vm, b.id, "$n/${b.quantite}", complet = n >= b.quantite)
+                    }
+                }
+            }
             if (autres > 0) {
                 Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
-            Button(
-                onClick = { vm.valider(objectif) },
-                colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                modifier = Modifier.semantics { contentDescription = "C'est fait\u00a0: $libelle" },
-            ) {
-                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text("C'est fait", modifier = Modifier.padding(start = 6.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                OutlinedButton(
+                    onClick = { vm.valider(objectif) },
+                    border = BorderStroke(1.5.dp, Signal.Vert),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Signal.Vert),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    modifier = Modifier.semantics { contentDescription = "C'est fait\u00a0: $libelle" },
+                ) {
+                    Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Text("C'est fait", modifier = Modifier.padding(start = 6.dp))
+                }
             }
         }
     }
 }
 
-/** En-tête des écrans de choix : retour, titre et explication. */
+/** Un objet demandé, en pastille : son icône et « rapportés/voulus » (le nom est lu par TalkBack). */
 @Composable
-private fun EnTeteChoix(titre: String, explication: String, onRetour: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour") }
-            Bandeau("Objectifs", Signal.Vert)
-        }
-        Text(titre, style = MaterialTheme.typography.headlineMedium)
-        Text(explication, style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+private fun PastilleObjet(vm: CarnetViewModel, objetId: String, texte: String, complet: Boolean) {
+    val nom = vm.catalogue.nomObjet(objetId)
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (complet) Signal.SurfaceVerte else Signal.Releve)
+            .padding(start = 3.dp, end = 9.dp, top = 3.dp, bottom = 3.dp)
+            .semantics(mergeDescendants = true) { contentDescription = "$nom\u00a0: $texte" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        IconeObjet(objetId, vm.catalogue.objet(objetId)?.rarete, 24.dp)
+        Text(texte, style = MaterialTheme.typography.labelMedium, color = if (complet) Signal.Vert else Signal.Texte)
     }
 }
 
-/** Une pastille de choix (niveau, étape, « Aucun », « Terminé »), mise en avant quand elle est choisie. */
+/** En-tête des écrans de choix : retour, titre et [resume] sur une ligne, puis une courte explication. */
 @Composable
-private fun Pastille(texte: String, choisie: Boolean, description: String, coche: Boolean = false, onClick: () -> Unit) {
+private fun EnTeteChoix(titre: String, resume: String, explication: String, onRetour: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(start = 0.dp)) {
+            IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour aux objectifs") }
+            Column(Modifier.weight(1f)) {
+                Text(titre, style = MaterialTheme.typography.headlineSmall)
+                if (resume.isNotEmpty()) Text(resume, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+            }
+        }
+        Text(explication, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret)
+    }
+}
+
+/**
+ * Une piste de choix, sur toute la largeur : « — » (rien en cours), chaque niveau ou étape, puis « ✓ »
+ * (terminé). Le choix est plein de vert ; ce qui est déjà fait (avant le choix, ou tout s'il est terminé)
+ * est teinté de vert.
+ */
+@Composable
+private fun Piste(nom: String, choix: List<Pair<String, String>>, choisi: Int?, termine: Boolean, aucun: () -> Unit, choisir: (Int) -> Unit, terminer: () -> Unit) {
+    Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        SegmentPiste("—", "$nom\u00a0: rien en cours", choisi == null && !termine, fait = false, onClick = aucun)
+        choix.forEachIndexed { i, (court, description) ->
+            SegmentPiste(court, "$nom\u00a0: $description", choisi == i, fait = termine || (choisi != null && i < choisi), onClick = { choisir(i) })
+        }
+        SegmentPiste("✓", "$nom\u00a0: terminé", termine, fait = false, onClick = terminer)
+    }
+}
+
+@Composable
+private fun RowScope.SegmentPiste(texte: String, description: String, choisi: Boolean, fait: Boolean, onClick: () -> Unit) {
     Surface(
+        selected = choisi,
         onClick = onClick,
-        color = if (choisie) Signal.Vert else Signal.Releve,
-        contentColor = if (choisie) Signal.SurCouleur else if (coche) Signal.Vert else Signal.Texte,
-        shape = RoundedCornerShape(50),
-        modifier = Modifier.semantics {
+        color = when {
+            choisi -> Signal.Vert
+            fait -> Signal.SurfaceVerte
+            else -> Signal.Releve
+        },
+        contentColor = when {
+            choisi -> Signal.SurCouleur
+            fait -> Signal.Vert
+            else -> Signal.TexteDoux
+        },
+        shape = RoundedCornerShape(4.dp),
+        modifier = Modifier.weight(1f).height(44.dp).semantics {
             contentDescription = description
-            selected = choisie
+            role = Role.RadioButton
         },
     ) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (coche) Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp).padding(end = 2.dp))
-            Text(texte, style = MaterialTheme.typography.labelLarge)
+        Box(contentAlignment = Alignment.Center) {
+            Text(texte, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 /** Fond d'une carte terminée : la surface, légèrement teintée de vert. */
-private val FondTermine = Signal.Vert.copy(alpha = 0.12f).compositeOver(Signal.Surface)
+private val FondTermine = Signal.SurfaceVerte
 
 /** Les bandes du logo en dégradé de vert, devant « TERMINÉ ». */
 private val BandesVertes = listOf(Color(0xFF3E7A37), Color(0xFF4E9C45), Color(0xFF5DB552), Signal.Vert)
@@ -285,7 +371,7 @@ private val EasingPassage = CubicBezierEasing(0.45f, 0f, 0.25f, 1f)
  * l'ouverture de la liste ; avec « Supprimer les animations » d'Android, la carte est validée d'un coup.
  */
 @Composable
-private fun CarteChoix(nom: String, termine: Boolean, fait: String, contenu: @Composable ColumnScope.() -> Unit) {
+private fun CarteChoix(nom: String, termine: Boolean, fait: String, etat: String?, contenu: @Composable ColumnScope.() -> Unit) {
     val balayage = remember { Animatable(1f) }
     var etaitTermine by remember { mutableStateOf(termine) }
     LaunchedEffect(termine) {
@@ -324,7 +410,7 @@ private fun CarteChoix(nom: String, termine: Boolean, fait: String, contenu: @Co
             },
         ) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TitreChoix(nom, termine, fait) { etape(300, 220) }
+                TitreChoix(nom, termine, fait, etat) { etape(300, 220) }
                 contenu()
             }
             if (termine) CoinValide(Modifier.align(Alignment.TopEnd).graphicsLayer { alpha = etape(540, 200) })
@@ -351,9 +437,12 @@ private fun CoinValide(modifier: Modifier = Modifier) {
  * ce qui a été fait ([fait] : « 3 niveaux sur 3 »), qui apparaissent selon [apparition] (de 0 à 1).
  */
 @Composable
-private fun TitreChoix(nom: String, termine: Boolean, fait: String, apparition: () -> Float) {
+private fun TitreChoix(nom: String, termine: Boolean, fait: String, etat: String?, apparition: () -> Float) {
     Column(Modifier.padding(end = if (termine) 40.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            if (!termine) Etiquette(etat ?: "Pas en cours", if (etat != null) Signal.Vert else Signal.TexteDiscret)
+        }
         if (termine) {
             Row(
                 Modifier.graphicsLayer { alpha = apparition() },
@@ -378,73 +467,82 @@ fun EcranQuetesEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
     var choix by rememberSaveable { mutableStateOf(vm.suivi.quetesEnCours(vm.progression).map { it.id }.toSet()) }
     var recherche by rememberSaveable { mutableStateOf("") }
     val cle = Catalogue.normaliser(recherche)
-    val affichees = histoire
-        .filter { cle.isBlank() || Catalogue.normaliser(it.nom).contains(cle) || Catalogue.normaliser(it.commercant.orEmpty()).contains(cle) }
-        .sortedWith(compareBy({ it.id !in choix }, { it.commercant.orEmpty() }, { it.nom }))
+    // Ordre figé à l'ouverture (cochées d'abord) : une quête cochée ne saute pas sous le doigt.
+    val ordre = remember { histoire.sortedWith(compareBy({ it.id !in choix }, { it.commercant.orEmpty() }, { it.nom })) }
+    val affichees = ordre.filter { cle.isBlank() || Catalogue.normaliser(it.nom).contains(cle) || Catalogue.normaliser(it.commercant.orEmpty()).contains(cle) }
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                EnTeteChoix(
-                    ChoixEnCours.QUETES.titre,
-                    "Coche les quêtes en cours dans ton journal de quêtes. Toutes les autres sont considérées comme faites\u00a0; " +
-                        "celles qui viennent après s'ajouteront toutes seules.",
-                    onRetour,
-                )
-                OutlinedTextField(
-                    value = recherche,
-                    onValueChange = { recherche = it },
-                    label = { Text("Chercher une quête ou un commerçant") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Button(
-                    onClick = {
-                        vm.indiquerQuetesEnCours(choix)
-                        onRetour()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Signal.Vert, contentColor = Signal.SurCouleur),
-                ) { Text("Valider (${pluriel(choix.size, "quête", "quêtes")})") }
-            }
-        }
-        items(affichees, key = { it.id }) { quete ->
-            val coche = quete.id in choix
-            Surface(
-                onClick = { choix = if (coche) choix - quete.id else choix + quete.id },
-                color = Signal.Surface,
-                shape = RoundedCornerShape(6.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(Modifier.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = coche,
-                        onCheckedChange = null,
-                        colors = CheckboxDefaults.colors(checkedColor = Signal.Vert, checkmarkColor = Signal.SurCouleur),
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = PLACE_BOUTON_FIXE),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EnTeteChoix(
+                        ChoixEnCours.QUETES.titre,
+                        "${pluriel(choix.size, "quête cochée", "quêtes cochées")}",
+                        "Coche les quêtes en cours dans ton journal de quêtes. Les autres sont considérées comme faites\u00a0; " +
+                            "celles qui viennent après s'ajouteront toutes seules.",
+                        onRetour,
                     )
-                    Box(Modifier.width(6.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(quete.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                        val detail = listOfNotNull(quete.commercant, detailCout(quete.objets, vm.catalogue).takeIf { it.isNotEmpty() })
-                        if (detail.isNotEmpty()) {
-                            Text(detail.joinToString(" · "), style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                    OutlinedTextField(
+                        value = recherche,
+                        onValueChange = { recherche = it },
+                        label = { Text("Chercher une quête ou un commerçant") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            items(affichees, key = { it.id }) { quete ->
+                val coche = quete.id in choix
+                Surface(
+                    onClick = { choix = if (coche) choix - quete.id else choix + quete.id },
+                    color = if (coche) Signal.SurfaceVerte else Signal.Surface,
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(Modifier.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = coche,
+                            onCheckedChange = null,
+                            colors = CheckboxDefaults.colors(checkedColor = Signal.Vert, checkmarkColor = Signal.SurCouleur),
+                        )
+                        Box(Modifier.width(6.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(quete.nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            val detail = listOfNotNull(quete.commercant, detailCout(quete.objets, vm.catalogue).takeIf { it.isNotEmpty() })
+                            if (detail.isNotEmpty()) {
+                                Text(detail.joinToString(" · "), style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
+                            }
                         }
                     }
                 }
             }
         }
+        BoutonFixe(
+            "Valider · ${pluriel(choix.size, "quête", "quêtes")}",
+            Signal.Vert,
+            onClick = {
+                vm.indiquerQuetesEnCours(choix)
+                onRetour()
+            },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
 
 /**
  * Mes ateliers en cours : pour chaque établi de l'Atelier, le niveau en cours d'amélioration (les précédents
- * sont faits), « Aucun » ou « Terminé » (tous ses niveaux sont faits). Chaque choix s'applique tout de suite.
+ * sont faits), rien ou « Terminé » (tous ses niveaux sont faits), sur une piste. Chaque choix s'applique
+ * tout de suite ; l'ordre ne change jamais sous le doigt.
  */
 @Composable
 fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
+    val etablis = vm.catalogue.donnees.etablis.sortedBy { it.nom }
+    val enCours = etablis.count { vm.suivi.niveauEnCours(vm.progression, it) != null }
+    val termines = etablis.count { vm.suivi.etabliTermine(vm.progression, it) }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
@@ -453,12 +551,12 @@ fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
         item {
             EnTeteChoix(
                 ChoixEnCours.ATELIERS.titre,
-                "Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer, ou «\u00a0Terminé\u00a0» s'il est au niveau maximum. " +
-                    "Une fois un niveau terminé, le suivant s'ajoute tout seul.",
+                "$enCours en cours · ${pluriel(termines, "terminé", "terminés")}",
+                "Touche le niveau que tu améliores. Quand tout est rapporté, le suivant s'ajoute tout seul.",
                 onRetour,
             )
         }
-        items(vm.catalogue.donnees.etablis.sortedBy { it.nom }, key = { it.id }) { etabli -> ChoixEtabli(vm, etabli) }
+        items(etablis, key = { it.id }) { etabli -> ChoixEtabli(vm, etabli) }
     }
 }
 
@@ -466,25 +564,23 @@ fun EcranAteliersEnCours(vm: CarnetViewModel, onRetour: () -> Unit) {
 private fun ChoixEtabli(vm: CarnetViewModel, etabli: Etabli) {
     val enCours = vm.suivi.niveauEnCours(vm.progression, etabli)
     val termine = vm.suivi.etabliTermine(vm.progression, etabli)
-    val niveaux = etabli.niveaux.size
-    CarteChoix(etabli.nom, termine, "${pluriel(niveaux, "niveau", "niveaux")} sur $niveaux") {
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pastille("Aucun", enCours == null && !termine, "${etabli.nom}\u00a0: rien en cours") { vm.indiquerNiveauEnCours(etabli, null) }
-            Pastille("Terminé", termine, "${etabli.nom}\u00a0: terminé, tous les niveaux sont faits", coche = true) {
-                vm.indiquerEtabliTermine(etabli)
-            }
-            etabli.niveaux.sortedBy { it.niveau }.forEach { n ->
-                Pastille("Niveau ${n.niveau}", enCours == n.niveau, "${etabli.nom}\u00a0: niveau ${n.niveau} en cours") {
-                    vm.indiquerNiveauEnCours(etabli, n.niveau)
-                }
-            }
-        }
+    val niveaux = etabli.niveaux.sortedBy { it.niveau }
+    CarteChoix(etabli.nom, termine, "${pluriel(niveaux.size, "niveau", "niveaux")} sur ${niveaux.size}", enCours?.let { "Niveau $it en cours" }) {
+        Piste(
+            etabli.nom,
+            niveaux.map { "${it.niveau}" to "niveau ${it.niveau} en cours" },
+            choisi = niveaux.indexOfFirst { it.niveau == enCours }.takeIf { it >= 0 },
+            termine = termine,
+            aucun = { vm.indiquerNiveauEnCours(etabli, null) },
+            choisir = { vm.indiquerNiveauEnCours(etabli, niveaux[it].niveau) },
+            terminer = { vm.indiquerEtabliTermine(etabli) },
+        )
         enCours?.let { niveau ->
             val cout = etabli.niveaux.firstOrNull { it.niveau == niveau }?.cout.orEmpty()
             Text(
-                "Niveau $niveau\u00a0: ${detailAvancement(vm, Objectif.NiveauDEtabli(etabli.id, niveau)).ifEmpty { detailCout(cout, vm.catalogue) }}",
+                "Il faut\u00a0: ${detailAvancement(vm, Objectif.NiveauDEtabli(etabli.id, niveau)).ifEmpty { detailCout(cout, vm.catalogue) }}",
                 style = MaterialTheme.typography.bodySmall,
-                color = Signal.Or,
+                color = Signal.TexteDoux,
             )
         }
     }
@@ -498,6 +594,8 @@ private fun ChoixEtabli(vm: CarnetViewModel, etabli: Etabli) {
 fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () -> Unit) {
     val choix = if (expeditions) ChoixEnCours.EXPEDITIONS else ChoixEnCours.PROJETS
     val projets = vm.catalogue.donnees.projets.filter { it.expedition == expeditions }
+    val enCours = projets.count { vm.suivi.etapeEnCours(vm.progression, it) != null }
+    val termines = projets.count { vm.suivi.projetTermine(vm.progression, it) }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
@@ -506,7 +604,8 @@ fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () 
         item {
             EnTeteChoix(
                 choix.titre,
-                "Choisis l'étape en cours de chacun, ou «\u00a0Terminé\u00a0» s'il est fini. Une fois une étape terminée, la suivante s'ajoute toute seule.",
+                "$enCours en cours · ${pluriel(termines, "terminé", "terminés")}",
+                "Touche l'étape en cours. Quand tout est rapporté, la suivante s'ajoute toute seule.",
                 onRetour,
             )
         }
@@ -519,25 +618,21 @@ private fun ChoixProjet(vm: CarnetViewModel, projet: Projet) {
     val enCours = vm.suivi.etapeEnCours(vm.progression, projet)
     val termine = vm.suivi.projetTermine(vm.progression, projet)
     val etapes = projet.etapes.size
-    CarteChoix(projet.nom, termine, "${pluriel(etapes, "étape", "étapes")} sur $etapes") {
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pastille("Aucune", enCours == null && !termine, "${projet.nom}\u00a0: pas en cours") { vm.indiquerEtapeEnCours(projet, null) }
-            Pastille("Terminé", termine, "${projet.nom}\u00a0: terminé, toutes les étapes sont faites", coche = true) {
-                vm.indiquerProjetTermine(projet)
-            }
-            projet.etapes.indices.forEach { etape ->
-                Pastille(
-                    "Étape ${etape + 1}",
-                    enCours == etape,
-                    "${projet.nom}\u00a0: ${vm.planificateur.nomEtape(projet, etape)} en cours",
-                ) { vm.indiquerEtapeEnCours(projet, etape) }
-            }
-        }
+    CarteChoix(projet.nom, termine, "${pluriel(etapes, "étape", "étapes")} sur $etapes", enCours?.let { "Étape ${it + 1} en cours" }) {
+        Piste(
+            projet.nom,
+            projet.etapes.indices.map { "${it + 1}" to "${vm.planificateur.nomEtape(projet, it)} en cours" },
+            choisi = enCours,
+            termine = termine,
+            aucun = { vm.indiquerEtapeEnCours(projet, null) },
+            choisir = { vm.indiquerEtapeEnCours(projet, it) },
+            terminer = { vm.indiquerProjetTermine(projet) },
+        )
         enCours?.let { etape ->
             val objectif = Objectif.EtapeDeProjet(projet.id, etape)
             Text(vm.planificateur.nomEtape(projet, etape), style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux)
             val detail = detailAvancement(vm, objectif)
-            if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = Signal.Or)
+            if (detail.isNotEmpty()) Text("Il faut\u00a0: $detail", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             if (projet.etapes[etape].autresObjectifs > 0) {
                 Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }

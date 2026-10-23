@@ -1,21 +1,26 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,15 +28,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -153,3 +163,60 @@ fun EnTete(reglagesOuverts: Boolean, ouvrirReglages: () -> Unit) {
         }
     }
 }
+
+/**
+ * En-tête d'un accordéon : [titre], une ligne de [resume] et une flèche ; le toucher ouvre ou ferme le
+ * contenu, affiché dessous par l'appelant. Le secondaire reste à un geste, sans allonger l'écran.
+ */
+@Composable
+fun EnTeteAccordeon(titre: String, resume: String, ouvert: Boolean, couleur: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val rotation by animateFloatAsState(if (ouvert) 180f else 0f, label = "fleche")
+    Surface(
+        onClick = onClick,
+        color = Signal.Surface,
+        shape = RoundedCornerShape(6.dp),
+        modifier = modifier.fillMaxWidth().semantics { stateDescription = if (ouvert) "Ouvert" else "Fermé" },
+    ) {
+        Row(
+            Modifier.heightIn(min = 52.dp).padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(titre, style = MaterialTheme.typography.titleSmall)
+                if (resume.isNotEmpty()) Text(resume, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = couleur, modifier = Modifier.rotate(rotation))
+        }
+    }
+}
+
+/**
+ * Le bouton principal d'un écran, fixé en bas au-dessus de la liste (qui passe dessous en s'effaçant) :
+ * toujours à portée de pouce, sans descendre le chercher. Coin coupé, plein de [couleur].
+ */
+@Composable
+fun BoutonFixe(texte: String, couleur: Color, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(0f to Signal.Fond.copy(alpha = 0f), 0.3f to Signal.Fond))
+            .padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 12.dp),
+    ) {
+        Surface(
+            onClick = onClick,
+            enabled = enabled,
+            color = if (enabled) couleur else Signal.Releve,
+            contentColor = if (enabled) Signal.SurCouleur else Signal.TexteDiscret,
+            shape = CutCornerShape(bottomEnd = 12.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                Text(texte, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
+/** Hauteur à laisser sous une liste pour qu'un [BoutonFixe] ne cache pas sa fin. */
+val PLACE_BOUTON_FIXE = 96.dp

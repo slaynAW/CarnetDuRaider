@@ -81,8 +81,12 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   sa couleur (`BandeauSection` : code « 0N / … » de `Onglet.code`, nom en capitales, motif propre à la
   section, coin coupé ; le motif vit en boucle, lentement : reflet, cases de l'inventaire, cible qui cherche puis
   verrouille, repère et son onde, impulsion des chevrons, ligne de scan ; le texte jamais, et rien avec « Supprimer
-  les animations »), l'onglet actif prend la même couleur ; cartes à coins presque droits (6 dp), cartes
-  mises en avant au coin coupé (`FormeCoupee`), petites étiquettes en capitales (`Etiquette`).
+  les animations »), l'onglet actif prend la même couleur ; il se replie en barre de 56 dp dès que la liste
+  défile (`EcranDeSection`). Cartes à coins presque droits (6 dp), cartes mises en avant au coin coupé
+  (`FormeCoupee`), petites étiquettes en capitales (`Etiquette`). Écrans compacts (refonte UX 0.14) : le
+  bouton principal fixé en bas (`BoutonFixe`), le secondaire en accordéons (`EnTeteAccordeon` : objectifs et
+  détail des cartes du Raid, parties de la fiche d'un objet, « Autres » des builds), listes d'une ligne par
+  objet ; la liste des objets met « À garder » en tête, puis le reste par lettre.
 - **Pas de réserve** (rien de ce que le joueur a « en stock ») : il ne note que ce qu'il rapporte de raid,
   au retour de raid. Ce qu'il a en cours, ce qui a été rapporté pour chaque objectif et ses builds sont
   gardés dans l'appli (`Memoire`) : l'appli ne se connecte jamais au compte Embark et ne touche jamais au
@@ -96,38 +100,44 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   (600 000 tours) + AES-256-GCM, en-tête authentifié ; mot de passe jamais enregistré, clé dérivée gardée
   chiffrée par le Keystore d'Android. L'appli n'ouvre aucune connexion pour cela. Pas de sauvegarde
   sur GitHub : écrire sur GitHub exige un jeton, qu'on ne peut pas mettre dans un APK public.
-- Objectifs (`core/Progression.kt`, `ui/EcranObjectifs.kt`) : quatre boutons seulement au départ, sur
-  deux lignes (« Mes quêtes / ateliers / projets / expéditions », libellé accessible « Indiquer mes … en
-  cours »), chacun vers la liste complète.
+- Objectifs (`core/Progression.kt`, `ui/EcranObjectifs.kt`) : quatre tuiles seulement au départ, sur une
+  ligne (nombre en cours et « Quêtes / Ateliers / Projets / Expéditions », libellé accessible « Indiquer
+  mes … en cours »), chacune vers la liste complète ; dessous, ce qu'il reste à trouver (vers le Raid) et
+  les objectifs groupés (ateliers, projets, Expéditions, quêtes), objets demandés en pastilles.
   Le joueur coche ses quêtes en cours (tout le reste est fait d'office, sauf ce qui vient après :
   `SuiviProgression.indiquerQuetesEnCours`), choisit le niveau en cours de chaque établi
   (`indiquerNiveauEnCours`) et l'étape en cours de chaque projet ou Expédition (`indiquerEtapeEnCours`,
   `Projet.expedition`), ou « Terminé » (`indiquerEtabliTermine`, `indiquerProjetTermine` : niveau maximum,
-  toutes les étapes ; pastille juste après « Aucun » ; carte « coin validé », `CarteChoix` : fond teinté de vert,
+  toutes les étapes ; piste « — 1 2 3 ✓ » sur la largeur, `Piste` : « ✓ » en dernier, ce qui est fait teinté
+  de vert ; carte « coin validé », `CarteChoix` : fond teinté de vert,
   coin vert plié à coche, bandes du logo en vert et « TERMINÉ · 3 niveaux sur 3 » ; au passage à « Terminé »
   sous les yeux du joueur, et seulement là, le « balayage » : une fine ligne verte traverse la carte, le fond
   se teinte derrière elle, puis « TERMINÉ » et le coin apparaissent, moins d'une seconde, coupé avec
-  « Supprimer les animations »). Ce qui est en cours s'affiche sous les boutons. Un objectif dont tout a été
+  « Supprimer les animations »). Ce qui est en cours s'affiche sous les tuiles. Un objectif dont tout a été
   rapporté se valide tout seul (`SuiviProgression.terminerLesComplets`) et la suite s'ajoute (niveau
   suivant, quêtes suivantes d'après l'enchaînement `requiert`, étape suivante). Ce qui est fait autrement
   se valide en un geste (« C'est fait », `CarnetViewModel.valider`), avec « Annuler » : jamais de saisie
   obligatoire.
-- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build, en deux lignes de
-  trois, le build choisi dessous, ses cases en grille), un nom et un objet par case (Module, Bouclier,
+- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build sur une ligne, avec
+  ses cases remplies ; le build préféré, un seul, `Build.prefere`, étoile, en premier et ouvert à l'arrivée :
+  `Builds.ordre`, `Builds.ouvert` ; le build choisi dessous, nom changé au crayon, cases groupées
+  Équipement / Armes / Consommables, « Autres » repliées), un nom et un objet par case (Module, Bouclier,
   Arme 1, Arme 2, Soins, Grenades, puis six « Autres » : `CaseBuild.AUTRE_1` garde le nom enregistré
   « DIVERS » de l'ancienne case ; la fiche et « Vider la case » sont dans le choix de l'objet),
   d'après `Objet.emplacement` (famille de l'objet dans le jeu, produit par le script) ; matériaux d'après
-  les recettes et `Obtention.amelioration` (arme du niveau d'avant et coût de l'amélioration). `Memoire`,
-  clé « builds » (JSON).
+  les recettes et `Obtention.amelioration` (arme du niveau d'avant et coût de l'amélioration) ; « Pour le
+  fabriquer » avec les quantités (`Builds.aFabriquer`). `Memoire`, clé « builds » (JSON).
 - Préparer mon raid, onglet Raid (`core/PreparationRaid.kt`, `ui/EcranRaid.kt`) : rien à préparer. Il
   reprend les objectifs en cours, avec la même carte que l'onglet Objectifs (`CarteObjectif`) : ce sont
   les mêmes objectifs, y compris ceux qui ne demandent aucun objet. Ce
   qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs en cours ; cartes classées
   par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
   carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la
-  meilleure carte. « Meilleure carte » (et « Ton prochain raid » à l'accueil) s'affiche sur une capture en jeu de la carte (`FondEnJeu`,
+  meilleure carte. En tête du Raid, la meilleure carte (« Où chercher » déplie ses zones et la carte
+  suivante du parcours), puis ce qu'il te faut en liste compacte ; « Mes objectifs » et « Où aller »
+  repliés ; « Retour de raid » fixé en bas. « Meilleure carte » (et « Ton prochain raid » à l'accueil) s'affiche sur une capture en jeu de la carte (`FondEnJeu`,
   `app/src/main/assets/fonds/<carte>.webp`, « ombre latérale » : assombrie à gauche sous le texte), sinon
-  sur le rouge du Raid. Ces captures sont les seules images qui ne viennent pas du script d'import : prises
+  sur le rouge du Raid ; l'onglet Cartes montre chaque carte sur la sienne. Ces captures sont les seules images qui ne viennent pas du script d'import : prises
   en jeu et fournies par le mainteneur, jamais d'un site tiers.
 - Butin recherché (`core/ButinRecherche.kt`, section de l'onglet Raid, `ui/EcranChoixButin.kt`, bouton sur
   la fiche d'un objet) : des objets que le joueur veut rapporter pour lui, sans objectif du jeu (objet →
@@ -139,7 +149,7 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   des objets : seulement ce qui manque, sans pouvoir dépasser. `Planificateur.repartir` donne le butin
   aux objectifs qui le demandent (objectifs du jeu, puis butin recherché), le plus près d'être terminé
   d'abord (`Memoire`, clé « apports » : clé de l'objectif → objets rapportés) ; ce qui dépasse n'est gardé
-  nulle part. À la validation (bouton,
+  nulle part. Une ligne par objet : toucher l'icône en ajoute un (appui long : cinq), « − n/voulu + ». À la validation (bouton,
   retour ou autre onglet, jamais une rotation), les objectifs complets se terminent et
   `RetourDeRaid.bilan` donne les objectifs terminés, les objets qui ont atteint le nombre demandé et si
   toute la liste est trouvée : animation `ui/CelebrationRaid.kt` (objectif terminé à la manière d'ARC
@@ -148,7 +158,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
 - Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
   officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).
-  Un nom inconnu s'affiche « Nom à vérifier en jeu ». Relu à chaque lancement de l'appli (au plus toutes
+  Un nom inconnu s'affiche « Nom à vérifier en jeu ». Onglet Cartes : « En ce moment » (chaque carte, ses
+  conditions et « Plan ») ou « À venir » (prochaines heures et prochaine fois, une cloche par ligne) ;
+  région en pastille. Relu à chaque lancement de l'appli (au plus toutes
   les 5 minutes), comme la recherche de mise à jour. Le workflow « Calendrier officiel » vérifie
   chaque jour que la page est toujours lisible.
 - Alertes (`core/…/calendrier/Alertes.kt`, `app/…/alertes`) : un seul réveil Android programmé à la
