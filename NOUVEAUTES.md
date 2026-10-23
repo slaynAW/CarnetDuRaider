@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.14.2
+
+- **Terminé, plus sobre** : dans Mes ateliers, Mes projets et Mes expéditions, ce qui est terminé tient sur une seule ligne, « ✓ Terminé », avec « Modifier » pour le remettre en cours. Le balayage reste : quand tu passes une carte à « Terminé », une fine ligne verte la traverse, puis elle se replie en sa ligne.
+- La piste « — 1 2 3 ✓ » est plus calme : seul ton choix est en vert.
+
 ## 0.14.1
 
 - **Accueil** : son bandeau se replie lui aussi en fine barre quand tu fais défiler, comme dans les autres onglets, et s'appelle désormais « 01 / SPERANZA ».

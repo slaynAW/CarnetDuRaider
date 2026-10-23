@@ -108,12 +108,12 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   `SuiviProgression.indiquerQuetesEnCours`), choisit le niveau en cours de chaque établi
   (`indiquerNiveauEnCours`) et l'étape en cours de chaque projet ou Expédition (`indiquerEtapeEnCours`,
   `Projet.expedition`), ou « Terminé » (`indiquerEtabliTermine`, `indiquerProjetTermine` : niveau maximum,
-  toutes les étapes ; piste « — 1 2 3 ✓ » sur la largeur, `Piste` : « ✓ » en dernier, ce qui est fait teinté
-  de vert ; carte « coin validé », `CarteChoix` : fond teinté de vert,
-  coin vert plié à coche, bandes du logo en vert et « TERMINÉ · 3 niveaux sur 3 » ; au passage à « Terminé »
-  sous les yeux du joueur, et seulement là, le « balayage » : une fine ligne verte traverse la carte, le fond
-  se teinte derrière elle, puis « TERMINÉ » et le coin apparaissent, moins d'une seconde, coupé avec
-  « Supprimer les animations »). Ce qui est en cours s'affiche sous les tuiles. Un objectif dont tout a été
+  toutes les étapes ; piste « — 1 2 3 ✓ » sur la largeur, `Piste` : « ✓ » en dernier, seul le choix plein de
+  vert ; terminé, la carte se réduit à une ligne sobre, `CarteChoix` : nom, « ✓ Terminé » et « Modifier », qui
+  rouvre la piste ; au passage à « Terminé » sous les yeux du joueur, et seulement là, le « balayage » : une
+  fine ligne verte traverse la carte, le fond se teinte derrière elle, puis la carte se replie en sa ligne,
+  la teinte s'efface et « ✓ Terminé » apparaît, à peine plus d'une seconde, coupé avec « Supprimer les
+  animations »). Ce qui est en cours s'affiche sous les tuiles. Un objectif dont tout a été
   rapporté se valide tout seul (`SuiviProgression.terminerLesComplets`) et la suite s'ajoute (niveau
   suivant, quêtes suivantes d'après l'enchaînement `requiert`, étape suivante). Ce qui est fait autrement
   se valide en un geste (« C'est fait », `CarnetViewModel.valider`), avec « Annuler » : jamais de saisie

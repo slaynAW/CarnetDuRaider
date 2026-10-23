@@ -161,24 +161,20 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
   clip-path: polygon(40px 0, 100% 0, calc(100% - 40px) 100%, 0 100%); animation: balayage .45s cubic-bezier(.4, 0, .2, 1) both, rayures 1.2s .45s linear both; }
 .banniere h2 { position: relative; color: var(--sur-couleur); font-size: 28px; white-space: nowrap; animation: resserrer .6s .3s cubic-bezier(.4, 0, .2, 1) both; }
 .chip.fin:not([aria-pressed="true"]) { color: var(--vert); }
-/* Carte terminée, le « coin validé » (CarteChoix, EcranObjectifs.kt) : fond teinté de vert, coin bas gauche
-   coupé, coin vert plié avec sa coche en haut à droite. */
-.carte.terminee { position: relative; overflow: hidden; border-radius: 0; background: color-mix(in srgb, var(--vert) 12%, var(--surface));
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px)); }
-.carte.terminee .coin-valide { position: absolute; top: 0; right: 0; }
-.carte.terminee .titre-choix { padding-right: 40px; }
-.termine-ligne { display: flex; align-items: center; gap: 8px; }
-/* Le balayage : la carte qu'on vient de passer à « Terminé » est balayée par une fine ligne verte ; le fond se
-   teinte derrière elle, « TERMINÉ » apparaît, puis le coin. */
-.carte.terminee::after { content: ""; position: absolute; top: 0; bottom: 0; left: 100%; width: 56px; pointer-events: none;
-  background: linear-gradient(90deg, rgba(108,203,95,0), rgba(108,203,95,.16)); border-right: 2px solid rgba(108,203,95,.75); }
-.carte.terminee.balaie { animation: balaie-teinte .48s .12s linear both; }
-.carte.terminee.balaie::after { animation: balaie-ligne .68s cubic-bezier(.45, 0, .25, 1) both; }
-.carte.terminee.balaie .termine-ligne { animation: apparaitre .22s .3s ease-out both; }
-.carte.terminee.balaie .coin-valide { animation: apparaitre .2s .54s ease-out both; }
+/* Projet ou établi terminé (CarteChoix, EcranObjectifs.kt) : une ligne sobre, « ✓ Terminé » et « Modifier ».
+   Au passage à « Terminé », le balayage : une fine ligne verte traverse la carte et le fond se teinte derrière
+   elle, puis la carte se replie en sa ligne, la teinte s'efface et « ✓ Terminé » apparaît. */
+.carte.choix, .carte.ligne-fin { position: relative; overflow: hidden; }
+.carte.ligne-fin { padding: 4px 6px 4px 14px; display: flex; flex-direction: column; gap: 8px; }
+.carte.balaie { animation: balaie-teinte .48s .12s linear both; }
+.carte.balaie::after { content: ""; position: absolute; top: 0; bottom: 0; left: -56px; width: 56px; pointer-events: none;
+  background: linear-gradient(90deg, rgba(108,203,95,0), rgba(108,203,95,.16)); border-right: 2px solid rgba(108,203,95,.75); animation: balaie-ligne .68s cubic-bezier(.45, 0, .25, 1) both; }
+.carte.repli { animation: repli .32s cubic-bezier(.4, 0, .2, 1) both; }
+.carte.repli .fin { animation: apparaitre .25s .12s ease-out both; }
 /* Fin explicite : le vert à 12 % sur la surface (Chromium anime mal vers un color-mix). */
 @keyframes balaie-teinte { from { background-color: var(--surface); } to { background-color: #27332A; } }
 @keyframes balaie-ligne { from { left: -56px; } to { left: 100%; } }
+@keyframes repli { from { max-height: 170px; background-color: #27332A; } to { max-height: 52px; background-color: var(--surface); } }
 .tampon { flex: none; margin-right: 6px; font: 700 15px/1 var(--titre); letter-spacing: 2px; color: var(--vert); border: 2px solid var(--vert); border-radius: 6px; padding: 4px 8px;
   transform: rotate(-12deg); animation: tampon .45s cubic-bezier(.34, 1.56, .64, 1) both; }
 .objectif-termine { border-left: 6px solid var(--vert); padding-left: 12px; }
@@ -255,7 +251,6 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .tuile span { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .piste { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; }
 .piste button { height: 44px; border-radius: 4px; background: var(--releve); color: var(--texte-doux); font: 700 14px/1 var(--titre); }
-.piste button.fait { background: color-mix(in srgb, var(--vert) 14%, var(--surface)); color: var(--vert); }
 .piste button[aria-checked="true"] { background: var(--vert); color: var(--sur-couleur); }
 .pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
 .pastille-objet { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 3px; border-radius: 99px; background: var(--releve); font-size: 12px; font-weight: 600; }
@@ -283,7 +278,7 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .icone-bouton { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; }
 .icone-bouton:hover { background: var(--surface); }
 @media (prefers-reduced-motion: reduce) { .section, .section *, .accordeon .fleche { transition: none !important; } }
-@media (prefers-reduced-motion: reduce) { .celebration, .atteint, .pop, .banniere::before, .banniere h2, .tampon, .carte.terminee.balaie, .carte.terminee.balaie::after, .carte.terminee.balaie .termine-ligne, .carte.terminee.balaie .coin-valide { animation: none; } .section svg * { animation: none !important; } .gerbe { display: none; } }
+@media (prefers-reduced-motion: reduce) { .celebration, .atteint, .pop, .banniere::before, .banniere h2, .tampon, .carte.balaie, .carte.balaie::after, .carte.repli, .carte.repli .fin { animation: none; } .section svg * { animation: none !important; } .gerbe { display: none; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s; } }
 </style>
 
@@ -986,30 +981,40 @@ function ecranQuetes() {
   ${actionFixe(`Valider · ${pluriel(S.choix.size, "quête", "quêtes")}`, "--vert", "valider-quetes")}`;
 }
 
-// Nom d'un établi ou d'un projet ; terminé, suivi des bandes du logo en vert, de « TERMINÉ » et de ce qui a été
-// fait, avec le coin vert plié (TitreChoix et CoinValide, EcranObjectifs.kt).
-const COIN_VALIDE = `<svg class="coin-valide" width="52" height="52" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0H56V56Z" fill="#6CCB5F"/><path d="M30 17.5l5 5 10.5-11" fill="none" stroke="#141417" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const BANDES_VERTES = `<svg width="22" height="12" viewBox="0 0 35 20" aria-hidden="true"><path d="M0 20h5l7.2-20h-5z" fill="#3E7A37"/><path d="M7.5 20h5l7.2-20h-5z" fill="#4E9C45"/><path d="M15 20h5l7.2-20h-5z" fill="#5DB552"/><path d="M22.5 20h5l7.2-20h-5z" fill="#6CCB5F"/></svg>`;
-// Le balayage ne joue qu'au passage à « Terminé » (S.balayage, effacé au rendu suivant), jamais à l'ouverture de la liste.
-const balaie = (type, id, fin) => fin && S.balayage === `${type}:${id}` ? "balaie" : "";
+// Le balayage ne joue qu'au passage à « Terminé » (S.balayage, le temps du passage de la ligne), puis la carte se
+// replie (S.repli, effacé au rendu suivant) ; jamais à l'ouverture de la liste.
+function passerTermine(cle) {
+  S.balayage = cle; S.ouverts.delete(`fin:${cle}`);
+  setTimeout(() => { if (S.balayage === cle) { S.balayage = null; S.repli = cle; rendre(); } }, 760);
+}
+// Carte d'un établi ou d'un projet (CarteChoix, EcranObjectifs.kt) : nom, état, piste ; terminé, une ligne sobre
+// « ✓ Terminé » et « Modifier », qui rouvre la piste.
+function carteChoix(cle, nom, fin, etat, contenu) {
+  if (fin && S.balayage !== cle) {
+    const o = ouvert(`fin:${cle}`);
+    return `<div class="carte ligne-fin${S.repli === cle ? " repli" : ""}"><div class="ligne" style="min-height:44px;gap:8px"><span class="nom flex">${echap(nom)}</span><span class="fin" style="color:var(--vert);font:600 13px var(--titre)">✓ Terminé</span>
+      <button class="lien" style="--c:var(--texte-doux);font-weight:400" data-action="basculer" data-id="fin:${cle}" aria-expanded="${o}" aria-label="${o ? "Fermer" : "Modifier"}${NB}: ${echap(nom)}">${o ? "Fermer" : "Modifier"}</button></div>
+      ${o ? `<div style="display:flex;flex-direction:column;gap:8px;padding:0 8px 10px 0">${contenu}</div>` : ""}</div>`;
+  }
+  return `<div class="carte choix${fin ? " balaie" : ""}" style="display:flex;flex-direction:column;gap:10px"><div class="ligne"><span class="nom flex">${echap(nom)}</span>${fin ? "" : etiquette(etat || "Pas en cours", etat ? "--vert" : "--texte-discret")}</div>${contenu}</div>`;
+}
 // En-tête des écrans de choix : retour, titre et résumé d'une ligne.
 const enTeteChoix = (titre, resume) => `<div class="ligne" style="gap:4px"><button class="retour" data-action="fermer" aria-label="Retour aux objectifs"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg></button><span class="flex"><h3 style="font-size:22px">${titre}</h3><span class="petit doux">${echap(resume)}</span></span></div>`;
-// Piste « — 1 2 3 ✓ » (Piste, EcranObjectifs.kt) : le choix plein de vert, ce qui est déjà fait teinté de vert.
+// Piste « — 1 2 3 ✓ » (Piste, EcranObjectifs.kt) : seul le choix est plein de vert.
 const piste = (nom, choix, choisi, fin, action, actionFin, id) => `<div class="piste" role="radiogroup" aria-label="${echap(nom)}">
   <button role="radio" aria-checked="${choisi == null && !fin}" data-action="${action}" data-id="${id}" data-n="" aria-label="${echap(nom)}${NB}: rien en cours">—</button>
-  ${choix.map(([n, court, desc], i) => `<button role="radio" class="${fin || (choisi != null && i < choix.findIndex(x => x[0] === choisi)) ? "fait" : ""}" aria-checked="${choisi === n}" data-action="${action}" data-id="${id}" data-n="${n}" aria-label="${echap(nom)}${NB}: ${echap(desc)}">${court}</button>`).join("")}
+  ${choix.map(([n, court, desc], i) => `<button role="radio" aria-checked="${choisi === n}" data-action="${action}" data-id="${id}" data-n="${n}" aria-label="${echap(nom)}${NB}: ${echap(desc)}">${court}</button>`).join("")}
   <button role="radio" aria-checked="${fin}" data-action="${actionFin}" data-id="${id}" aria-label="${echap(nom)}${NB}: terminé">✓</button></div>`;
-const titreChoix = (nom, fin, fait, etat) => `${fin ? COIN_VALIDE : ""}<div class="titre-choix"><div class="ligne"><span class="nom flex">${echap(nom)}</span>${fin ? "" : etiquette(etat || "Pas en cours", etat ? "--vert" : "--texte-discret")}</div>${fin ? `<div class="termine-ligne">${BANDES_VERTES}${etiquette("Terminé", "--vert")}<span class="petit doux">· ${fait}</span></div>` : ""}</div>`;
 // Mes ateliers en cours : le niveau en cours de chaque établi, « Aucun » ou « Terminé ». Chaque choix s'applique tout de suite.
 function ecranAteliers() {
   const liste = [...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom));
   const enCours = liste.filter(e => niveauEnCours(e) != null).length, finis = liste.filter(etabliTermine).length;
   return `${enTeteChoix("Mes ateliers en cours", `${enCours} en cours · ${pluriel(finis, "terminé", "terminés")}`)}
   <p class="petit discret" style="margin:0">Touche le niveau que tu améliores. Quand tout est rapporté, le suivant s'ajoute tout seul.</p>
-  ${liste.map(e => { const n = niveauEnCours(e), fin = etabliTermine(e), niv = [...e.niveaux].sort((a, b) => a.niveau - b.niveau); return `<div class="carte ${fin ? "terminee" : ""} ${balaie("etabli", e.id, fin)}" style="display:flex;flex-direction:column;gap:10px">
-    ${titreChoix(e.nom, fin, `${pluriel(e.niveaux.length, "niveau", "niveaux")} sur ${e.niveaux.length}`, n != null ? `Niveau ${n} en cours` : null)}
-    ${piste(e.nom, niv.map(x => [x.niveau, `${x.niveau}`, `niveau ${x.niveau} en cours`]), n, fin, "niveau-en-cours", "etabli-termine", e.id)}
-    ${n != null ? `<span class="petit doux">Il faut${NB}: ${detailAvancement({ type: "etabli", id: e.id, niveau: n })}</span>` : ""}</div>`; }).join("")}`;
+  ${liste.map(e => { const n = niveauEnCours(e), fin = etabliTermine(e), niv = [...e.niveaux].sort((a, b) => a.niveau - b.niveau);
+    return carteChoix(`etabli:${e.id}`, e.nom, fin, n != null ? `Niveau ${n} en cours` : null,
+      `${piste(e.nom, niv.map(x => [x.niveau, `${x.niveau}`, `niveau ${x.niveau} en cours`]), n, fin, "niveau-en-cours", "etabli-termine", e.id)}
+    ${n != null ? `<span class="petit doux">Il faut${NB}: ${detailAvancement({ type: "etabli", id: e.id, niveau: n })}</span>` : ""}`); }).join("")}`;
 }
 
 // Mes projets (ou mes Expéditions) en cours : l'étape en cours de chacun, sur une piste.
@@ -1018,10 +1023,9 @@ function ecranProjets(expeditions) {
   const enCours = liste.filter(p => etapeEnCours(p) != null).length, finis = liste.filter(projetTermine).length;
   return `${enTeteChoix(expeditions ? "Mes expéditions en cours" : "Mes projets en cours", `${enCours} en cours · ${pluriel(finis, "terminé", "terminés")}`)}
   <p class="petit discret" style="margin:0">Touche l'étape en cours. Quand tout est rapporté, la suivante s'ajoute toute seule.</p>
-  ${liste.map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p); return `<div class="carte ${fin ? "terminee" : ""} ${balaie("projet", p.id, fin)}" style="display:flex;flex-direction:column;gap:10px">
-    ${titreChoix(p.nom, fin, `${pluriel(p.etapes.length, "étape", "étapes")} sur ${p.etapes.length}`, e != null ? `Étape ${e + 1} en cours` : null)}
-    ${piste(p.nom, p.etapes.map((_, i) => [i, `${i + 1}`, `${nomEtape(p, i)} en cours`]), e, fin, "etape-en-cours", "projet-termine", p.id)}
-    ${et ? `<span class="petit doux" style="font-weight:600">${echap(nomEtape(p, e))}</span>${et.cout.length ? `<span class="petit doux">Il faut${NB}: ${detailAvancement({ type: "projet", id: p.id, etape: e })}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}</div>`; }).join("")}`;
+  ${liste.map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p);
+    return carteChoix(`projet:${p.id}`, p.nom, fin, e != null ? `Étape ${e + 1} en cours` : null, `${piste(p.nom, p.etapes.map((_, i) => [i, `${i + 1}`, `${nomEtape(p, i)} en cours`]), e, fin, "etape-en-cours", "projet-termine", p.id)}
+    ${et ? `<span class="petit doux" style="font-weight:600">${echap(nomEtape(p, e))}</span>${et.cout.length ? `<span class="petit doux">Il faut${NB}: ${detailAvancement({ type: "projet", id: p.id, etape: e })}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}`); }).join("")}`;
 }
 
 function ecranRaid() {
@@ -1310,7 +1314,7 @@ function rendre() {
     document.querySelector(".celebration")?.focus();
   }
   if (e === "plan") brancherPlan();
-  S.balayage = null;
+  S.repli = null;
   document.documentElement.style.setProperty("--haut-entete", `${document.querySelector(".entete").offsetHeight}px`);
   document.getElementById("bouton-reglages").style.color = S.ecran === "reglages" ? "var(--or)" : "var(--texte-doux)";
   if (champ) { const el = document.querySelector(`[data-champ="${champ}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} } }
@@ -1361,8 +1365,8 @@ document.addEventListener("click", ev => {
     case "butin-retirer": changerButin(id, 0); break;
     case "niveau-en-cours": indiquerNiveau(etablis.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
     case "etape-en-cours": indiquerEtape(projets.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
-    case "etabli-termine": if (!etabliTermine(etablis.get(id))) S.balayage = `etabli:${id}`; indiquerEtabliTermine(etablis.get(id)); break;
-    case "projet-termine": if (!projetTermine(projets.get(id))) S.balayage = `projet:${id}`; indiquerProjetTermine(projets.get(id)); break;
+    case "etabli-termine": if (!etabliTermine(etablis.get(id))) passerTermine(`etabli:${id}`); indiquerEtabliTermine(etablis.get(id)); break;
+    case "projet-termine": if (!projetTermine(projets.get(id))) passerTermine(`projet:${id}`); indiquerProjetTermine(projets.get(id)); break;
     case "valider-objectif": valider(objectifDepuisCle(b.dataset.cle)); break;
     case "build-case": S.caseBuild = { rang: +id, cle: b.dataset.case }; S.rechercheBuild = ""; return ouvrir("choix-build");
     case "build-choisir": { const { rang, cle } = S.caseBuild; changerBuild(rang, x => { if (id) x.objets[cle] = id; else delete x.objets[cle]; }); S.ecran = null; break; }
