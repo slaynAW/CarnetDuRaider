@@ -1,5 +1,12 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import android.provider.Settings
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -10,18 +17,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -46,9 +58,15 @@ val FormeCoupee = CutCornerShape(bottomEnd = 14.dp)
  * capitales et un motif qui lui est propre (bandes du logo, caisse, réticule, courbes de niveau, chevrons,
  * plan technique). On sait d'un coup d'œil sur quelle section on est. Il occupe toute la largeur de l'écran,
  * même dans une liste avec des marges ([marge]).
+ *
+ * Le motif vit doucement, en boucle : un reflet passe sur les bandes, les cases de la caisse s'assombrissent
+ * une à une, la cible cherche puis verrouille, le repère flotte et émet une onde, une impulsion pousse les
+ * chevrons, une ligne de scan descend sur le plan. Le texte ne bouge jamais. Avec « Supprimer les
+ * animations » d'Android, le motif reste immobile.
  */
 @Composable
 fun BandeauSection(onglet: Onglet, sousTitre: String, marge: Dp = 20.dp) {
+    val temps = if (animationsActives()) tempsEnBoucle(periode(onglet)) else null
     Box(
         Modifier
             .pleineLargeur(marge)
@@ -56,7 +74,7 @@ fun BandeauSection(onglet: Onglet, sousTitre: String, marge: Dp = 20.dp) {
             .clip(CutCornerShape(bottomEnd = 34.dp))
             .background(onglet.couleur),
     ) {
-        Canvas(Modifier.fillMaxSize().clearAndSetSemantics { }) { motif(onglet) }
+        Canvas(Modifier.fillMaxSize().clearAndSetSemantics { }) { motif(onglet, temps?.value) }
         Column(Modifier.padding(start = 20.dp, top = 18.dp, end = 20.dp)) {
             Text(
                 onglet.code,
@@ -80,6 +98,35 @@ fun BandeauSection(onglet: Onglet, sousTitre: String, marge: Dp = 20.dp) {
     }
 }
 
+/** Faux si le joueur a coupé les animations d'Android (échelle de durée des animations à 0). */
+@Composable
+private fun animationsActives(): Boolean {
+    val contexte = LocalContext.current
+    return remember(contexte) {
+        Settings.Global.getFloat(contexte.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+    }
+}
+
+/** Le temps écoulé dans la boucle du motif, de 0 à [periode] millisecondes, lu seulement au dessin. */
+@Composable
+private fun tempsEnBoucle(periode: Int): State<Float> =
+    rememberInfiniteTransition(label = "motif").animateFloat(
+        initialValue = 0f,
+        targetValue = periode.toFloat(),
+        animationSpec = infiniteRepeatable(tween(periode, easing = LinearEasing)),
+        label = "temps",
+    )
+
+/** Durée d'une boucle du motif de chaque section, en millisecondes. */
+private fun periode(onglet: Onglet): Int = when (onglet) {
+    Onglet.ACCUEIL -> 4500
+    Onglet.OBJETS -> 4500
+    Onglet.RAID -> 7000
+    Onglet.CARTES -> 3000
+    Onglet.OBJECTIFS -> 3600
+    Onglet.BUILDS -> 3400
+}
+
 /** Élargit l'élément de [marge] de chaque côté : il passe sous les marges de la liste qui le contient. */
 private fun Modifier.pleineLargeur(marge: Dp): Modifier = this.layout { mesurable, contraintes ->
     val m = marge.roundToPx()
@@ -90,9 +137,9 @@ private fun Modifier.pleineLargeur(marge: Dp): Modifier = this.layout { mesurabl
 
 /**
  * Le motif de la section, dessiné à droite du bandeau dans une grille de [largeur] × 132 (mise à l'échelle
- * de la hauteur du bandeau).
+ * de la hauteur du bandeau), à l'instant [ms] de sa boucle (null : immobile).
  */
-private fun DrawScope.motif(onglet: Onglet) {
+private fun DrawScope.motif(onglet: Onglet, ms: Float?) {
     val largeur = when (onglet) {
         Onglet.ACCUEIL, Onglet.CARTES, Onglet.BUILDS -> 210f
         else -> 200f
@@ -101,18 +148,43 @@ private fun DrawScope.motif(onglet: Onglet) {
     translate(left = size.width - largeur * s) {
         scale(s, s, pivot = Offset.Zero) {
             when (onglet) {
-                Onglet.ACCUEIL -> motifAccueil()
-                Onglet.OBJETS -> motifObjets()
-                Onglet.RAID -> motifRaid()
-                Onglet.CARTES -> motifCartes()
-                Onglet.OBJECTIFS -> motifObjectifs()
-                Onglet.BUILDS -> motifBuilds()
+                Onglet.ACCUEIL -> motifAccueil(ms)
+                Onglet.OBJETS -> motifObjets(ms)
+                Onglet.RAID -> motifRaid(ms)
+                Onglet.CARTES -> motifCartes(ms)
+                Onglet.OBJECTIFS -> motifObjectifs(ms)
+                Onglet.BUILDS -> motifBuilds(ms)
             }
         }
     }
 }
 
 private val Encre = Signal.SurCouleur
+
+/** Courbes des animations : adoucie aux deux bouts, et lente au départ et à l'arrivée pour ce qui traverse. */
+private val Douce = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+private val Traversee = CubicBezierEasing(0.45f, 0f, 0.25f, 1f)
+private val Onde = CubicBezierEasing(0.2f, 0.7f, 0.3f, 1f)
+private val Impulsion = CubicBezierEasing(0.4f, 0f, 0.6f, 1f)
+
+/** Où en est (de 0 à 1) une boucle de [periode] ms à l'instant [ms], qui commence [retard] ms plus tard. */
+private fun fraction(ms: Float, periode: Float, retard: Float = 0f): Float = ((ms - retard) % periode + periode) % periode / periode
+
+/**
+ * Valeur à l'instant [f] (de 0 à 1) d'une suite d'images clés [cles] (instant, valeur, instant, valeur…),
+ * adoucie entre deux clés ; avant la première et après la dernière, la valeur de celle-ci.
+ */
+private fun images(f: Float, vararg cles: Float): Float {
+    if (f <= cles[0]) return cles[1]
+    var i = 0
+    while (i + 3 < cles.size) {
+        val t0 = cles[i]
+        val t1 = cles[i + 2]
+        if (f <= t1) return cles[i + 1] + (cles[i + 3] - cles[i + 1]) * Douce.transform((f - t0) / (t1 - t0))
+        i += 2
+    }
+    return cles[cles.size - 1]
+}
 
 private fun polygone(vararg points: Float): Path = Path().apply {
     moveTo(points[0], points[1])
@@ -124,16 +196,27 @@ private fun polygone(vararg points: Float): Path = Path().apply {
     close()
 }
 
-/** Accueil : les quatre bandes du logo, en grand. */
-private fun DrawScope.motifAccueil() {
-    listOf(Signal.Cyan, Signal.Vert, Signal.Or, Signal.Rouge).forEachIndexed { i, couleur ->
+/** Accueil : les quatre bandes du logo, en grand ; un reflet clair les traverse de temps en temps. */
+private fun DrawScope.motifAccueil(ms: Float?) {
+    val bandes = (0..3).map { i ->
         val x = 40f + 40f * i
-        drawPath(polygone(x, 132f, x + 26f, 132f, x + 78f, 0f, x + 52f, 0f), couleur)
+        polygone(x, 132f, x + 26f, 132f, x + 78f, 0f, x + 52f, 0f)
+    }
+    bandes.zip(listOf(Signal.Cyan, Signal.Vert, Signal.Or, Signal.Rouge)).forEach { (bande, couleur) -> drawPath(bande, couleur) }
+    if (ms == null) return
+    val f = fraction(ms, 4500f)
+    if (f >= 0.22f) return
+    val x = -80f + 330f * Traversee.transform(f / 0.22f)
+    clipPath(Path().apply { bandes.forEach { addPath(it) } }) {
+        drawPath(polygone(x, 132f, x + 16f, 132f, x + 68f, 0f, x + 52f, 0f), Color.White.copy(alpha = 0.45f))
     }
 }
 
-/** Objets : rayures « danger » et caisse vue de face. */
-private fun DrawScope.motifObjets() {
+/** Les cases de la caisse dans l'ordre où l'inventaire les passe en revue (colonne, ligne), en serpentin. */
+private val OrdreInventaire = listOf(0 to 0, 1 to 0, 2 to 0, 2 to 1, 1 to 1, 0 to 1, 0 to 2, 1 to 2, 2 to 2)
+
+/** Objets : rayures « danger » et caisse vue de face, dont les cases s'assombrissent une à une. */
+private fun DrawScope.motifObjets(ms: Float?) {
     clipRect(left = 60f, top = 0f, right = 200f, bottom = 132f) {
         var x = -80f
         while (x < 200f) {
@@ -142,30 +225,50 @@ private fun DrawScope.motifObjets() {
         }
     }
     drawRect(Signal.Or, topLeft = Offset(96f, 30f), size = Size(72f, 72f))
+    if (ms != null) {
+        OrdreInventaire.forEachIndexed { rang, (colonne, ligne) ->
+            val f = fraction(ms, 4500f, 500f * rang)
+            val alpha = when {
+                f < 0.05f -> 0.4f * f / 0.05f
+                f < 0.16f -> 0.4f * (1f - (f - 0.05f) / 0.11f)
+                else -> 0f
+            }
+            if (alpha > 0f) drawRect(Encre.copy(alpha = alpha), topLeft = Offset(96f + 24f * colonne, 30f + 24f * ligne), size = Size(24f, 24f))
+        }
+    }
     drawRect(Encre, topLeft = Offset(96f, 30f), size = Size(72f, 72f), style = Stroke(4f))
     listOf(54f, 78f).forEach { y -> drawLine(Encre, Offset(96f, y), Offset(168f, y), strokeWidth = 2f) }
     listOf(120f, 144f).forEach { x -> drawLine(Encre, Offset(x, 30f), Offset(x, 102f), strokeWidth = 2f) }
 }
 
-/** Raid : réticule de visée sur des lignes de balayage. */
-private fun DrawScope.motifRaid() {
+/** Raid : réticule de visée sur des lignes de balayage ; il erre en cherchant sa cible, puis la verrouille. */
+private fun DrawScope.motifRaid(ms: Float?) {
     var y = 0f
     while (y < 132f) {
         drawRect(Encre.copy(alpha = 0.18f), topLeft = Offset(0f, y), size = Size(200f, 2f))
         y += 6f
     }
-    val centre = Offset(130f, 62f)
-    drawCircle(Encre, radius = 46f, center = centre, style = Stroke(3f))
-    drawCircle(Encre, radius = 26f, center = centre, style = Stroke(3f))
-    drawLine(Encre, Offset(130f, 0f), Offset(130f, 30f), strokeWidth = 3f)
-    drawLine(Encre, Offset(130f, 94f), Offset(130f, 132f), strokeWidth = 3f)
-    drawLine(Encre, Offset(70f, 62f), Offset(104f, 62f), strokeWidth = 3f)
-    drawLine(Encre, Offset(156f, 62f), Offset(200f, 62f), strokeWidth = 3f)
-    drawCircle(Encre, radius = 5f, center = centre)
+    val f = ms?.let { fraction(it, 7000f) }
+    val dx = f?.let { images(it, 0f, 0f, 0.16f, -14f, 0.32f, -7f, 0.48f, 11f, 0.64f, 13f, 0.78f, 0f) } ?: 0f
+    val dy = f?.let { images(it, 0f, 0f, 0.16f, 9f, 0.32f, -11f, 0.48f, -5f, 0.64f, 9f, 0.78f, 0f) } ?: 0f
+    val serre = f?.let { images(it, 0.76f, 1f, 0.83f, 0.88f, 0.9f, 1f) } ?: 1f
+    val pouls = f?.let { images(it, 0.78f, 1f, 0.84f, 1.8f, 0.9f, 1f) } ?: 1f
+    // En mouvement, les branches du viseur dépassent pour ne jamais laisser voir leur bout.
+    val depasse = if (f == null) 0f else 20f
+    translate(dx, dy) {
+        val centre = Offset(130f, 62f)
+        drawCircle(Encre, radius = 46f * serre, center = centre, style = Stroke(3f))
+        drawCircle(Encre, radius = 26f * serre, center = centre, style = Stroke(3f))
+        drawLine(Encre, Offset(130f, -depasse), Offset(130f, 30f), strokeWidth = 3f)
+        drawLine(Encre, Offset(130f, 94f), Offset(130f, 132f + depasse), strokeWidth = 3f)
+        drawLine(Encre, Offset(70f - depasse, 62f), Offset(104f, 62f), strokeWidth = 3f)
+        drawLine(Encre, Offset(156f, 62f), Offset(200f + depasse, 62f), strokeWidth = 3f)
+        drawCircle(Encre, radius = 5f * pouls, center = centre)
+    }
 }
 
-/** Cartes : courbes de niveau sur une grille de coordonnées, et un repère. */
-private fun DrawScope.motifCartes() {
+/** Cartes : courbes de niveau sur une grille de coordonnées, et un repère qui flotte en émettant une onde. */
+private fun DrawScope.motifCartes(ms: Float?) {
     val grille = Encre.copy(alpha = 0.35f)
     listOf(30f, 70f, 110f, 150f, 190f).forEach { x -> drawLine(grille, Offset(x, 0f), Offset(x, 132f), strokeWidth = 1f) }
     listOf(33f, 66f, 99f).forEach { y -> drawLine(grille, Offset(0f, y), Offset(210f, y), strokeWidth = 1f) }
@@ -204,19 +307,42 @@ private fun DrawScope.motifCartes() {
         style = trait,
     )
     drawPath(Path().apply { moveTo(40f, 20f); cubicTo(70f, 4f, 120f, 2f, 160f, 16f) }, Encre, style = trait)
-    drawPath(polygone(178f, 26f, 170f, 40f, 186f, 40f), Encre)
+    if (ms != null) {
+        val f = fraction(ms, 3000f, 400f)
+        if (f < 0.4f) {
+            val a = Onde.transform(f / 0.4f)
+            drawCircle(Encre.copy(alpha = 0.7f * (1f - a)), radius = 6f * (1f + 3.5f * a), center = Offset(178f, 35f), style = Stroke(1.5f))
+        }
+    }
+    val flotte = ms?.let { val f = fraction(it, 3000f); 3f * Douce.transform(if (f < 0.5f) f * 2f else (1f - f) * 2f) } ?: 0f
+    drawPath(polygone(178f, 26f - flotte, 170f, 40f - flotte, 186f, 40f - flotte), Encre)
 }
 
-/** Objectifs : trois chevrons qui avancent. */
-private fun DrawScope.motifObjectifs() {
-    listOf(0.25f, 0.5f, 1f).forEachIndexed { i, alpha ->
-        val x = 60f + 40f * i
-        drawPath(polygone(x, 0f, x + 22f, 0f, x + 62f, 66f, x + 22f, 132f, x, 132f, x + 40f, 66f), Encre.copy(alpha = alpha))
+/** Un chevron du motif des objectifs, à l'abscisse [x]. */
+private fun chevron(x: Float): Path = polygone(x, 0f, x + 22f, 0f, x + 62f, 66f, x + 22f, 132f, x, 132f, x + 40f, 66f)
+
+/** Objectifs : trois chevrons qui avancent ; une impulsion les traverse et les pousse l'un après l'autre. */
+private fun DrawScope.motifObjectifs(ms: Float?) {
+    val bases = listOf(0.25f, 0.5f, 1f)
+    val eclats = listOf(0.85f, 0.95f, 1f)
+    val retards = listOf(90f, 170f, 250f)
+    bases.forEachIndexed { i, base ->
+        val f = ms?.let { fraction(it, 3600f, retards[i]) }
+        val alpha = f?.let { images(it, 0.05f, base, 0.1f, eclats[i], 0.22f, base) } ?: base
+        val pousse = f?.let { images(it, 0.05f, 0f, 0.1f, 6f, 0.22f, 0f) } ?: 0f
+        drawPath(chevron(60f + 40f * i + pousse), Encre.copy(alpha = alpha))
+    }
+    if (ms == null) return
+    val f = fraction(ms, 3600f)
+    if (f < 0.16f) {
+        clipRect(left = 0f, top = 0f, right = 200f, bottom = 132f) {
+            drawPath(chevron(-70f + 280f * Impulsion.transform(f / 0.16f)), Encre.copy(alpha = 0.9f))
+        }
     }
 }
 
-/** Builds : plan technique d'une arme sur papier millimétré, avec sa cote. */
-private fun DrawScope.motifBuilds() {
+/** Builds : plan technique d'une arme sur papier millimétré, avec sa cote ; une ligne de scan le parcourt. */
+private fun DrawScope.motifBuilds(ms: Float?) {
     val grille = Encre.copy(alpha = 0.3f)
     var v = 20f
     while (v <= 200f) {
@@ -233,6 +359,22 @@ private fun DrawScope.motifBuilds() {
     drawLine(Encre, Offset(70f, 24f), Offset(166f, 24f), strokeWidth = 1.5f)
     drawLine(Encre, Offset(70f, 18f), Offset(70f, 30f), strokeWidth = 1.5f)
     drawLine(Encre, Offset(166f, 18f), Offset(166f, 30f), strokeWidth = 1.5f)
+    if (ms == null) return
+    val f = fraction(ms, 3400f)
+    val y = if (f < 0.68f) -4f + 136f * Traversee.transform(f / 0.68f) else 132f
+    val visible = when {
+        f < 0.08f -> f / 0.08f
+        f < 0.68f -> 1f
+        f < 0.7f -> 1f - (f - 0.68f) / 0.02f
+        else -> 0f
+    }
+    if (visible <= 0f) return
+    drawRect(
+        Brush.verticalGradient(listOf(Encre.copy(alpha = 0f), Encre.copy(alpha = 0.14f * visible)), startY = y - 18f, endY = y),
+        topLeft = Offset(0f, y - 18f),
+        size = Size(210f, 18f),
+    )
+    drawRect(Encre.copy(alpha = 0.5f * visible), topLeft = Offset(0f, y - 1f), size = Size(210f, 2f))
 }
 
 /** Petite étiquette en capitales dans une carte (« CE QU'IL TE FAUT », « MEILLEURE CARTE »…). */

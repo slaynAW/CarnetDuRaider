@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.13.0
+
+- **Bandeaux vivants** : le motif en tête de chaque onglet bouge doucement, en boucle. Un reflet passe sur les bandes de l'Accueil, les cases de la caisse d'Objets s'assombrissent une à une, la cible du Raid cherche puis verrouille, le repère des Cartes flotte en émettant une onde, une impulsion pousse les chevrons des Objectifs et une ligne de scan parcourt le plan des Builds.
+- Le texte des bandeaux ne bouge pas, et tout reste immobile si les animations sont désactivées sur le téléphone.
+
 ## 0.12.3
 
 - **Terminé** : quand tu passes un atelier, un projet ou une Expédition à « Terminé », une fine ligne verte balaie sa carte, qui se teinte de vert derrière elle avant que « TERMINÉ » et le coin validé n'apparaissent. Discret, moins d'une seconde, et coupé si les animations sont désactivées sur le téléphone.
