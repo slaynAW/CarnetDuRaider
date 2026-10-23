@@ -164,6 +164,17 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .carte.terminee .coin-valide { position: absolute; top: 0; right: 0; }
 .carte.terminee .titre-choix { padding-right: 40px; }
 .termine-ligne { display: flex; align-items: center; gap: 8px; }
+/* Le balayage : la carte qu'on vient de passer à « Terminé » est balayée par une fine ligne verte ; le fond se
+   teinte derrière elle, « TERMINÉ » apparaît, puis le coin. */
+.carte.terminee::after { content: ""; position: absolute; top: 0; bottom: 0; left: 100%; width: 56px; pointer-events: none;
+  background: linear-gradient(90deg, rgba(108,203,95,0), rgba(108,203,95,.16)); border-right: 2px solid rgba(108,203,95,.75); }
+.carte.terminee.balaie { animation: balaie-teinte .48s .12s linear both; }
+.carte.terminee.balaie::after { animation: balaie-ligne .68s cubic-bezier(.45, 0, .25, 1) both; }
+.carte.terminee.balaie .termine-ligne { animation: apparaitre .22s .3s ease-out both; }
+.carte.terminee.balaie .coin-valide { animation: apparaitre .2s .54s ease-out both; }
+/* Fin explicite : le vert à 12 % sur la surface (Chromium anime mal vers un color-mix). */
+@keyframes balaie-teinte { from { background-color: var(--surface); } to { background-color: #27332A; } }
+@keyframes balaie-ligne { from { left: -56px; } to { left: 100%; } }
 .tampon { flex: none; margin-right: 6px; font: 700 15px/1 var(--titre); letter-spacing: 2px; color: var(--vert); border: 2px solid var(--vert); border-radius: 6px; padding: 4px 8px;
   transform: rotate(-12deg); animation: tampon .45s cubic-bezier(.34, 1.56, .64, 1) both; }
 .objectif-termine { border-left: 6px solid var(--vert); padding-left: 12px; }
@@ -175,7 +186,7 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 @keyframes rebond { from { opacity: 0; transform: scale(.7); } }
 @keyframes gerbe { from { transform: translate(0, 0) rotate(0deg) skewX(-20deg); opacity: 1; }
   to { transform: translate(var(--dx), calc(var(--dy) + 35vh)) rotate(var(--r)) skewX(-20deg); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .celebration, .atteint, .pop, .banniere::before, .banniere h2, .tampon { animation: none; } .gerbe { display: none; } }
+@media (prefers-reduced-motion: reduce) { .celebration, .atteint, .pop, .banniere::before, .banniere h2, .tampon, .carte.terminee.balaie, .carte.terminee.balaie::after, .carte.terminee.balaie .termine-ligne, .carte.terminee.balaie .coin-valide { animation: none; } .gerbe { display: none; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s; } }
 </style>
 
@@ -835,12 +846,14 @@ function ecranQuetes() {
 // fait, avec le coin vert plié (TitreChoix et CoinValide, EcranObjectifs.kt).
 const COIN_VALIDE = `<svg class="coin-valide" width="52" height="52" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0H56V56Z" fill="#6CCB5F"/><path d="M30 17.5l5 5 10.5-11" fill="none" stroke="#141417" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const BANDES_VERTES = `<svg width="22" height="12" viewBox="0 0 35 20" aria-hidden="true"><path d="M0 20h5l7.2-20h-5z" fill="#3E7A37"/><path d="M7.5 20h5l7.2-20h-5z" fill="#4E9C45"/><path d="M15 20h5l7.2-20h-5z" fill="#5DB552"/><path d="M22.5 20h5l7.2-20h-5z" fill="#6CCB5F"/></svg>`;
+// Le balayage ne joue qu'au passage à « Terminé » (S.balayage, effacé au rendu suivant), jamais à l'ouverture de la liste.
+const balaie = (type, id, fin) => fin && S.balayage === `${type}:${id}` ? "balaie" : "";
 const titreChoix = (nom, fin, fait) => `${fin ? COIN_VALIDE : ""}<div class="titre-choix"><span class="nom">${echap(nom)}</span>${fin ? `<div class="termine-ligne">${BANDES_VERTES}${etiquette("Terminé", "--vert")}<span class="petit doux">· ${fait}</span></div>` : ""}</div>`;
 // Mes ateliers en cours : le niveau en cours de chaque établi, « Aucun » ou « Terminé ». Chaque choix s'applique tout de suite.
 function ecranAteliers() {
   return `${retour("Objectifs", "--vert")}<h3>Mes ateliers en cours</h3>
   <p class="doux" style="margin:0">Pour chaque établi de l'Atelier, choisis le niveau que tu es en train d'améliorer, ou «${NB}Terminé${NB}» s'il est au niveau maximum. Une fois un niveau terminé, le suivant s'ajoute tout seul.</p>
-  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveauEnCours(e), fin = etabliTermine(e); return `<div class="carte ${fin ? "terminee" : ""}" style="display:flex;flex-direction:column;gap:8px">
+  ${[...D.etablis].sort((a, b) => a.nom.localeCompare(b.nom)).map(e => { const n = niveauEnCours(e), fin = etabliTermine(e); return `<div class="carte ${fin ? "terminee" : ""} ${balaie("etabli", e.id, fin)}" style="display:flex;flex-direction:column;gap:8px">
     ${titreChoix(e.nom, fin, `${pluriel(e.niveaux.length, "niveau", "niveaux")} sur ${e.niveaux.length}`)}
     <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="" aria-pressed="${n == null && !fin}" aria-label="${echap(e.nom)}${NB}: rien en cours">Aucun</button><button class="chip fin" data-action="etabli-termine" data-id="${e.id}" aria-pressed="${fin}" aria-label="${echap(e.nom)}${NB}: terminé, tous les niveaux sont faits">✓ Terminé</button>${[...e.niveaux].sort((a, b) => a.niveau - b.niveau).map(x => `<button class="chip" data-action="niveau-en-cours" data-id="${e.id}" data-n="${x.niveau}" aria-pressed="${n === x.niveau}" aria-label="${echap(e.nom)}${NB}: niveau ${x.niveau} en cours">Niveau ${x.niveau}</button>`).join("")}</div>
     ${n != null ? `<span class="petit" style="color:var(--or)">Niveau ${n}${NB}: ${detailAvancement({ type: "etabli", id: e.id, niveau: n })}</span>` : ""}</div>`; }).join("")}`;
@@ -850,7 +863,7 @@ function ecranAteliers() {
 function ecranProjets(expeditions) {
   return `${retour("Objectifs", "--vert")}<h3>${expeditions ? "Mes expéditions en cours" : "Mes projets en cours"}</h3>
   <p class="doux" style="margin:0">Choisis l'étape en cours de chacun, ou «${NB}Terminé${NB}» s'il est fini. Une fois une étape terminée, la suivante s'ajoute toute seule.</p>
-  ${(D.projets || []).filter(p => estExpedition(p) === expeditions).map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p); return `<div class="carte ${fin ? "terminee" : ""}" style="display:flex;flex-direction:column;gap:8px">
+  ${(D.projets || []).filter(p => estExpedition(p) === expeditions).map(p => { const e = etapeEnCours(p), et = e != null ? p.etapes[e] : null, fin = projetTermine(p); return `<div class="carte ${fin ? "terminee" : ""} ${balaie("projet", p.id, fin)}" style="display:flex;flex-direction:column;gap:8px">
     ${titreChoix(p.nom, fin, `${pluriel(p.etapes.length, "étape", "étapes")} sur ${p.etapes.length}`)}
     <div class="chips" style="--c:var(--vert)"><button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="" aria-pressed="${e == null && !fin}" aria-label="${echap(p.nom)}${NB}: pas en cours">Aucune</button><button class="chip fin" data-action="projet-termine" data-id="${p.id}" aria-pressed="${fin}" aria-label="${echap(p.nom)}${NB}: terminé, toutes les étapes sont faites">✓ Terminé</button>${p.etapes.map((_, i) => `<button class="chip" data-action="etape-en-cours" data-id="${p.id}" data-n="${i}" aria-pressed="${e === i}" aria-label="${echap(p.nom)}${NB}: ${echap(nomEtape(p, i))} en cours">Étape ${i + 1}</button>`).join("")}</div>
     ${et ? `<span class="petit doux" style="font-weight:600">${echap(nomEtape(p, e))}</span>${et.cout.length ? `<span class="petit" style="color:var(--or)">${detailAvancement({ type: "projet", id: p.id, etape: e })}</span>` : ""}${et.autresObjectifs ? `<span class="petit doux">Et d'autres conditions à remplir en jeu.</span>` : ""}` : ""}</div>`; }).join("")}`;
@@ -1120,6 +1133,7 @@ function rendre() {
     document.querySelector(".celebration")?.focus();
   }
   if (e === "plan") brancherPlan();
+  S.balayage = null;
   document.getElementById("bouton-reglages").style.color = S.ecran === "reglages" ? "var(--or)" : "var(--texte-doux)";
   if (champ) { const el = document.querySelector(`[data-champ="${champ}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} } }
 }
@@ -1165,8 +1179,8 @@ document.addEventListener("click", ev => {
     case "butin-retirer": changerButin(id, 0); break;
     case "niveau-en-cours": indiquerNiveau(etablis.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
     case "etape-en-cours": indiquerEtape(projets.get(id), b.dataset.n === "" ? null : +b.dataset.n); break;
-    case "etabli-termine": indiquerEtabliTermine(etablis.get(id)); break;
-    case "projet-termine": indiquerProjetTermine(projets.get(id)); break;
+    case "etabli-termine": if (!etabliTermine(etablis.get(id))) S.balayage = `etabli:${id}`; indiquerEtabliTermine(etablis.get(id)); break;
+    case "projet-termine": if (!projetTermine(projets.get(id))) S.balayage = `projet:${id}`; indiquerProjetTermine(projets.get(id)); break;
     case "valider-objectif": valider(objectifDepuisCle(b.dataset.cle)); break;
     case "build-case": S.caseBuild = { rang: +id, cle: b.dataset.case }; S.rechercheBuild = ""; return ouvrir("choix-build");
     case "build-choisir": { const { rang, cle } = S.caseBuild; changerBuild(rang, x => { if (id) x.objets[cle] = id; else delete x.objets[cle]; }); S.ecran = null; break; }
