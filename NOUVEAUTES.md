@@ -5,6 +5,18 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.14.0
+
+- **Plus clair, moins de défilement** : le bandeau en tête de chaque onglet se replie en une fine barre dès que tu fais défiler, et le bouton principal (« Retour de raid », « Valider ») reste fixé en bas de l'écran.
+- **Raid** : la meilleure carte en tête, avec « Où chercher » qui déplie ses zones et la carte suivante du parcours. Ce qu'il te faut tient en une liste compacte (une ligne par objet, « ARC » s'il se trouve sur les ARC). « Mes objectifs » et le détail des cartes sont repliés, à un geste.
+- **Retour de raid** : une ligne par objet. Touche son icône pour en ajouter un (appui long : cinq), ou « − / + » ; la ligne passe au vert quand le compte est bon, et une barre montre l'avancée.
+- **Objets** : ce qui est à garder d'abord, avec sa raison, puis le reste par lettre. Chaque filtre affiche son nombre d'objets.
+- **Fiche d'un objet** : en-tête plus court, le verdict en grand, puis des parties qui se déplient (à quoi il sert, où le trouver, fabrication, recyclage, récompenses).
+- **Objectifs** : quatre tuiles avec leur nombre en cours, un résumé de ce qu'il reste à trouver qui mène au Raid, et tes objectifs groupés (ateliers, projets, Expéditions, quêtes) avec les objets demandés en pastilles.
+- **Mes ateliers, projets et expéditions** : une piste « — 1 2 3 ✓ » qui tient sur la largeur de l'écran ; ce qui est déjà fait est teinté de vert, et « Terminé » est la dernière étape. **Mes quêtes** : « Valider » reste en bas de l'écran.
+- **Cartes** : chaque carte sur sa capture en jeu, avec ses conditions en cours et le bouton « Plan ». « En ce moment » et « À venir » séparent le calendrier, avec une cloche par ligne ; la région se choisit d'une pastille.
+- **Builds** : tes six builds sur une ligne, avec le nombre de cases remplies. Nouveau **build préféré** : touche l'étoile, il passe en premier et s'ouvre en arrivant sur l'onglet. Cases groupées (équipement, armes, consommables), « Autres » repliées, et ce qu'il faut pour fabriquer tout le build, avec les quantités.
+
 ## 0.13.1
 
 - **Raid** : « Meilleure carte » s'affiche sur une capture en jeu de la carte (Le Portail bleu, Ville enfouie, Champ de bataille du Barrage, Col de Pendola, Riven Tides, Stella Montis et Port spatial), assombrie à gauche pour que le texte reste lisible. Même chose pour « Ton prochain raid » à l'accueil.
