@@ -1,5 +1,9 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -33,18 +37,25 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -255,20 +266,68 @@ private val FondTermine = Signal.Vert.copy(alpha = 0.12f).compositeOver(Signal.S
 /** Les bandes du logo en dégradé de vert, devant « TERMINÉ ». */
 private val BandesVertes = listOf(Color(0xFF3E7A37), Color(0xFF4E9C45), Color(0xFF5DB552), Signal.Vert)
 
+/** Durée du balayage d'une carte qu'on vient de passer à « Terminé ». */
+private const val BALAYAGE_MS = 740
+
+/** Durée du passage de la ligne verte, dans le balayage. */
+private const val PASSAGE_MS = 680
+
+/** Le passage de la ligne : lent au départ et à l'arrivée. */
+private val EasingPassage = CubicBezierEasing(0.45f, 0f, 0.25f, 1f)
+
 /**
- * Carte d'un établi ou d'un projet. Terminé, c'est le « coin validé » : fond teinté de vert, coin bas
- * gauche coupé et, en haut à droite, un coin vert plié avec sa coche.
+ * Carte d'un établi ou d'un projet : son nom ([TitreChoix], [fait] : « 3 niveaux sur 3 »), puis [contenu].
+ * Terminé, c'est le « coin validé » : fond teinté de vert, coin bas gauche coupé et, en haut à droite, un coin
+ * vert plié avec sa coche.
+ *
+ * Quand elle passe à « Terminé » sous les yeux du joueur, une fine ligne verte la balaie de gauche à droite
+ * (le balayage) : le fond se teinte derrière elle, « TERMINÉ » apparaît, puis le coin. Rien ne bouge à
+ * l'ouverture de la liste ; avec « Supprimer les animations » d'Android, la carte est validée d'un coup.
  */
 @Composable
-private fun CarteChoix(termine: Boolean, contenu: @Composable ColumnScope.() -> Unit) {
+private fun CarteChoix(nom: String, termine: Boolean, fait: String, contenu: @Composable ColumnScope.() -> Unit) {
+    val balayage = remember { Animatable(1f) }
+    var etaitTermine by remember { mutableStateOf(termine) }
+    LaunchedEffect(termine) {
+        if (termine && !etaitTermine) {
+            balayage.snapTo(0f)
+            balayage.animateTo(1f, tween(BALAYAGE_MS, easing = LinearEasing))
+        }
+        etaitTermine = termine
+    }
+    // Avancée du balayage (1 : rien à animer) ; tout juste terminée, elle part de 0 avant même que l'effet démarre.
+    fun avancee() = if (termine && !etaitTermine && !balayage.isRunning) 0f else balayage.value
+    // Avancée (de 0 à 1) d'une étape du balayage, de [debut] à [debut] + [duree] millisecondes.
+    fun etape(debut: Int, duree: Int) = ((avancee() * BALAYAGE_MS - debut) / duree).coerceIn(0f, 1f)
     Surface(
         color = if (termine) FondTermine else Signal.Surface,
         shape = if (termine) CutCornerShape(bottomStart = 16.dp) else RoundedCornerShape(6.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Box {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = contenu)
-            if (termine) CoinValide(Modifier.align(Alignment.TopEnd))
+        Box(
+            Modifier.drawWithContent {
+                val enCours = termine && avancee() < 1f
+                // Le fond garde la couleur d'avant, puis se teinte de vert derrière la ligne.
+                if (enCours) drawRect(Signal.Surface, alpha = 1f - etape(120, 480))
+                drawContent()
+                if (enCours) {
+                    val trainee = 56.dp.toPx()
+                    val trait = 2.dp.toPx()
+                    val x = (size.width + trainee) * EasingPassage.transform(etape(0, PASSAGE_MS))
+                    drawRect(
+                        Brush.horizontalGradient(listOf(Signal.Vert.copy(alpha = 0f), Signal.Vert.copy(alpha = 0.16f)), startX = x - trainee, endX = x),
+                        topLeft = Offset(x - trainee, 0f),
+                        size = Size(trainee, size.height),
+                    )
+                    drawRect(Signal.Vert.copy(alpha = 0.75f), topLeft = Offset(x - trait, 0f), size = Size(trait, size.height))
+                }
+            },
+        ) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TitreChoix(nom, termine, fait) { etape(300, 220) }
+                contenu()
+            }
+            if (termine) CoinValide(Modifier.align(Alignment.TopEnd).graphicsLayer { alpha = etape(540, 200) })
         }
     }
 }
@@ -289,14 +348,18 @@ private fun CoinValide(modifier: Modifier = Modifier) {
 
 /**
  * Nom d'un établi ou d'un projet ; terminé, il est suivi des bandes du logo en vert, de « TERMINÉ » et de
- * ce qui a été fait ([fait] : « 3 niveaux sur 3 »).
+ * ce qui a été fait ([fait] : « 3 niveaux sur 3 »), qui apparaissent selon [apparition] (de 0 à 1).
  */
 @Composable
-private fun TitreChoix(nom: String, termine: Boolean, fait: String) {
+private fun TitreChoix(nom: String, termine: Boolean, fait: String, apparition: () -> Float) {
     Column(Modifier.padding(end = if (termine) 40.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
         if (termine) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.graphicsLayer { alpha = apparition() },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Bandes(hauteur = 12.dp, largeurBande = 3.5.dp, couleurs = BandesVertes)
                 Etiquette("Terminé", Signal.Vert)
                 Text("· $fait", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
@@ -404,8 +467,7 @@ private fun ChoixEtabli(vm: CarnetViewModel, etabli: Etabli) {
     val enCours = vm.suivi.niveauEnCours(vm.progression, etabli)
     val termine = vm.suivi.etabliTermine(vm.progression, etabli)
     val niveaux = etabli.niveaux.size
-    CarteChoix(termine) {
-        TitreChoix(etabli.nom, termine, "${pluriel(niveaux, "niveau", "niveaux")} sur $niveaux")
+    CarteChoix(etabli.nom, termine, "${pluriel(niveaux, "niveau", "niveaux")} sur $niveaux") {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Pastille("Aucun", enCours == null && !termine, "${etabli.nom}\u00a0: rien en cours") { vm.indiquerNiveauEnCours(etabli, null) }
             Pastille("Terminé", termine, "${etabli.nom}\u00a0: terminé, tous les niveaux sont faits", coche = true) {
@@ -457,8 +519,7 @@ private fun ChoixProjet(vm: CarnetViewModel, projet: Projet) {
     val enCours = vm.suivi.etapeEnCours(vm.progression, projet)
     val termine = vm.suivi.projetTermine(vm.progression, projet)
     val etapes = projet.etapes.size
-    CarteChoix(termine) {
-        TitreChoix(projet.nom, termine, "${pluriel(etapes, "étape", "étapes")} sur $etapes")
+    CarteChoix(projet.nom, termine, "${pluriel(etapes, "étape", "étapes")} sur $etapes") {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Pastille("Aucune", enCours == null && !termine, "${projet.nom}\u00a0: pas en cours") { vm.indiquerEtapeEnCours(projet, null) }
             Pastille("Terminé", termine, "${projet.nom}\u00a0: terminé, toutes les étapes sont faites", coche = true) {
