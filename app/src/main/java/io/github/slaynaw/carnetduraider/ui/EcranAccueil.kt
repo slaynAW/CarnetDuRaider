@@ -3,13 +3,13 @@ package io.github.slaynaw.carnetduraider.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -49,51 +49,53 @@ fun EcranAccueil(
     val heure = LocalTime.now().hour
     val salutation = if (heure >= 18 || heure < 5) "Bonsoir, Raider" else "Bonjour, Raider"
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        BandeauSection(Onglet.ACCUEIL, salutation)
-
-        if (nouvelleVersion != null) {
-            Surface(onClick = afficherMiseAJour, color = Signal.Releve, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Filled.Refresh, contentDescription = null, tint = Signal.Or)
-                    Column {
-                        Text("Mise à jour disponible", style = MaterialTheme.typography.titleSmall)
-                        Text("Version $nouvelleVersion\u00a0: touche pour voir les nouveautés", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+    // Le bandeau se replie quand on fait défiler, comme dans les autres onglets.
+    EcranDeSection(Onglet.ACCUEIL, salutation) { defilement ->
+        LazyColumn(Modifier.fillMaxSize(), state = defilement, contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 16.dp)) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    if (nouvelleVersion != null) {
+                        Surface(onClick = afficherMiseAJour, color = Signal.Releve, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+                            Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Icon(Icons.Filled.Refresh, contentDescription = null, tint = Signal.Or)
+                                Column {
+                                    Text("Mise à jour disponible", style = MaterialTheme.typography.titleSmall)
+                                    Text("Version $nouvelleVersion\u00a0: touche pour voir les nouveautés", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                                }
+                            }
+                        }
                     }
+
+                    // La question la plus fréquente en jeu.
+                    Surface(
+                        onClick = { aller(Onglet.OBJETS) },
+                        color = Signal.Surface,
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(Modifier.padding(horizontal = 18.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Or)
+                            Column {
+                                Text("Garder, recycler ou vendre\u00a0?", style = MaterialTheme.typography.titleSmall)
+                                Text("Cherche un objet…", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+                            }
+                        }
+                    }
+
+                    ProchainRaid(vm, aller)
+
+                    if (calendrier != null) BlocConditions(vm, calendrier, onClick = { aller(Onglet.CARTES) })
+
+                    MesObjectifs(vm, onClick = { aller(Onglet.OBJECTIFS) })
+
+                    Text(
+                        "Données du jeu ${donnees.versionJeu}, noms français officiels uniquement.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Signal.TexteDiscret,
+                    )
                 }
             }
         }
-
-        // La question la plus fréquente en jeu.
-        Surface(
-            onClick = { aller(Onglet.OBJETS) },
-            color = Signal.Surface,
-            shape = RoundedCornerShape(6.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(Modifier.padding(horizontal = 18.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Filled.Search, contentDescription = null, tint = Signal.Or)
-                Column {
-                    Text("Garder, recycler ou vendre\u00a0?", style = MaterialTheme.typography.titleSmall)
-                    Text("Cherche un objet…", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
-                }
-            }
-        }
-
-        ProchainRaid(vm, aller)
-
-        if (calendrier != null) BlocConditions(vm, calendrier, onClick = { aller(Onglet.CARTES) })
-
-        MesObjectifs(vm, onClick = { aller(Onglet.OBJECTIFS) })
-
-        Text(
-            "Données du jeu ${donnees.versionJeu}, noms français officiels uniquement.",
-            style = MaterialTheme.typography.bodySmall,
-            color = Signal.TexteDiscret,
-        )
     }
 }
 

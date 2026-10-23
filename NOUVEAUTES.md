@@ -5,6 +5,10 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.14.1
+
+- **Accueil** : son bandeau se replie lui aussi en fine barre quand tu fais défiler, comme dans les autres onglets, et s'appelle désormais « 01 / SPERANZA ».
+
 ## 0.14.0
 
 - **Plus clair, moins de défilement** : le bandeau en tête de chaque onglet se replie en une fine barre dès que tu fais défiler, et le bouton principal (« Retour de raid », « Valider ») reste fixé en bas de l'écran.
