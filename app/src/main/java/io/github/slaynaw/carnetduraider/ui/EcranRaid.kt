@@ -1,10 +1,6 @@
 package io.github.slaynaw.carnetduraider.ui
 
-import android.content.Context
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,15 +30,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -58,9 +48,6 @@ import io.github.slaynaw.carnetduraider.core.ObjetATrouver
 import io.github.slaynaw.carnetduraider.core.calendrier.Creneau
 import io.github.slaynaw.carnetduraider.core.cle
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
-import java.io.IOException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Onglet Raid, « Préparer mon raid » : ce qu'il te faut et où aller, sans rien préparer. La liste se
@@ -305,24 +292,13 @@ private fun TitreRaid(texte: String) {
 
 private fun nomCarte(vm: CarnetViewModel, carteId: String): String = vm.catalogue.carte(carteId)?.nom ?: Catalogue.NOM_A_VERIFIER
 
-/** Capture en jeu d'un lieu marquant de la carte (`assets/fonds/<id>.webp`), ou null si elle n'en a pas. */
-private suspend fun chargerFond(context: Context, carteId: String): ImageBitmap? = withContext(Dispatchers.IO) {
-    try {
-        context.assets.open("fonds/$carteId.webp").use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
-    } catch (e: IOException) {
-        null
-    }
-}
-
 /**
  * La meilleure carte, en un coup d'œil : sur une capture en jeu de la carte, assombrie à gauche pour que le
  * texte reste lisible (« ombre latérale ») ; sans capture, sur le rouge du Raid.
  */
 @Composable
 private fun CarteMeilleure(carteId: String, nom: String, detail: String) {
-    val context = LocalContext.current
-    val fond by produceState<ImageBitmap?>(null, carteId) { value = chargerFond(context, carteId) }
-    val image = fond
+    val image = rememberFondCarte(carteId)
     Surface(
         color = if (image != null) Signal.Fond else Signal.Rouge,
         contentColor = if (image != null) Signal.Texte else Signal.SurCouleur,
@@ -330,18 +306,7 @@ private fun CarteMeilleure(carteId: String, nom: String, detail: String) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Box {
-            if (image != null) {
-                Image(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
-                Box(
-                    Modifier.matchParentSize().background(
-                        Brush.horizontalGradient(
-                            0f to Signal.Fond.copy(alpha = 0.94f),
-                            0.52f to Signal.Fond.copy(alpha = 0.72f),
-                            1f to Signal.Fond.copy(alpha = 0.1f),
-                        ),
-                    ),
-                )
-            }
+            if (image != null) FondEnJeu(image)
             Column(Modifier.padding(horizontal = 16.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Etiquette("Meilleure carte", if (image != null) Signal.Rouge else Signal.SurCouleur)
                 Text(nom, style = MaterialTheme.typography.headlineSmall)

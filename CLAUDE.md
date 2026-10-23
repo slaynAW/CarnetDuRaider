@@ -125,7 +125,7 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs en cours ; cartes classées
   par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
   carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la
-  meilleure carte. « Meilleure carte » s'affiche sur une capture en jeu de la carte (`CarteMeilleure`,
+  meilleure carte. « Meilleure carte » (et « Ton prochain raid » à l'accueil) s'affiche sur une capture en jeu de la carte (`FondEnJeu`,
   `app/src/main/assets/fonds/<carte>.webp`, « ombre latérale » : assombrie à gauche sous le texte), sinon
   sur le rouge du Raid. Ces captures sont les seules images qui ne viennent pas du script d'import : prises
   en jeu et fournies par le mainteneur, jamais d'un site tiers.

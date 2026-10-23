@@ -88,7 +88,8 @@ button.carte:hover { background: var(--releve); }
 .prochain:hover { filter: brightness(1.08); }
 .prochain small { font: 700 11px var(--titre); letter-spacing: 2px; }
 .prochain strong { font: 700 22px/1.2 var(--titre); }
-/* Meilleure carte sur une capture en jeu de la carte (CarteMeilleure, EcranRaid.kt) : « ombre latérale ». */
+/* « Meilleure carte » et « Ton prochain raid » sur une capture en jeu de la carte (FondEnJeu, FondCarte.kt) :
+   « ombre latérale ». */
 .prochain.plein.photo { background: linear-gradient(90deg, rgba(20,20,23,.94) 0%, rgba(20,20,23,.72) 52%, rgba(20,20,23,.1) 100%), var(--photo) center / cover, var(--fond); color: var(--texte); padding: 18px; }
 .prochain.plein.photo small { color: var(--rouge); }
 .verdict { background: var(--v, var(--or)); color: var(--sur-couleur); clip-path: var(--coupee); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
@@ -589,7 +590,7 @@ function prochainRaid() {
     : restants.length ? `<strong>Rien dans le butin des cartes</strong><span class="doux">Ce qu'il te faut s'obtient autrement${NB}: regarde l'onglet Raid.</span>`
     : objectifs().length ? `<strong>Rien à chercher en raid</strong><span class="doux">Tes objectifs en cours ne demandent aucun objet${NB}: valide-les quand c'est fait en jeu.</span>`
     : `<strong>Rien à chercher pour l'instant</strong><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira où aller.</span>`;
-  return `<button class="prochain ${premiere ? "plein" : ""}" data-action="onglet" data-onglet="${restants.length || objectifs().length ? "RAID" : "OBJECTIFS"}"><small>TON PROCHAIN RAID</small>${contenu}</button>`;
+  return `<button class="prochain ${premiere ? "plein" : ""}${premiere && FONDS.has(premiere.carteId) ? ` photo" style="--photo:url('fonds/${premiere.carteId}.webp')` : ""}" data-action="onglet" data-onglet="${restants.length || objectifs().length ? "RAID" : "OBJECTIFS"}"><small>TON PROCHAIN RAID</small>${contenu}</button>`;
 }
 
 // Où en sont les objectifs en cours (MesObjectifs, EcranAccueil.kt).
