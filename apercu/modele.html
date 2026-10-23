@@ -242,6 +242,20 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .action-fixe button { pointer-events: auto; display: block; width: 100%; max-width: 428px; margin: 0 auto; min-height: 52px; padding: 14px 16px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
   background: var(--c, var(--or)); color: var(--sur-couleur); font: 700 16px/1.2 var(--titre); }
 .place-fixe { flex: none; height: 64px; }
+/* Bouton « Retour de raid » du Raid (BoutonRetourRaid.kt) : pastille en verre rouge, la liste passe dessous. */
+.retour-raid { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 5; pointer-events: none; }
+.retour-raid > div { max-width: 428px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 14px 16px; display: flex; justify-content: flex-end; }
+.retour-raid button { pointer-events: auto; min-height: 42px; padding: 0 16px 0 14px; display: flex; align-items: center; gap: 10px; border-radius: 99px;
+  background: linear-gradient(180deg, rgba(66,34,36,.84), rgba(44,25,27,.84)); box-shadow: 0 10px 26px rgba(0,0,0,.45), inset 0 0 0 1px rgba(240,84,74,.28); }
+.retour-raid svg { flex: none; }
+.retour-raid svg path { opacity: .28; animation: rr-bande 4s ease-in-out infinite; }
+.retour-raid svg path:nth-child(2) { animation-delay: .1s; } .retour-raid svg path:nth-child(3) { animation-delay: .2s; } .retour-raid svg path:nth-child(4) { animation-delay: .3s; }
+@keyframes rr-bande { 0%, 66% { opacity: .28; } 76%, 90% { opacity: 1; } 100% { opacity: .28; } }
+.retour-raid .fen { display: block; height: 16px; overflow: hidden; font: 700 11px/16px var(--titre); letter-spacing: 2.2px; color: #F7E9E3; white-space: nowrap; text-align: left; }
+.retour-raid .fen span { display: block; height: 16px; animation: rr-bascule 8s cubic-bezier(.7,0,.3,1) infinite; }
+.retour-raid .fen .or { color: var(--or); }
+@keyframes rr-bascule { 0%, 44% { transform: translateY(0); } 50%, 94% { transform: translateY(-16px); } 100% { transform: translateY(-32px); } }
+@media (prefers-reduced-motion: reduce) { .retour-raid svg path, .retour-raid .fen span { animation: none; opacity: 1; } }
 /* Accordéon (EnTeteAccordeon, Composants.kt) : le secondaire à un geste. */
 .accordeon { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 12px 8px 14px; background: var(--surface); border-radius: 6px; text-align: left; }
 .accordeon b { font: 600 15px/1.3 var(--titre); }
@@ -664,6 +678,8 @@ function bandeauSection(k, sous) {
 const ouvert = cle => S.ouverts.has(cle);
 const accordeon = (cle, titre, resume, c) => `<button class="accordeon" style="--c:var(${c})" data-action="basculer" data-id="${echap(cle)}" aria-expanded="${ouvert(cle)}"><span class="flex"><b>${echap(titre)}</b>${resume ? `<br><span class="petit doux">${echap(resume)}</span>` : ""}</span><span class="fleche" aria-hidden="true">⌄</span></button>`;
 // Bouton principal fixé en bas (BoutonFixe) ; la liste garde de la place pour lui (.place-fixe).
+// Bouton « Retour de raid » du Raid (BoutonRetourRaid) : bandes du logo qui s'allument, texte qui bascule.
+const boutonRetourRaid = () => `<div class="place-fixe"></div><div class="retour-raid"><div><button data-action="raid" aria-label="Retour de raid${NB}: indiquer mon butin"><svg width="24" height="14" viewBox="0 0 35 20" aria-hidden="true"><path d="M0 20h5l7.2-20h-5z" fill="#3CC4D8"/><path d="M7.5 20h5l7.2-20h-5z" fill="#6CCB5F"/><path d="M15 20h5l7.2-20h-5z" fill="#F2B233"/><path d="M22.5 20h5l7.2-20h-5z" fill="#F0544A"/></svg><span class="fen" aria-hidden="true"><span>RETOUR DE RAID</span><span class="or">INDIQUER MON BUTIN</span><span>RETOUR DE RAID</span></span></button></div></div>`;
 const actionFixe = (texte, c, action) => `<div class="place-fixe"></div><div class="action-fixe"><button style="--c:var(${c})" data-action="${action}">${texte}</button></div>`;
 const etiquette = (texte, c, balise = "span") => `<${balise} class="etiquette" style="--c:var(${c})">${echap(texte)}</${balise}>`;
 const pf = (texte, choisie, c, action, id) => `<button class="pf" style="--c:var(${c})" aria-pressed="${choisie}" data-action="${action}" data-id="${id}">${echap(texte)}</button>`;
@@ -1156,7 +1172,7 @@ function ecranOngletRaid() {
   ${autres.length ? `<p class="doux" style="margin:0">Aussi${NB}: ${echap(autres.map(c => `${nomC(c.carteId)} (${pluriel(c.objets.length, "objet", "objets")})`).join(" · "))}</p>` : ""}
   <p class="petit discret" style="margin:0">Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs. Les conditions en cours sur chaque carte s'affichent dans l'appli Android.</p>` : ""}` : ""}
   ${conseil.sansButin.length ? `${etiquette("Pas dans le butin", "--rouge", "h4")}${conseil.sansButin.map(id => `<button class="carte ligne" style="padding:10px;text-align:left" data-action="fiche" data-id="${id}">${icone(id, 36)}<span class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit doux">${echap(autreMoyen(objets.get(id)))}</span></span></button>`).join("")}` : ""}
-  ${restants.length ? actionFixe(`Retour de raid${NB}: ajouter mon butin`, "--rouge", "raid") : ""}`;
+  ${restants.length ? boutonRetourRaid() : ""}`;
 }
 
 // Un objet du butin recherché (LigneButin, EcranRaid.kt) : rapportés sur voulus, quantité, retirer.

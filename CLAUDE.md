@@ -138,7 +138,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la
   meilleure carte. En tête du Raid, la meilleure carte (« Où chercher » déplie ses zones et la carte
   suivante du parcours), puis ce qu'il te faut en liste compacte ; « Mes objectifs » et « Où aller »
-  repliés ; « Retour de raid » fixé en bas. « Meilleure carte » (et « Ton prochain raid » à l'accueil) s'affiche sur une capture en jeu de la carte (`FondEnJeu`,
+  repliés ; « Retour de raid » en bas à droite (`BoutonRetourRaid`) : petite pastille en verre rouge
+  opaque à 84 %, la liste passe dessous en filigrane ; en boucle, lentement, les bandes du logo s'allument puis
+  le texte bascule de « RETOUR DE RAID » à « INDIQUER MON BUTIN » (rien avec « Supprimer les animations »). « Meilleure carte » (et « Ton prochain raid » à l'accueil) s'affiche sur une capture en jeu de la carte (`FondEnJeu`,
   `app/src/main/assets/fonds/<carte>.webp`, « ombre latérale » : assombrie à gauche sous le texte), sinon
   sur le rouge du Raid ; l'onglet Cartes montre chaque carte sur la sienne. Ces captures sont les seules images qui ne viennent pas du script d'import : prises
   en jeu et fournies par le mainteneur, jamais d'un site tiers.

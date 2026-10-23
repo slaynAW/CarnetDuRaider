@@ -105,7 +105,7 @@ fun EcranRaid(
             LazyColumn(
                 Modifier.fillMaxSize(),
                 state = defilement,
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = haut + 12.dp, bottom = if (restants.isNotEmpty()) PLACE_BOUTON_FIXE else 16.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = haut + 12.dp, bottom = if (restants.isNotEmpty()) PLACE_BOUTON_RETOUR else 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (restants.isEmpty()) {
@@ -252,9 +252,9 @@ fun EcranRaid(
                 }
             }
 
-            // De retour : saisir le butin, qui se décompte de la liste. Toujours à portée de pouce.
+            // De retour : saisir le butin, qui se décompte de la liste. Toujours à portée de pouce, la liste passe dessous.
             if (restants.isNotEmpty()) {
-                BoutonFixe("Retour de raid\u00a0: ajouter mon butin", Signal.Rouge, retourDeRaid, Modifier.align(Alignment.BottomCenter))
+                BoutonRetourRaid(retourDeRaid, Modifier.align(Alignment.BottomEnd))
             }
         }
     }
