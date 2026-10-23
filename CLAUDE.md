@@ -125,7 +125,10 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs en cours ; cartes classées
   par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
   carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la
-  meilleure carte.
+  meilleure carte. « Meilleure carte » (et « Ton prochain raid » à l'accueil) s'affiche sur une capture en jeu de la carte (`FondEnJeu`,
+  `app/src/main/assets/fonds/<carte>.webp`, « ombre latérale » : assombrie à gauche sous le texte), sinon
+  sur le rouge du Raid. Ces captures sont les seules images qui ne viennent pas du script d'import : prises
+  en jeu et fournies par le mainteneur, jamais d'un site tiers.
 - Butin recherché (`core/ButinRecherche.kt`, section de l'onglet Raid, `ui/EcranChoixButin.kt`, bouton sur
   la fiche d'un objet) : des objets que le joueur veut rapporter pour lui, sans objectif du jeu (objet →
   quantité voulue, `Memoire`, clé « butinRecherche »). Ils deviennent des `Objectif.ObjetRecherche` dans la

@@ -114,20 +114,14 @@ fun EcranRaid(
         // La meilleure carte, en un coup d'œil (le détail est dans « Où aller »).
         if (meilleure != null) {
             item {
-                Surface(color = Signal.Rouge, contentColor = Signal.SurCouleur, shape = FormeCoupee, modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Etiquette("Meilleure carte", Signal.SurCouleur)
-                        Text(nomCarte(vm, meilleure.carteId), style = MaterialTheme.typography.headlineSmall)
-                        Text(
-                            buildString {
-                                append("${meilleure.objets.size} de tes ${pluriel(restants.size, "objet", "objets")} à trouver")
-                                meilleure.zones.firstOrNull()?.let { append(" · surtout ${it.zone}") }
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
+                CarteMeilleure(
+                    meilleure.carteId,
+                    nomCarte(vm, meilleure.carteId),
+                    buildString {
+                        append("${meilleure.objets.size} de tes ${pluriel(restants.size, "objet", "objets")} à trouver")
+                        meilleure.zones.firstOrNull()?.let { append(" · surtout ${it.zone}") }
+                    },
+                )
             }
         }
 
@@ -297,6 +291,30 @@ private fun TitreRaid(texte: String) {
 }
 
 private fun nomCarte(vm: CarnetViewModel, carteId: String): String = vm.catalogue.carte(carteId)?.nom ?: Catalogue.NOM_A_VERIFIER
+
+/**
+ * La meilleure carte, en un coup d'œil : sur une capture en jeu de la carte, assombrie à gauche pour que le
+ * texte reste lisible (« ombre latérale ») ; sans capture, sur le rouge du Raid.
+ */
+@Composable
+private fun CarteMeilleure(carteId: String, nom: String, detail: String) {
+    val image = rememberFondCarte(carteId)
+    Surface(
+        color = if (image != null) Signal.Fond else Signal.Rouge,
+        contentColor = if (image != null) Signal.Texte else Signal.SurCouleur,
+        shape = FormeCoupee,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box {
+            if (image != null) FondEnJeu(image)
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Etiquette("Meilleure carte", if (image != null) Signal.Rouge else Signal.SurCouleur)
+                Text(nom, style = MaterialTheme.typography.headlineSmall)
+                Text(detail, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
 
 /**
  * Un objet à trouver : combien il en reste (le décompte, mis à jour au retour de raid), combien ont été

@@ -1,6 +1,7 @@
 package io.github.slaynaw.carnetduraider.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -102,52 +103,61 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
     val restants = vm.aTrouver().filter { !it.trouve }
     val conseil = remember(restants.map { it.objetId }) { vm.conseilRaid() }
     val premiere = conseil.cartes.firstOrNull()
+    // La carte où aller, sur sa capture en jeu (comme « Meilleure carte »), sinon sur le rouge du Raid.
+    val fond = rememberFondCarte(premiere?.carteId)
     Surface(
         onClick = { aller(if (restants.isEmpty() && vm.objectifs.isEmpty()) Onglet.OBJECTIFS else Onglet.RAID) },
-        color = if (premiere != null) Signal.Rouge else Signal.Surface,
-        contentColor = if (premiere != null) Signal.SurCouleur else Signal.Texte,
+        color = when {
+            premiere == null -> Signal.Surface
+            fond != null -> Signal.Fond
+            else -> Signal.Rouge
+        },
+        contentColor = if (premiere != null && fond == null) Signal.SurCouleur else Signal.Texte,
         shape = FormeCoupee,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Etiquette("Ton prochain raid", LocalContentColor.current)
-            when {
-                premiere != null -> {
-                    Text("Va sur ${vm.catalogue.carte(premiere.carteId)?.nom ?: Catalogue.NOM_A_VERIFIER}", style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        buildString {
-                            append("${premiere.objets.size} de tes ${pluriel(restants.size, "objet", "objets")} à trouver")
-                            premiere.zones.firstOrNull()?.let { append(" · surtout ${it.zone}") }
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    if (conseil.parcours.size > 1) {
+        Box {
+            if (premiere != null && fond != null) FondEnJeu(fond)
+            Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Etiquette("Ton prochain raid", if (premiere != null && fond != null) Signal.Rouge else LocalContentColor.current)
+                when {
+                    premiere != null -> {
+                        Text("Va sur ${vm.catalogue.carte(premiere.carteId)?.nom ?: Catalogue.NOM_A_VERIFIER}", style = MaterialTheme.typography.headlineSmall)
                         Text(
-                            "Puis " + conseil.parcours.drop(1).joinToString(", ") { vm.catalogue.carte(it.carteId)?.nom ?: Catalogue.NOM_A_VERIFIER } + " pour tout trouver.",
-                            style = MaterialTheme.typography.bodySmall,
+                            buildString {
+                                append("${premiere.objets.size} de tes ${pluriel(restants.size, "objet", "objets")} à trouver")
+                                premiere.zones.firstOrNull()?.let { append(" · surtout ${it.zone}") }
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        if (conseil.parcours.size > 1) {
+                            Text(
+                                "Puis " + conseil.parcours.drop(1).joinToString(", ") { vm.catalogue.carte(it.carteId)?.nom ?: Catalogue.NOM_A_VERIFIER } + " pour tout trouver.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                    restants.isNotEmpty() -> {
+                        Text("Rien dans le butin des cartes", style = MaterialTheme.typography.titleMedium)
+                        Text("Ce qu'il te faut s'obtient autrement\u00a0: regarde l'onglet Raid.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+                    }
+                    vm.objectifs.isNotEmpty() -> {
+                        Text("Rien à chercher en raid", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Tes objectifs en cours ne demandent aucun objet\u00a0: valide-les quand c'est fait en jeu.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Signal.TexteDoux,
                         )
                     }
-                }
-                restants.isNotEmpty() -> {
-                    Text("Rien dans le butin des cartes", style = MaterialTheme.typography.titleMedium)
-                    Text("Ce qu'il te faut s'obtient autrement\u00a0: regarde l'onglet Raid.", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
-                }
-                vm.objectifs.isNotEmpty() -> {
-                    Text("Rien à chercher en raid", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Tes objectifs en cours ne demandent aucun objet\u00a0: valide-les quand c'est fait en jeu.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Signal.TexteDoux,
-                    )
-                }
-                else -> {
-                    Text("Rien à chercher pour l'instant", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)\u00a0: l'appli te dira où aller.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Signal.TexteDoux,
-                    )
+                    else -> {
+                        Text("Rien à chercher pour l'instant", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)\u00a0: l'appli te dira où aller.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Signal.TexteDoux,
+                        )
+                    }
                 }
             }
         }
