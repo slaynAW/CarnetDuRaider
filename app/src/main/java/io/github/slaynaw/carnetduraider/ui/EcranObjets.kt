@@ -1,7 +1,6 @@
 package io.github.slaynaw.carnetduraider.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -64,7 +63,6 @@ import io.github.slaynaw.carnetduraider.core.UsagesObjet
 import io.github.slaynaw.carnetduraider.core.Verdict
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) -> Unit, ouvrir: (String) -> Unit) {
     var filtre by rememberSaveable { mutableStateOf(FiltreVerdict.TOUS) }
@@ -79,11 +77,11 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
     val aGarder = if (parSections) affiches.filter { verdicts.getValue(it.id) !is Verdict.Inutile } else emptyList()
     val reste = if (parSections) affiches.filter { verdicts.getValue(it.id) is Verdict.Inutile } else affiches
 
-    EcranDeSection(Onglet.OBJETS, "Garder, vendre ou recycler") { defilement ->
+    EcranDeSection(Onglet.OBJETS, "Garder, vendre ou recycler") { defilement, haut ->
         LazyColumn(
             Modifier.fillMaxSize(),
             state = defilement,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 16.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = haut + 12.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             item {
@@ -128,12 +126,12 @@ fun EcranObjets(vm: CarnetViewModel, recherche: String, onRecherche: (String) ->
             if (parSections && reste.isNotEmpty()) {
                 item(key = "titre-reste") { Etiquette("À vendre ou recycler · ${reste.size}", Signal.Or, Modifier.padding(top = 10.dp)) }
                 reste.groupBy { initiale(it.nom) }.forEach { (lettre, objets) ->
-                    stickyHeader(key = "lettre-$lettre") {
+                    item(key = "lettre-$lettre") {
                         Text(
                             lettre,
                             style = MaterialTheme.typography.titleSmall,
                             color = Signal.Or,
-                            modifier = Modifier.fillMaxWidth().background(Signal.Fond).padding(vertical = 4.dp).semantics { heading() },
+                            modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 2.dp).semantics { heading() },
                         )
                     }
                     items(objets, key = { it.id }) { objet -> LigneObjet(vm, objet, verdicts.getValue(objet.id), onClick = { ouvrir(objet.id) }) }

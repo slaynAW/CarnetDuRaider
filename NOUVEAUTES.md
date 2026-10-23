@@ -5,6 +5,13 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.14.3
+
+- **« C'est fait »** : quand tu valides un objectif, le balayage vert traverse d'abord sa carte, comme dans Mes ateliers et Mes projets.
+- **Dernière étape** : quand tu valides la dernière étape d'un projet ou d'une Expédition, ou le dernier niveau d'un établi, une animation spéciale suit le balayage : un bandeau sombre recouvre la carte, « TERMINÉ » s'y resserre en vert, une fine ligne s'étire et les quatre bandes du logo glissent en place ; il reste affiché 3 secondes.
+- **Bandeaux** : ils se replient sans à-coup, même quand l'écran dépasse à peine, comme à l'Accueil.
+- **Accueil** : ton build préféré en un coup d'œil (ses objets et ce qu'il faut pour le fabriquer).
+
 ## 0.14.2
 
 - **Terminé, plus sobre** : dans Mes ateliers, Mes projets et Mes expéditions, ce qui est terminé tient sur une seule ligne, « ✓ Terminé », avec « Modifier » pour le remettre en cours. Le balayage reste : quand tu passes une carte à « Terminé », une fine ligne verte la traverse, puis elle se replie en sa ligne.

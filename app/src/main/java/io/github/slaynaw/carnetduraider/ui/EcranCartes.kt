@@ -85,11 +85,11 @@ fun EcranCartes(vm: CarnetViewModel, ouvrirPlan: (String) -> Unit) {
     EcranDeSection(
         Onglet.CARTES,
         if (calendrier != null) pluriel(actives, "carte avec une condition en cours", "cartes avec une condition en cours") else "Plans, zones et conditions",
-    ) { defilement ->
+    ) { defilement, haut ->
         LazyColumn(
             Modifier.fillMaxSize(),
             state = defilement,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 16.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = haut + 12.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {

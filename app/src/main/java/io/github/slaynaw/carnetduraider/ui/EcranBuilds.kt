@@ -89,11 +89,11 @@ fun EcranBuilds(vm: CarnetViewModel, choisir: (rang: Int, case: CaseBuild) -> Un
     var rang by rememberSaveable { mutableIntStateOf(Builds.ouvert(vm.builds)) }
     val build = vm.builds.getOrNull(rang) ?: return
     val remplis = vm.builds.count { !it.vide }
-    EcranDeSection(Onglet.BUILDS, "${pluriel(remplis, "build", "builds")} sur ${vm.builds.size} ${if (remplis > 1) "remplis" else "rempli"}") { defilement ->
+    EcranDeSection(Onglet.BUILDS, "${pluriel(remplis, "build", "builds")} sur ${vm.builds.size} ${if (remplis > 1) "remplis" else "rempli"}") { defilement, haut ->
         LazyColumn(
             Modifier.fillMaxSize(),
             state = defilement,
-            contentPadding = PaddingValues(top = 12.dp, bottom = 96.dp),
+            contentPadding = PaddingValues(top = haut + 12.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {

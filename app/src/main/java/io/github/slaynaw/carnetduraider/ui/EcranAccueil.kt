@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
+import io.github.slaynaw.carnetduraider.core.CaseBuild
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.calendrier.Calendrier
 import io.github.slaynaw.carnetduraider.core.calendrier.Creneau
@@ -50,8 +51,8 @@ fun EcranAccueil(
     val salutation = if (heure >= 18 || heure < 5) "Bonsoir, Raider" else "Bonjour, Raider"
 
     // Le bandeau se replie quand on fait défiler, comme dans les autres onglets.
-    EcranDeSection(Onglet.ACCUEIL, salutation) { defilement ->
-        LazyColumn(Modifier.fillMaxSize(), state = defilement, contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 16.dp)) {
+    EcranDeSection(Onglet.ACCUEIL, salutation) { defilement, haut ->
+        LazyColumn(Modifier.fillMaxSize(), state = defilement, contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = haut + 14.dp, bottom = 16.dp)) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     if (nouvelleVersion != null) {
@@ -87,6 +88,8 @@ fun EcranAccueil(
                     if (calendrier != null) BlocConditions(vm, calendrier, onClick = { aller(Onglet.CARTES) })
 
                     MesObjectifs(vm, onClick = { aller(Onglet.OBJECTIFS) })
+
+                    MonBuild(vm, onClick = { aller(Onglet.BUILDS) })
 
                     Text(
                         "Données du jeu ${donnees.versionJeu}, noms français officiels uniquement.",
@@ -217,3 +220,30 @@ private fun LigneMinuteur(c: Creneau, minuteur: String, couleur: Color) {
 
 /** « 1 objet », « 3 objets » (le nombre est inclus). */
 fun pluriel(n: Int, singulier: String, pluriel: String): String = "$n ${if (n > 1) pluriel else singulier}"
+
+/**
+ * Le build préféré (sinon le premier rempli), en un coup d'œil : son nom, ses objets et ce qu'il faut pour le
+ * fabriquer ; sans build, une invitation à en préparer un.
+ */
+@Composable
+private fun MonBuild(vm: CarnetViewModel, onClick: () -> Unit) {
+    val rang = vm.builds.indexOfFirst { it.prefere && !it.vide }.takeIf { it >= 0 } ?: vm.builds.indexOfFirst { !it.vide }
+    val build = vm.builds.getOrNull(rang)
+    Surface(onClick = onClick, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(if (build?.prefere == true) "Mon build préféré" else "Mes builds", style = MaterialTheme.typography.titleSmall, color = Signal.Violet)
+            if (build == null) {
+                Text("Aucun build. Touche ici pour préparer ton équipement\u00a0: ses objets passent en «\u00a0Garder\u00a0».", style = MaterialTheme.typography.bodyMedium, color = Signal.TexteDoux)
+            } else {
+                Text(vm.outilsBuilds.nom(build, rang), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    CaseBuild.entries.mapNotNull { build.objets[it] }.take(7).forEach { id -> IconeObjet(id, vm.catalogue.objet(id)?.rarete, 36.dp) }
+                }
+                val materiaux = vm.outilsBuilds.aFabriquer(build).size
+                if (materiaux > 0) {
+                    Text("Pour le fabriquer\u00a0: ${pluriel(materiaux, "matériau", "matériaux")} à garder", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                }
+            }
+        }
+    }
+}
