@@ -7,8 +7,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -60,6 +60,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
@@ -310,13 +311,16 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
 }
 
 /** Durée de la clôture, après le balayage, quand on valide la dernière étape. */
-private const val CLOTURE_MS = 1300
+private const val CLOTURE_MS = 1550
 
 /** Durée pendant laquelle « TERMINÉ » reste affiché, après la clôture. */
 private const val TENUE_MS = 3_000L
 
-/** Le tampon arrive avec un léger rebond. */
-private val EasingTampon = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
+/** Les bandes du logo glissent en place, vives au départ et douces à l'arrivée. */
+private val EasingBandes = CubicBezierEasing(0.2f, 0.7f, 0.3f, 1f)
+
+/** Les quatre couleurs du logo, de gauche à droite. */
+private val CouleursLogo = listOf(Signal.Cyan, Signal.Vert, Signal.Or, Signal.Rouge)
 
 /** Nom de ce qui se termine (l'établi ou le projet entier) et ce qui a été fait : « Grimper la montagne · 4 étapes sur 4 ». */
 private fun nomFin(vm: CarnetViewModel, objectif: Objectif): String = when (objectif) {
@@ -326,8 +330,9 @@ private fun nomFin(vm: CarnetViewModel, objectif: Objectif): String = when (obje
 } ?: vm.planificateur.libelle(objectif)
 
 /**
- * La clôture, quand on valide la dernière étape, à la manière d'ARC Raiders : une bande verte recouvre la
- * carte, « TERMINÉ » s'y resserre au-dessus de ce qui a été fait ([fait]), puis le tampon « VALIDÉ » s'y pose.
+ * La clôture, quand on valide la dernière étape, à la manière d'ARC Raiders : un bandeau sombre recouvre la
+ * carte, « TERMINÉ » s'y resserre en vert au-dessus de ce qui a été fait ([fait]), une fine ligne verte
+ * s'étire dessous, puis les quatre bandes du logo glissent en place une à une (la signature de l'appli).
  * [avancee] va de 0 à 1 sur [CLOTURE_MS] ; rien avec « Supprimer les animations » (la carte est validée d'un coup).
  */
 @Composable
@@ -335,42 +340,60 @@ private fun BoxScope.Cloture(avancee: Float, fait: String) {
     fun etape(debut: Int, duree: Int) = ((avancee * CLOTURE_MS - debut) / duree).coerceIn(0f, 1f)
     val bande = EasingPassage.transform(etape(0, 360))
     val serre = etape(240, 560)
-    val tampon = etape(760, 380)
+    val trait = FastOutSlowInEasing.transform(etape(1010, 500))
     Box(
         Modifier
             .matchParentSize()
-            .drawBehind { clipRect(right = size.width * bande) { drawRect(Signal.Vert) } }
+            .drawBehind {
+                clipRect(right = size.width * bande) {
+                    drawRect(Signal.Fond)
+                    drawRect(Signal.Vert, size = Size(3.dp.toPx(), size.height))
+                }
+            }
             .clearAndSetSemantics { contentDescription = "Terminé\u00a0: $fait" },
     ) {
         Row(
-            Modifier.align(Alignment.CenterStart).fillMaxWidth().padding(horizontal = 14.dp),
+            Modifier.align(Alignment.CenterStart).fillMaxWidth().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Column(Modifier.weight(1f).graphicsLayer { alpha = serre }) {
+            Column(Modifier.weight(1f)) {
                 Text(
                     "TERMINÉ",
                     style = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, letterSpacing = (10f - 8f * FastOutSlowInEasing.transform(serre)).sp),
-                    color = Signal.SurCouleur,
+                    color = Signal.Vert,
                     maxLines = 1,
+                    modifier = Modifier.graphicsLayer { alpha = serre },
                 )
-                Text(fait, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = Signal.SurCouleur, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Box(Modifier.padding(top = 4.dp).fillMaxWidth(trait.coerceAtLeast(0.001f)).height(1.5.dp).background(Signal.Vert.copy(alpha = if (trait > 0f) 1f else 0f)))
+                Text(
+                    fait,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Signal.TexteDoux,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.graphicsLayer { alpha = etape(360, 300) },
+                )
             }
-            Text(
-                "VALIDÉ",
-                style = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 1.5.sp),
-                color = Signal.SurCouleur,
-                modifier = Modifier
-                    .graphicsLayer {
-                        alpha = if (tampon > 0f) 1f else 0f
-                        val echelle = 2.2f - 1.2f * EasingTampon.transform(tampon)
-                        scaleX = echelle
-                        scaleY = echelle
-                        rotationZ = -12f
+            // Les quatre bandes du logo, l'une après l'autre.
+            Canvas(Modifier.size(width = 52.dp, height = 30.dp)) {
+                val u = size.height / 20f
+                CouleursLogo.forEachIndexed { i, couleur ->
+                    val t = EasingBandes.transform(etape(660 + 100 * i, 320))
+                    if (t > 0f) {
+                        val x = i * 7.5f * u + (1f - t) * 14.dp.toPx()
+                        val chemin = Path().apply {
+                            moveTo(x, 20f * u)
+                            lineTo(x + 5f * u, 20f * u)
+                            lineTo(x + 12.2f * u, 0f)
+                            lineTo(x + 7.2f * u, 0f)
+                            close()
+                        }
+                        drawPath(chemin, couleur, alpha = t)
                     }
-                    .border(2.dp, Signal.SurCouleur, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 7.dp, vertical = 3.dp),
-            )
+                }
+            }
         }
     }
 }

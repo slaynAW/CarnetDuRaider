@@ -8,7 +8,7 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 ## 0.14.3
 
 - **« C'est fait »** : quand tu valides un objectif, le balayage vert traverse d'abord sa carte, comme dans Mes ateliers et Mes projets.
-- **Dernière étape** : quand tu valides la dernière étape d'un projet ou d'une Expédition, ou le dernier niveau d'un établi, une animation spéciale suit le balayage : une bande verte recouvre la carte, « TERMINÉ » s'y resserre et le tampon « VALIDÉ » s'y pose, puis reste affiché 3 secondes.
+- **Dernière étape** : quand tu valides la dernière étape d'un projet ou d'une Expédition, ou le dernier niveau d'un établi, une animation spéciale suit le balayage : un bandeau sombre recouvre la carte, « TERMINÉ » s'y resserre en vert, une fine ligne s'étire et les quatre bandes du logo glissent en place ; il reste affiché 3 secondes.
 - **Bandeaux** : ils se replient sans à-coup, même quand l'écran dépasse à peine, comme à l'Accueil.
 - **Accueil** : ton build préféré en un coup d'œil (ses objets et ce qu'il faut pour le fabriquer).
 
