@@ -50,7 +50,7 @@ import kotlinx.coroutines.delay
  * maintenant, garder ou vendre un objet, où aller au prochain raid, les cartes, ce qu'on a en cours, et ses builds.
  */
 enum class Onglet(val titre: String, val code: String, val icone: ImageVector, val couleur: Color) {
-    ACCUEIL("Accueil", "01 / BASE", Icons.Filled.Home, Signal.Texte),
+    ACCUEIL("Accueil", "01 / SPERANZA", Icons.Filled.Home, Signal.Texte),
     OBJETS("Objets", "02 / INVENTAIRE", Icons.Filled.Search, Signal.Or),
     RAID("Raid", "03 / OPÉRATION", Icons.Filled.ShoppingCart, Signal.Rouge),
     CARTES("Cartes", "04 / TERRAIN", Icons.Filled.Place, Signal.Cyan),

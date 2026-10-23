@@ -78,7 +78,7 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   objet trouvé). Polices Prompt (titres) et Barlow (texte), sous licence OFL (`third_party/polices/`).
   En-tête commun à toutes les sections (`EnTete` : logo, nom, réglages) ; objets affichés avec leur
   icône sur une tuile aux couleurs de leur rareté (`IconeObjet`). Chaque onglet s'ouvre sur un bandeau de
-  sa couleur (`BandeauSection` : code « 0N / … » de `Onglet.code`, nom en capitales, motif propre à la
+  sa couleur (`BandeauSection` : code « 0N / … » de `Onglet.code`, « 01 / SPERANZA » pour l'Accueil, nom en capitales, motif propre à la
   section, coin coupé ; le motif vit en boucle, lentement : reflet, cases de l'inventaire, cible qui cherche puis
   verrouille, repère et son onde, impulsion des chevrons, ligne de scan ; le texte jamais, et rien avec « Supprimer
   les animations »), l'onglet actif prend la même couleur ; il se replie en barre de 56 dp dès que la liste
