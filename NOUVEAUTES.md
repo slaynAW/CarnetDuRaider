@@ -7,7 +7,7 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 
 ## 0.13.1
 
-- **Raid** : « Meilleure carte » s'affiche sur une capture en jeu de la carte (Ville enfouie, Champ de bataille du Barrage, Col de Pendola, Le Portail bleu, Riven Tides), assombrie à gauche pour que le texte reste lisible. Même chose pour « Ton prochain raid » à l'accueil. Les autres cartes gardent le fond rouge en attendant leur image.
+- **Raid** : « Meilleure carte » s'affiche sur une capture en jeu de la carte (Le Portail bleu, Ville enfouie, Champ de bataille du Barrage, Col de Pendola, Riven Tides, Stella Montis et Port spatial), assombrie à gauche pour que le texte reste lisible. Même chose pour « Ton prochain raid » à l'accueil.
 
 ## 0.13.0
 
