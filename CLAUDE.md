@@ -79,7 +79,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   En-tête commun à toutes les sections (`EnTete` : logo, nom, réglages) ; objets affichés avec leur
   icône sur une tuile aux couleurs de leur rareté (`IconeObjet`). Chaque onglet s'ouvre sur un bandeau de
   sa couleur (`BandeauSection` : code « 0N / … » de `Onglet.code`, nom en capitales, motif propre à la
-  section, coin coupé), l'onglet actif prend la même couleur ; cartes à coins presque droits (6 dp), cartes
+  section, coin coupé ; le motif vit en boucle, lentement : reflet, cases de l'inventaire, cible qui cherche puis
+  verrouille, repère et son onde, impulsion des chevrons, ligne de scan ; le texte jamais, et rien avec « Supprimer
+  les animations »), l'onglet actif prend la même couleur ; cartes à coins presque droits (6 dp), cartes
   mises en avant au coin coupé (`FormeCoupee`), petites étiquettes en capitales (`Etiquette`).
 - **Pas de réserve** (rien de ce que le joueur a « en stock ») : il ne note que ce qu'il rapporte de raid,
   au retour de raid. Ce qu'il a en cours, ce qui a été rapporté pour chaque objectif et ses builds sont

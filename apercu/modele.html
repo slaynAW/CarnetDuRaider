@@ -186,7 +186,32 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 @keyframes rebond { from { opacity: 0; transform: scale(.7); } }
 @keyframes gerbe { from { transform: translate(0, 0) rotate(0deg) skewX(-20deg); opacity: 1; }
   to { transform: translate(var(--dx), calc(var(--dy) + 35vh)) rotate(var(--r)) skewX(-20deg); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .celebration, .atteint, .pop, .banniere::before, .banniere h2, .tampon, .carte.terminee.balaie, .carte.terminee.balaie::after, .carte.terminee.balaie .termine-ligne, .carte.terminee.balaie .coin-valide { animation: none; } .gerbe { display: none; } }
+/* Motifs des bandeaux, en boucle (BandeauSection.kt) : reflet, inventaire, recherche, repère, impulsion, scan. */
+.m-reflet { transform: translateX(250px); animation: m-reflet 4.5s cubic-bezier(.45, 0, .25, 1) infinite; }
+@keyframes m-reflet { 0% { transform: translateX(-80px); } 22%, 100% { transform: translateX(250px); } }
+.m-case { opacity: 0; animation: m-case 4.5s linear infinite; }
+@keyframes m-case { 0% { opacity: 0; } 5% { opacity: .4; } 16%, 100% { opacity: 0; } }
+.m-cherche { animation: m-cherche 7s ease-in-out infinite; }
+@keyframes m-cherche { 0% { transform: none; } 16% { transform: translate(-14px, 9px); } 32% { transform: translate(-7px, -11px); } 48% { transform: translate(11px, -5px); } 64% { transform: translate(13px, 9px); } 78%, 100% { transform: none; } }
+.m-serre { transform-box: view-box; transform-origin: 130px 62px; animation: m-serre 7s ease-in-out infinite; }
+@keyframes m-serre { 0%, 76% { transform: none; } 83% { transform: scale(.88); } 90%, 100% { transform: none; } }
+.m-pouls { transform-box: fill-box; transform-origin: center; animation: m-pouls 7s ease-in-out infinite; }
+@keyframes m-pouls { 0%, 78% { transform: none; } 84% { transform: scale(1.8); } 90%, 100% { transform: none; } }
+.m-flotte { animation: m-flotte 1.5s ease-in-out infinite alternate; }
+@keyframes m-flotte { to { transform: translateY(-3px); } }
+.m-onde { transform-box: fill-box; transform-origin: center; opacity: 0; animation: m-onde 3s cubic-bezier(.2, .7, .3, 1) .4s infinite; }
+@keyframes m-onde { 0% { transform: none; opacity: .7; } 40%, 100% { transform: scale(4.5); opacity: 0; } }
+.m-impulsion { transform: translateX(210px); animation: m-impulsion 3.6s infinite; }
+@keyframes m-impulsion { 0% { transform: translateX(-70px); animation-timing-function: cubic-bezier(.4, 0, .6, 1); } 16%, 100% { transform: translateX(210px); } }
+.m-c1 { animation: m-eclat-25 3.6s ease-out 90ms infinite; }
+.m-c2 { animation: m-eclat-50 3.6s ease-out 170ms infinite; }
+.m-c3 { animation: m-pousse 3.6s ease-out 250ms infinite; }
+@keyframes m-eclat-25 { 0%, 5% { fill-opacity: .25; transform: none; } 10% { fill-opacity: .85; transform: translateX(6px); } 22%, 100% { fill-opacity: .25; transform: none; } }
+@keyframes m-eclat-50 { 0%, 5% { fill-opacity: .5; transform: none; } 10% { fill-opacity: .95; transform: translateX(6px); } 22%, 100% { fill-opacity: .5; transform: none; } }
+@keyframes m-pousse { 0%, 5% { transform: none; } 10% { transform: translateX(6px); } 22%, 100% { transform: none; } }
+.m-scan { opacity: 0; animation: m-scan 3.4s cubic-bezier(.45, 0, .25, 1) infinite; }
+@keyframes m-scan { 0% { transform: translateY(-4px); opacity: 0; } 8% { opacity: 1; } 68% { transform: translateY(132px); opacity: 1; } 70%, 100% { transform: translateY(132px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .celebration, .atteint, .pop, .banniere::before, .banniere h2, .tampon, .carte.terminee.balaie, .carte.terminee.balaie::after, .carte.terminee.balaie .termine-ligne, .carte.terminee.balaie .coin-valide { animation: none; } .section svg * { animation: none !important; } .gerbe { display: none; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s; } }
 </style>
 
@@ -512,15 +537,16 @@ const ONGLETS = [
 const S = { onglet: "ACCUEIL", filtre: "TOUS", build: 0, ecran: null, recherche: "", rechercheButin: "", rechercheQuetes: "", recherchePlan: "", rechercheBuild: "", choix: null, validation: null, raid: null, caseBuild: null };
 
 // ---- Écrans ----
-// Motif de chaque section, à droite de son bandeau (BandeauSection.kt), dans une grille de largeur × 132.
+// Motif de chaque section, à droite de son bandeau (BandeauSection.kt), dans une grille de largeur × 132 ; il vit
+// doucement, en boucle (classes « m-… »).
 const ENCRE = "#141417";
 const MOTIFS = {
-  ACCUEIL: [210, `<path d="M40 132h26L118 0H92z" fill="#3CC4D8"/><path d="M80 132h26L158 0h-26z" fill="#6CCB5F"/><path d="M120 132h26L198 0h-26z" fill="#F2B233"/><path d="M160 132h26L238 0h-26z" fill="#F0544A"/>`],
-  OBJETS: [200, `<defs><pattern id="motif-danger" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="11" height="22" fill="${ENCRE}"/></pattern></defs><rect x="60" width="140" height="132" fill="url(#motif-danger)" opacity=".9"/><rect x="96" y="30" width="72" height="72" fill="#F2B233" stroke="${ENCRE}" stroke-width="4"/><path d="M96 54h72M120 30v72M144 30v72M96 78h72" stroke="${ENCRE}" stroke-width="2"/>`],
-  RAID: [200, `<defs><pattern id="motif-balayage" width="4" height="6" patternUnits="userSpaceOnUse"><rect width="4" height="2" fill="${ENCRE}" opacity=".18"/></pattern></defs><rect width="200" height="132" fill="url(#motif-balayage)"/><g fill="none" stroke="${ENCRE}" stroke-width="3"><circle cx="130" cy="62" r="46"/><circle cx="130" cy="62" r="26"/></g><path d="M130 0v30M130 94v38M70 62h34M156 62h44" stroke="${ENCRE}" stroke-width="3"/><circle cx="130" cy="62" r="5" fill="${ENCRE}"/>`],
-  CARTES: [210, `<g stroke="${ENCRE}" stroke-width="1" opacity=".35"><path d="M30 0v132M70 0v132M110 0v132M150 0v132M190 0v132M0 33h210M0 66h210M0 99h210"/></g><g fill="none" stroke="${ENCRE}" stroke-width="2.5"><path d="M60 110c10-40 50-60 90-50s40 50 10 60-90 20-100-10z"/><path d="M85 95c8-22 35-32 58-26s22 28 5 34-55 12-63-8z"/><path d="M108 84c4-10 18-14 28-10s9 13 1 16-25 4-29-6z"/><path d="M40 20c30-16 80-18 120-4"/></g><path d="M178 26l-8 14h16z" fill="${ENCRE}"/>`],
-  OBJECTIFS: [200, `<g fill="${ENCRE}"><path d="M60 0h22l40 66-40 66H60l40-66z" opacity=".25"/><path d="M100 0h22l40 66-40 66h-22l40-66z" opacity=".5"/><path d="M140 0h22l40 66-40 66h-22l40-66z"/></g>`],
-  BUILDS: [210, `<g stroke="${ENCRE}" stroke-width=".8" opacity=".3"><path d="M20 0v132M40 0v132M60 0v132M80 0v132M100 0v132M120 0v132M140 0v132M160 0v132M180 0v132M200 0v132M0 20h210M0 40h210M0 60h210M0 80h210M0 100h210M0 120h210"/></g><g fill="none" stroke="${ENCRE}" stroke-width="2.5"><rect x="70" y="40" width="96" height="30"/><path d="M166 50h30M70 70l-14 34h22l10-34M110 70v16h22"/><circle cx="150" cy="55" r="7"/></g><path d="M70 24h96M70 18v12M166 18v12" stroke="${ENCRE}" stroke-width="1.5"/>`],
+  ACCUEIL: [210, `<defs><clipPath id="motif-bandes"><path d="M40 132h26L118 0H92z"/><path d="M80 132h26L158 0h-26z"/><path d="M120 132h26L198 0h-26z"/><path d="M160 132h26L238 0h-26z"/></clipPath></defs><path d="M40 132h26L118 0H92z" fill="#3CC4D8"/><path d="M80 132h26L158 0h-26z" fill="#6CCB5F"/><path d="M120 132h26L198 0h-26z" fill="#F2B233"/><path d="M160 132h26L238 0h-26z" fill="#F0544A"/><g clip-path="url(#motif-bandes)"><path class="m-reflet" d="M0 132h16L68 0H52z" fill="#fff" opacity=".45"/></g>`],
+  OBJETS: [200, `<defs><pattern id="motif-danger" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="11" height="22" fill="${ENCRE}"/></pattern></defs><rect x="60" width="140" height="132" fill="url(#motif-danger)" opacity=".9"/><rect x="96" y="30" width="72" height="72" fill="#F2B233"/><g fill="${ENCRE}">${[[0, 0], [1, 0], [2, 0], [2, 1], [1, 1], [0, 1], [0, 2], [1, 2], [2, 2]].map(([c, l], i) => `<rect class="m-case" x="${96 + 24 * c}" y="${30 + 24 * l}" width="24" height="24" style="animation-delay:${i * .5}s"/>`).join("")}</g><rect x="96" y="30" width="72" height="72" fill="none" stroke="${ENCRE}" stroke-width="4"/><path d="M96 54h72M120 30v72M144 30v72M96 78h72" stroke="${ENCRE}" stroke-width="2"/>`],
+  RAID: [200, `<defs><pattern id="motif-balayage" width="4" height="6" patternUnits="userSpaceOnUse"><rect width="4" height="2" fill="${ENCRE}" opacity=".18"/></pattern></defs><rect width="200" height="132" fill="url(#motif-balayage)"/><g class="m-cherche"><g class="m-serre" fill="none" stroke="${ENCRE}" stroke-width="3"><circle cx="130" cy="62" r="46"/><circle cx="130" cy="62" r="26"/></g><path d="M130 -20v50M130 94v58M50 62h54M156 62h64" stroke="${ENCRE}" stroke-width="3"/><circle class="m-pouls" cx="130" cy="62" r="5" fill="${ENCRE}"/></g>`],
+  CARTES: [210, `<g stroke="${ENCRE}" stroke-width="1" opacity=".35"><path d="M30 0v132M70 0v132M110 0v132M150 0v132M190 0v132M0 33h210M0 66h210M0 99h210"/></g><g fill="none" stroke="${ENCRE}" stroke-width="2.5"><path d="M60 110c10-40 50-60 90-50s40 50 10 60-90 20-100-10z"/><path d="M85 95c8-22 35-32 58-26s22 28 5 34-55 12-63-8z"/><path d="M108 84c4-10 18-14 28-10s9 13 1 16-25 4-29-6z"/><path d="M40 20c30-16 80-18 120-4"/></g><circle class="m-onde" cx="178" cy="35" r="6" fill="none" stroke="${ENCRE}" stroke-width="1.5" vector-effect="non-scaling-stroke"/><path class="m-flotte" d="M178 26l-8 14h16z" fill="${ENCRE}"/>`],
+  OBJECTIFS: [200, `<g fill="${ENCRE}"><path class="m-c1" d="M60 0h22l40 66-40 66H60l40-66z" fill-opacity=".25"/><path class="m-c2" d="M100 0h22l40 66-40 66h-22l40-66z" fill-opacity=".5"/><path class="m-c3" d="M140 0h22l40 66-40 66h-22l40-66z"/><path class="m-impulsion" d="M0 0h22l40 66-40 66H0l40-66z" fill-opacity=".9"/></g>`],
+  BUILDS: [210, `<defs><linearGradient id="motif-trainee" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ENCRE}" stop-opacity="0"/><stop offset="1" stop-color="${ENCRE}" stop-opacity=".14"/></linearGradient></defs><g stroke="${ENCRE}" stroke-width=".8" opacity=".3"><path d="M20 0v132M40 0v132M60 0v132M80 0v132M100 0v132M120 0v132M140 0v132M160 0v132M180 0v132M200 0v132M0 20h210M0 40h210M0 60h210M0 80h210M0 100h210M0 120h210"/></g><g fill="none" stroke="${ENCRE}" stroke-width="2.5"><rect x="70" y="40" width="96" height="30"/><path d="M166 50h30M70 70l-14 34h22l10-34M110 70v16h22"/><circle cx="150" cy="55" r="7"/></g><path d="M70 24h96M70 18v12M166 18v12" stroke="${ENCRE}" stroke-width="1.5"/><g class="m-scan"><rect y="-18" width="210" height="18" fill="url(#motif-trainee)"/><rect y="-1" width="210" height="2" fill="${ENCRE}" opacity=".5"/></g>`],
 };
 // Bandeau en tête de chaque onglet : on sait d'un coup d'œil sur quelle section on est.
 function bandeauSection(k, sous) {
