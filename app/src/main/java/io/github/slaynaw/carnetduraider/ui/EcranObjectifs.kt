@@ -1,11 +1,11 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,6 +40,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,14 +55,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -305,35 +299,26 @@ private fun EnTeteChoix(titre: String, resume: String, explication: String, onRe
 
 /**
  * Une piste de choix, sur toute la largeur : « — » (rien en cours), chaque niveau ou étape, puis « ✓ »
- * (terminé). Le choix est plein de vert ; ce qui est déjà fait (avant le choix, ou tout s'il est terminé)
- * est teinté de vert.
+ * (terminé). Seul le choix est plein de vert : la piste reste sobre.
  */
 @Composable
 private fun Piste(nom: String, choix: List<Pair<String, String>>, choisi: Int?, termine: Boolean, aucun: () -> Unit, choisir: (Int) -> Unit, terminer: () -> Unit) {
     Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        SegmentPiste("—", "$nom\u00a0: rien en cours", choisi == null && !termine, fait = false, onClick = aucun)
+        SegmentPiste("—", "$nom\u00a0: rien en cours", choisi == null && !termine, onClick = aucun)
         choix.forEachIndexed { i, (court, description) ->
-            SegmentPiste(court, "$nom\u00a0: $description", choisi == i, fait = termine || (choisi != null && i < choisi), onClick = { choisir(i) })
+            SegmentPiste(court, "$nom\u00a0: $description", choisi == i, onClick = { choisir(i) })
         }
-        SegmentPiste("✓", "$nom\u00a0: terminé", termine, fait = false, onClick = terminer)
+        SegmentPiste("✓", "$nom\u00a0: terminé", termine, onClick = terminer)
     }
 }
 
 @Composable
-private fun RowScope.SegmentPiste(texte: String, description: String, choisi: Boolean, fait: Boolean, onClick: () -> Unit) {
+private fun RowScope.SegmentPiste(texte: String, description: String, choisi: Boolean, onClick: () -> Unit) {
     Surface(
         selected = choisi,
         onClick = onClick,
-        color = when {
-            choisi -> Signal.Vert
-            fait -> Signal.SurfaceVerte
-            else -> Signal.Releve
-        },
-        contentColor = when {
-            choisi -> Signal.SurCouleur
-            fait -> Signal.Vert
-            else -> Signal.TexteDoux
-        },
+        color = if (choisi) Signal.Vert else Signal.Releve,
+        contentColor = if (choisi) Signal.SurCouleur else Signal.TexteDoux,
         shape = RoundedCornerShape(4.dp),
         modifier = Modifier.weight(1f).height(44.dp).semantics {
             contentDescription = description
@@ -346,57 +331,66 @@ private fun RowScope.SegmentPiste(texte: String, description: String, choisi: Bo
     }
 }
 
-/** Fond d'une carte terminée : la surface, légèrement teintée de vert. */
-private val FondTermine = Signal.SurfaceVerte
-
-/** Les bandes du logo en dégradé de vert, devant « TERMINÉ ». */
-private val BandesVertes = listOf(Color(0xFF3E7A37), Color(0xFF4E9C45), Color(0xFF5DB552), Signal.Vert)
-
 /** Durée du balayage d'une carte qu'on vient de passer à « Terminé ». */
 private const val BALAYAGE_MS = 740
 
 /** Durée du passage de la ligne verte, dans le balayage. */
 private const val PASSAGE_MS = 680
 
+/** Durée du repli de la carte en une ligne, après le balayage. */
+private const val REPLI_MS = 320
+
 /** Le passage de la ligne : lent au départ et à l'arrivée. */
 private val EasingPassage = CubicBezierEasing(0.45f, 0f, 0.25f, 1f)
 
+/** Teinte verte du fond pendant le balayage. */
+private const val TEINTE = 0.12f
+
 /**
- * Carte d'un établi ou d'un projet : son nom ([TitreChoix], [fait] : « 3 niveaux sur 3 »), puis [contenu].
- * Terminé, c'est le « coin validé » : fond teinté de vert, coin bas gauche coupé et, en haut à droite, un coin
- * vert plié avec sa coche.
+ * Carte d'un établi ou d'un projet : son nom, son état ([etat] : « Niveau 2 en cours »), puis [contenu] (sa
+ * piste). Terminé, elle se réduit à une ligne sobre : le nom, « ✓ Terminé » et « Modifier », qui rouvre la
+ * piste pour le remettre en cours.
  *
  * Quand elle passe à « Terminé » sous les yeux du joueur, une fine ligne verte la balaie de gauche à droite
- * (le balayage) : le fond se teinte derrière elle, « TERMINÉ » apparaît, puis le coin. Rien ne bouge à
- * l'ouverture de la liste ; avec « Supprimer les animations » d'Android, la carte est validée d'un coup.
+ * (le balayage) et le fond se teinte de vert derrière elle ; puis la carte se replie en sa ligne, la teinte
+ * s'efface et « ✓ Terminé » apparaît. Rien ne bouge à l'ouverture de la liste ; avec « Supprimer les
+ * animations » d'Android, la carte se replie d'un coup.
  */
 @Composable
-private fun CarteChoix(nom: String, termine: Boolean, fait: String, etat: String?, contenu: @Composable ColumnScope.() -> Unit) {
+private fun CarteChoix(nom: String, termine: Boolean, etat: String?, contenu: @Composable ColumnScope.() -> Unit) {
     val balayage = remember { Animatable(1f) }
+    val effacement = remember { Animatable(0f) }
     var etaitTermine by remember { mutableStateOf(termine) }
+    var ouvert by rememberSaveable(nom) { mutableStateOf(false) }
     LaunchedEffect(termine) {
         if (termine && !etaitTermine) {
+            ouvert = false
             balayage.snapTo(0f)
             balayage.animateTo(1f, tween(BALAYAGE_MS, easing = LinearEasing))
+            etaitTermine = true
+            effacement.snapTo(1f)
+            effacement.animateTo(0f, tween(REPLI_MS))
         }
         etaitTermine = termine
     }
+    // Balayage en cours : tout juste terminée, la carte reste dépliée jusqu'à la fin du passage de la ligne.
+    val balaie = termine && (!etaitTermine || balayage.isRunning)
     // Avancée du balayage (1 : rien à animer) ; tout juste terminée, elle part de 0 avant même que l'effet démarre.
     fun avancee() = if (termine && !etaitTermine && !balayage.isRunning) 0f else balayage.value
     // Avancée (de 0 à 1) d'une étape du balayage, de [debut] à [debut] + [duree] millisecondes.
     fun etape(debut: Int, duree: Int) = ((avancee() * BALAYAGE_MS - debut) / duree).coerceIn(0f, 1f)
     Surface(
-        color = if (termine) FondTermine else Signal.Surface,
-        shape = if (termine) CutCornerShape(bottomStart = 16.dp) else RoundedCornerShape(6.dp),
-        modifier = Modifier.fillMaxWidth(),
+        color = Signal.Surface,
+        shape = RoundedCornerShape(6.dp),
+        modifier = Modifier.fillMaxWidth().animateContentSize(tween(REPLI_MS)),
     ) {
         Box(
             Modifier.drawWithContent {
-                val enCours = termine && avancee() < 1f
-                // Le fond garde la couleur d'avant, puis se teinte de vert derrière la ligne.
-                if (enCours) drawRect(Signal.Surface, alpha = 1f - etape(120, 480))
+                // Le fond se teinte de vert derrière la ligne, puis la teinte s'efface quand la carte se replie.
+                val teinte = if (balaie) TEINTE * etape(120, 480) else TEINTE * effacement.value
+                if (teinte > 0f) drawRect(Signal.Vert.copy(alpha = teinte))
                 drawContent()
-                if (enCours) {
+                if (balaie && avancee() < 1f) {
                     val trainee = 56.dp.toPx()
                     val trait = 2.dp.toPx()
                     val x = (size.width + trainee) * EasingPassage.transform(etape(0, PASSAGE_MS))
@@ -409,49 +403,37 @@ private fun CarteChoix(nom: String, termine: Boolean, fait: String, etat: String
                 }
             },
         ) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TitreChoix(nom, termine, fait, etat) { etape(300, 220) }
-                contenu()
-            }
-            if (termine) CoinValide(Modifier.align(Alignment.TopEnd).graphicsLayer { alpha = etape(540, 200) })
-        }
-    }
-}
-
-/** Le coin vert plié, avec sa coche, d'une carte terminée. */
-@Composable
-private fun CoinValide(modifier: Modifier = Modifier) {
-    Canvas(modifier.size(52.dp).clearAndSetSemantics { }) {
-        val u = size.width / 56f
-        drawPath(Path().apply { moveTo(0f, 0f); lineTo(size.width, 0f); lineTo(size.width, size.height); close() }, Signal.Vert)
-        drawPath(
-            Path().apply { moveTo(30f * u, 17.5f * u); lineTo(35f * u, 22.5f * u); lineTo(45.5f * u, 11.5f * u) },
-            Signal.SurCouleur,
-            style = Stroke(width = 3f * u, cap = StrokeCap.Round, join = StrokeJoin.Round),
-        )
-    }
-}
-
-/**
- * Nom d'un établi ou d'un projet ; terminé, il est suivi des bandes du logo en vert, de « TERMINÉ » et de
- * ce qui a été fait ([fait] : « 3 niveaux sur 3 »), qui apparaissent selon [apparition] (de 0 à 1).
- */
-@Composable
-private fun TitreChoix(nom: String, termine: Boolean, fait: String, etat: String?, apparition: () -> Float) {
-    Column(Modifier.padding(end = if (termine) 40.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            if (!termine) Etiquette(etat ?: "Pas en cours", if (etat != null) Signal.Vert else Signal.TexteDiscret)
-        }
-        if (termine) {
-            Row(
-                Modifier.graphicsLayer { alpha = apparition() },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Bandes(hauteur = 12.dp, largeurBande = 3.5.dp, couleurs = BandesVertes)
-                Etiquette("Terminé", Signal.Vert)
-                Text("· $fait", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+            if (termine && !balaie) {
+                Column {
+                    Row(
+                        Modifier.heightIn(min = 52.dp).padding(start = 14.dp, end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(
+                            "✓ Terminé",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Signal.Vert,
+                            modifier = Modifier.graphicsLayer { alpha = 1f - effacement.value },
+                        )
+                        TextButton(
+                            onClick = { ouvert = !ouvert },
+                            modifier = Modifier.semantics { contentDescription = if (ouvert) "Fermer\u00a0: $nom" else "Modifier\u00a0: $nom" },
+                        ) { Text(if (ouvert) "Fermer" else "Modifier", color = Signal.TexteDoux) }
+                    }
+                    if (ouvert) {
+                        Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { contenu() }
+                    }
+                }
+            } else {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(nom, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        if (!termine) Etiquette(etat ?: "Pas en cours", if (etat != null) Signal.Vert else Signal.TexteDiscret)
+                    }
+                    contenu()
+                }
             }
         }
     }
@@ -565,7 +547,7 @@ private fun ChoixEtabli(vm: CarnetViewModel, etabli: Etabli) {
     val enCours = vm.suivi.niveauEnCours(vm.progression, etabli)
     val termine = vm.suivi.etabliTermine(vm.progression, etabli)
     val niveaux = etabli.niveaux.sortedBy { it.niveau }
-    CarteChoix(etabli.nom, termine, "${pluriel(niveaux.size, "niveau", "niveaux")} sur ${niveaux.size}", enCours?.let { "Niveau $it en cours" }) {
+    CarteChoix(etabli.nom, termine, enCours?.let { "Niveau $it en cours" }) {
         Piste(
             etabli.nom,
             niveaux.map { "${it.niveau}" to "niveau ${it.niveau} en cours" },
@@ -617,8 +599,7 @@ fun EcranProjetsEnCours(vm: CarnetViewModel, expeditions: Boolean, onRetour: () 
 private fun ChoixProjet(vm: CarnetViewModel, projet: Projet) {
     val enCours = vm.suivi.etapeEnCours(vm.progression, projet)
     val termine = vm.suivi.projetTermine(vm.progression, projet)
-    val etapes = projet.etapes.size
-    CarteChoix(projet.nom, termine, "${pluriel(etapes, "étape", "étapes")} sur $etapes", enCours?.let { "Étape ${it + 1} en cours" }) {
+    CarteChoix(projet.nom, termine, enCours?.let { "Étape ${it + 1} en cours" }) {
         Piste(
             projet.nom,
             projet.etapes.indices.map { "${it + 1}" to "${vm.planificateur.nomEtape(projet, it)} en cours" },
