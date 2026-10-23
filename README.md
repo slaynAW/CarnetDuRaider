@@ -1,4 +1,4 @@
-# Carnet du Raider
+# Le Carnet du Raider
 
 Application Android compagnon pour **ARC Raiders**, à garder à côté du clavier pendant les sessions de jeu.
 
@@ -88,6 +88,11 @@ uniquement) et relance le build complet ; le résumé du workflow liste les nouv
 jeu. Publier ensuite une version pour les recevoir sur le téléphone. Il se lance à la main (Actions →
 Données du jeu → Run workflow) : le dépôt raider-tools n'est plus public depuis le 20/10/2026, et le
 lancement de chaque jour échouait.
+
+## Sécurité
+
+Signaler une faille : [SECURITY.md](SECURITY.md) (signalement privé, onglet *Security*). Règles du dépôt,
+vérifiées à chaque build, et réglages GitHub recommandés : [docs/SECURITE.md](docs/SECURITE.md).
 
 ## Sources et licences
 

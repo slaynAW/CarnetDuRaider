@@ -147,7 +147,7 @@ fun EnTete(reglagesOuverts: Boolean, ouvrirReglages: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Bandes(hauteur = 20.dp, largeurBande = 5.dp)
-        Text("Carnet du Raider", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        Text("Le Carnet du Raider", style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         IconButton(onClick = ouvrirReglages) {
             Icon(Icons.Filled.Settings, contentDescription = "Réglages", tint = if (reglagesOuverts) Signal.Or else Signal.TexteDoux)
         }

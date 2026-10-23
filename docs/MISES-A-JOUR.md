@@ -15,7 +15,7 @@ mécanisme est le même que celui de Patronus.
   **Rechercher automatiquement** (activée par défaut).
 
 L'application télécharge et vérifie l'APK puis le confie à l'installateur d'Android. Hors Play Store,
-Android demande une confirmation : la première fois, il faut aussi autoriser *Carnet du Raider* à
+Android demande une confirmation : la première fois, il faut aussi autoriser *Le Carnet du Raider* à
 installer des applications (*Paramètres → Installer des applis inconnues*). À partir d'Android 12, une
 fois que l'application s'est mise à jour elle-même, les mises à jour suivantes peuvent se faire sans
 confirmation. Une mise à jour conserve toujours les données de l'application (même clé de signature,
@@ -51,7 +51,7 @@ publier un numéro déjà publié ou plus ancien que la dernière version.
   manifeste non signé, signé par une autre clé ou modifié est refusé
   (`core/…/miseajour/MisesAJour.kt`, testé dans `MiseAJourTest`).
 - Le fichier téléchargé doit avoir exactement la taille et l'empreinte annoncées, sinon il est
-  supprimé sans être installé. L'application vérifie ensuite que l'APK est bien *Carnet du Raider*
+  supprimé sans être installé. L'application vérifie ensuite que l'APK est bien *Le Carnet du Raider*
   dans la version annoncée, puis l'installateur d'Android vérifie qu'il est signé avec la même clé
   que l'application installée.
 - Chaque fichier publié porte une **attestation de provenance** (Sigstore) :

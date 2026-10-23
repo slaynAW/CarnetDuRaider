@@ -101,7 +101,7 @@ fun EcranReglages(vm: CarnetViewModel, miseAJour: GestionnaireMiseAJour, etat: E
 
         Text("À propos", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
         Reglage(
-            titre = "Carnet du Raider ${BuildConfig.VERSION_NAME}",
+            titre = "Le Carnet du Raider ${BuildConfig.VERSION_NAME}",
             detail = "Voir les versions et les nouveautés sur GitHub",
             onClick = { runCatching { liens.openUri(MisesAJour.ADRESSE) } },
         )

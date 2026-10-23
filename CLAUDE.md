@@ -1,4 +1,4 @@
-# Consignes du projet Carnet du Raider
+# Consignes du projet « Le Carnet du Raider »
 
 Application Android compagnon (non officielle) pour ARC Raiders. Tout le projet est en français :
 interface, documentation, messages de commit, noms de classes et de fonctions métier.
@@ -171,7 +171,10 @@ comme propre à l'appli Android.
   officielle » (environnement protégé `publication`, secrets `CDR_KEYSTORE_*`). Voir docs/SIGNATURE.md.
 - Une version officielle exige une section `## X.Y.Z` dans `NOUVEAUTES.md` (texte affiché dans
   l'appli) ; les noms du jeu y suivent la règle des traductions officielles.
-- Actions épinglées par empreinte de commit, jeton en lecture seule par défaut.
+- Actions épinglées par empreinte de commit, jeton en lecture seule par défaut. Ces règles sont vérifiées à
+  chaque build par le job « Règles de sécurité » (`.github/scripts/verifier-depot.sh`) : ne jamais
+  l'affaiblir, il bloque la publication. Réglages GitHub recommandés (compte, règles de `main` et des
+  tags `v*`, environnement, Actions, alertes) : docs/SECURITE.md ; signalement des failles : SECURITY.md.
 
 ## Vérifications
 
