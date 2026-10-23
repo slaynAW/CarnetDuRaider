@@ -174,6 +174,15 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 /* Fin explicite : le vert à 12 % sur la surface (Chromium anime mal vers un color-mix). */
 @keyframes balaie-teinte { from { background-color: var(--surface); } to { background-color: #27332A; } }
 @keyframes balaie-ligne { from { left: -56px; } to { left: 100%; } }
+/* La clôture, quand « C'est fait » valide la dernière étape (Cloture, EcranObjectifs.kt) : une bande verte recouvre
+   la carte, « TERMINÉ » s'y resserre, puis le tampon « VALIDÉ » s'y pose. */
+.cloture { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--vert); color: var(--sur-couleur);
+  clip-path: inset(0 100% 0 0); animation: cloture-bande .36s cubic-bezier(.45, 0, .25, 1) both; }
+.cloture > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cloture strong { font: 800 26px/1.1 var(--titre); letter-spacing: 2px; animation: resserrer .56s .24s cubic-bezier(.4, 0, .2, 1) both; }
+.cloture small { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: apparaitre .3s .3s ease-out both; }
+.cloture .tampon { margin-right: 0; font-size: 13px; letter-spacing: 1.5px; padding: 3px 7px; color: var(--sur-couleur); border-color: var(--sur-couleur); animation-delay: .76s; }
+@keyframes cloture-bande { to { clip-path: inset(0 0 0 0); } }
 @keyframes repli { from { max-height: 170px; background-color: #27332A; } to { max-height: 52px; background-color: var(--surface); } }
 .tampon { flex: none; margin-right: 6px; font: 700 15px/1 var(--titre); letter-spacing: 2px; color: var(--vert); border: 2px solid var(--vert); border-radius: 6px; padding: 4px 8px;
   transform: rotate(-12deg); animation: tampon .45s cubic-bezier(.34, 1.56, .64, 1) both; }
@@ -1382,9 +1391,18 @@ document.addEventListener("click", ev => {
     case "projet-termine": if (!projetTermine(projets.get(id))) passerTermine(`projet:${id}`); indiquerProjetTermine(projets.get(id)); break;
     case "valider-objectif": {
       // D'abord le balayage traverse la carte, puis l'étape suivante prend sa place (CarteObjectif).
-      const o = objectifDepuisCle(b.dataset.cle), carte = b.closest(".carte");
+      // La dernière étape (ou le dernier niveau) a droit à sa clôture, après le balayage.
+      const o = objectifDepuisCle(b.dataset.cle), carte = b.closest(".carte"), calme = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const derniere = o.type === "etabli" ? o.niveau === niveauMax(etablis.get(o.id)) : o.type === "projet" && o.etape === (projets.get(o.id)?.etapes.length ?? 0) - 1;
       b.disabled = true; carte?.classList.add("balaie");
-      setTimeout(() => { valider(o); enregistrer(); rendre(); }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 760);
+      const fin = () => { valider(o); enregistrer(); rendre(); };
+      if (calme) { fin(); return; }
+      setTimeout(() => {
+        if (!derniere || !carte) { fin(); return; }
+        const x = o.type === "etabli" ? etablis.get(o.id) : projets.get(o.id), n = o.type === "etabli" ? x.niveaux.length : x.etapes.length;
+        carte.insertAdjacentHTML("beforeend", `<div class="cloture" role="status" aria-label="Terminé${NB}: ${echap(x.nom)}"><span><strong>TERMINÉ</strong><small>${echap(x.nom)} · ${pluriel(n, o.type === "etabli" ? "niveau" : "étape", o.type === "etabli" ? "niveaux" : "étapes")} sur ${n}</small></span><span class="tampon" aria-hidden="true">VALIDÉ</span></div>`);
+        setTimeout(fin, 1300);
+      }, 760);
       return;
     }
     case "build-case": S.caseBuild = { rang: +id, cle: b.dataset.case }; S.rechercheBuild = ""; return ouvrir("choix-build");

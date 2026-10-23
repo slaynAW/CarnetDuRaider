@@ -3,12 +3,15 @@ package io.github.slaynaw.carnetduraider.ui
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -52,19 +55,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.Catalogue
 import io.github.slaynaw.carnetduraider.core.Etabli
@@ -72,6 +80,7 @@ import io.github.slaynaw.carnetduraider.core.Objectif
 import io.github.slaynaw.carnetduraider.core.Projet
 import io.github.slaynaw.carnetduraider.core.Quantite
 import io.github.slaynaw.carnetduraider.core.cle
+import io.github.slaynaw.carnetduraider.ui.theme.Prompt
 import io.github.slaynaw.carnetduraider.ui.theme.Signal
 import kotlinx.coroutines.launch
 
@@ -229,60 +238,130 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
     val rapporte = besoins.sumOf { minOf(apporte[it.id] ?: 0, it.quantite) }
     val portee = rememberCoroutineScope()
     val passage = remember(objectif.cle) { Animatable(1f) }
+    val cloture = remember(objectif.cle) { Animatable(0f) }
     var valide by remember(objectif.cle) { mutableStateOf(false) }
+    // La dernière étape (ou le dernier niveau) a droit à sa fin : la clôture, après le balayage.
+    val derniere = remember(objectif) { vm.planificateur.derniereEtape(objectif) }
     Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(
-            Modifier
-                .dessinBalayage(actif = { valide }, avancee = { passage.value })
-                .padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Column(Modifier.weight(1f)) {
-                    Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    val detail = commercant ?: if (besoins.isEmpty()) "Rien à rapporter\u00a0: valide-le quand c'est fait en jeu." else null
-                    detail?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
+        Box {
+            Column(
+                Modifier
+                    .dessinBalayage(actif = { valide }, avancee = { passage.value })
+                    .padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(libelle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        val detail = commercant ?: if (besoins.isEmpty()) "Rien à rapporter\u00a0: valide-le quand c'est fait en jeu." else null
+                        detail?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Signal.TexteDoux) }
+                    }
+                    if (voulu > 0) {
+                        Text("$rapporte/$voulu", style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.Vert)
+                    }
                 }
                 if (voulu > 0) {
-                    Text("$rapporte/$voulu", style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.Vert)
+                    Barre(rapporte.toFloat() / voulu, Signal.Vert, epaisseur = 4.dp)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        besoins.forEach { b ->
+                            val n = minOf(apporte[b.id] ?: 0, b.quantite)
+                            PastilleObjet(vm, b.id, "$n/${b.quantite}", complet = n >= b.quantite)
+                        }
+                    }
                 }
-            }
-            if (voulu > 0) {
-                Barre(rapporte.toFloat() / voulu, Signal.Vert, epaisseur = 4.dp)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    besoins.forEach { b ->
-                        val n = minOf(apporte[b.id] ?: 0, b.quantite)
-                        PastilleObjet(vm, b.id, "$n/${b.quantite}", complet = n >= b.quantite)
+                if (autres > 0) {
+                    Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    OutlinedButton(
+                        onClick = {
+                            valide = true
+                            portee.launch {
+                                // Validé même si l'écran se ferme pendant l'animation.
+                                try {
+                                    passage.snapTo(0f)
+                                    passage.animateTo(1f, tween(BALAYAGE_MS, easing = LinearEasing))
+                                    if (derniere) cloture.animateTo(1f, tween(CLOTURE_MS, easing = LinearEasing))
+                                } finally {
+                                    vm.valider(objectif)
+                                }
+                            }
+                        },
+                        enabled = !valide,
+                        border = BorderStroke(1.5.dp, Signal.Vert),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Signal.Vert),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.semantics { contentDescription = "C'est fait\u00a0: $libelle" },
+                    ) {
+                        Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text("C'est fait", modifier = Modifier.padding(start = 6.dp))
                     }
                 }
             }
-            if (autres > 0) {
-                Text("Et d'autres conditions à remplir en jeu.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+            if (derniere && cloture.value > 0f) Cloture(cloture.value, nomFin(vm, objectif))
+        }
+    }
+}
+
+/** Durée de la clôture, après le balayage, quand on valide la dernière étape. */
+private const val CLOTURE_MS = 1300
+
+/** Le tampon arrive avec un léger rebond. */
+private val EasingTampon = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
+
+/** Nom de ce qui se termine (l'établi ou le projet entier) et ce qui a été fait : « Grimper la montagne · 4 étapes sur 4 ». */
+private fun nomFin(vm: CarnetViewModel, objectif: Objectif): String = when (objectif) {
+    is Objectif.NiveauDEtabli -> vm.catalogue.etabli(objectif.etabliId)?.let { "${it.nom} · ${pluriel(it.niveaux.size, "niveau", "niveaux")} sur ${it.niveaux.size}" }
+    is Objectif.EtapeDeProjet -> vm.catalogue.projet(objectif.projetId)?.let { "${it.nom} · ${pluriel(it.etapes.size, "étape", "étapes")} sur ${it.etapes.size}" }
+    else -> null
+} ?: vm.planificateur.libelle(objectif)
+
+/**
+ * La clôture, quand on valide la dernière étape, à la manière d'ARC Raiders : une bande verte recouvre la
+ * carte, « TERMINÉ » s'y resserre au-dessus de ce qui a été fait ([fait]), puis le tampon « VALIDÉ » s'y pose.
+ * [avancee] va de 0 à 1 sur [CLOTURE_MS] ; rien avec « Supprimer les animations » (la carte est validée d'un coup).
+ */
+@Composable
+private fun BoxScope.Cloture(avancee: Float, fait: String) {
+    fun etape(debut: Int, duree: Int) = ((avancee * CLOTURE_MS - debut) / duree).coerceIn(0f, 1f)
+    val bande = EasingPassage.transform(etape(0, 360))
+    val serre = etape(240, 560)
+    val tampon = etape(760, 380)
+    Box(
+        Modifier
+            .matchParentSize()
+            .drawBehind { clipRect(right = size.width * bande) { drawRect(Signal.Vert) } }
+            .clearAndSetSemantics { contentDescription = "Terminé\u00a0: $fait" },
+    ) {
+        Row(
+            Modifier.align(Alignment.CenterStart).fillMaxWidth().padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(Modifier.weight(1f).graphicsLayer { alpha = serre }) {
+                Text(
+                    "TERMINÉ",
+                    style = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, letterSpacing = (10f - 8f * FastOutSlowInEasing.transform(serre)).sp),
+                    color = Signal.SurCouleur,
+                    maxLines = 1,
+                )
+                Text(fait, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = Signal.SurCouleur, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                OutlinedButton(
-                    onClick = {
-                        valide = true
-                        portee.launch {
-                            // Validé même si l'écran se ferme pendant le balayage.
-                            try {
-                                passage.snapTo(0f)
-                                passage.animateTo(1f, tween(BALAYAGE_MS, easing = LinearEasing))
-                            } finally {
-                                vm.valider(objectif)
-                            }
-                        }
-                    },
-                    enabled = !valide,
-                    border = BorderStroke(1.5.dp, Signal.Vert),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Signal.Vert),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    modifier = Modifier.semantics { contentDescription = "C'est fait\u00a0: $libelle" },
-                ) {
-                    Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Text("C'est fait", modifier = Modifier.padding(start = 6.dp))
-                }
-            }
+            Text(
+                "VALIDÉ",
+                style = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 1.5.sp),
+                color = Signal.SurCouleur,
+                modifier = Modifier
+                    .graphicsLayer {
+                        alpha = if (tampon > 0f) 1f else 0f
+                        val echelle = 2.2f - 1.2f * EasingTampon.transform(tampon)
+                        scaleX = echelle
+                        scaleY = echelle
+                        rotationZ = -12f
+                    }
+                    .border(2.dp, Signal.SurCouleur, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+            )
         }
     }
 }

@@ -118,7 +118,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   rapporté se valide tout seul (`SuiviProgression.terminerLesComplets`) et la suite s'ajoute (niveau
   suivant, quêtes suivantes d'après l'enchaînement `requiert`, étape suivante). Ce qui est fait autrement
   se valide en un geste (« C'est fait », `CarnetViewModel.valider`, après le même balayage sur sa carte,
-  `dessinBalayage`), avec « Annuler » : jamais de saisie obligatoire.
+  `dessinBalayage` ; pour la dernière étape ou le dernier niveau, `Planificateur.derniereEtape`, la clôture
+  suit : une bande verte recouvre la carte, « TERMINÉ » s'y resserre et le tampon « VALIDÉ » s'y pose,
+  `Cloture`), avec « Annuler » : jamais de saisie obligatoire.
 - Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build sur une ligne, avec
   ses cases remplies ; le build préféré, un seul, `Build.prefere`, étoile, en premier et ouvert à l'arrivée :
   `Builds.ordre`, `Builds.ouvert` ; le build choisi dessous, nom changé au crayon, cases groupées

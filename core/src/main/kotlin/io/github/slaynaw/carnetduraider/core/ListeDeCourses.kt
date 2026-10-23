@@ -87,6 +87,16 @@ class Planificateur(private val catalogue: Catalogue) {
     }
 
     /** Nom officiel de l'étape, ou « étape 2 » (rang dans le projet) s'il n'est pas vérifié. */
+    /**
+     * Vrai si valider [objectif] termine tout : le dernier niveau d'un établi, la dernière étape d'un projet ou
+     * d'une Expédition. Une quête ou un objet recherché n'en a pas.
+     */
+    fun derniereEtape(objectif: Objectif): Boolean = when (objectif) {
+        is Objectif.NiveauDEtabli -> catalogue.etabli(objectif.etabliId)?.niveaux?.maxOfOrNull { it.niveau } == objectif.niveau
+        is Objectif.EtapeDeProjet -> catalogue.projet(objectif.projetId)?.etapes?.lastIndex == objectif.etape
+        else -> false
+    }
+
     fun nomEtape(projet: Projet?, etape: Int): String = projet?.etapes?.getOrNull(etape)?.nom ?: "étape ${etape + 1}"
 
     fun besoins(objectif: Objectif): List<Quantite> = when (objectif) {

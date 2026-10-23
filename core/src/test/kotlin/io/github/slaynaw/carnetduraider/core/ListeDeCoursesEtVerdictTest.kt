@@ -177,4 +177,17 @@ class ListeDeCoursesEtVerdictTest {
         assertEquals(listOf<Verdict>(vendre), tous.filter(FiltreVerdict.VENDRE::accepte))
         assertEquals(listOf<Verdict>(recycler), tous.filter(FiltreVerdict.RECYCLER::accepte))
     }
+
+    @Test
+    fun `derniere etape d'un etabli ou d'un projet`() {
+        val p = Planificateur(catalogue)
+        val etabli = catalogue.donnees.etablis.first()
+        val max = etabli.niveaux.maxOf { it.niveau }
+        assertTrue(p.derniereEtape(Objectif.NiveauDEtabli(etabli.id, max)))
+        assertFalse(p.derniereEtape(Objectif.NiveauDEtabli(etabli.id, max - 1)))
+        val projet = catalogue.donnees.projets.first { it.etapes.size > 1 }
+        assertTrue(p.derniereEtape(Objectif.EtapeDeProjet(projet.id, projet.etapes.lastIndex)))
+        assertFalse(p.derniereEtape(Objectif.EtapeDeProjet(projet.id, 0)))
+        assertFalse(p.derniereEtape(Objectif.QueteATerminer(catalogue.donnees.quetes.first().id)))
+    }
 }
