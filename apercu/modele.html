@@ -1,4 +1,4 @@
-<title>Carnet du Raider</title>
+<title>Le Carnet du Raider</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Prompt:wght@600;700;800&display=swap">
@@ -25,7 +25,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--or); outlin
 .entete { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--fond);
   display: flex; align-items: center; gap: 12px; padding-block: 10px 6px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
-.entete h1 { font: 700 20px/1.2 var(--titre); margin: 0; flex: 1; }
+.entete h1 { font: 700 clamp(17px, 5.4vw, 20px)/1.2 var(--titre); margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .contenu { flex: 1; display: flex; flex-direction: column; gap: 12px; padding-block: 8px 96px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -185,7 +185,7 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
       <path d="M0 20h5l7.2-20h-5z" fill="#3CC4D8"/><path d="M7.5 20h5l7.2-20h-5z" fill="#6CCB5F"/>
       <path d="M15 20h5l7.2-20h-5z" fill="#F2B233"/><path d="M22.5 20h5l7.2-20h-5z" fill="#F0544A"/>
     </svg>
-    <h1>Carnet du Raider</h1>
+    <h1>Le Carnet du Raider</h1>
     <button class="retour" id="bouton-reglages" aria-label="Réglages" data-action="reglages">
       <svg class="ic" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
     </button>

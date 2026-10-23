@@ -11,7 +11,8 @@
 #   Voir docs/MISES-A-JOUR.md et docs/SIGNATURE.md.
 #
 # Chaîne de production : actions épinglées par empreinte de commit (tenues à jour par Dependabot),
-# jeton en lecture seule par défaut, aucun secret hors du job de publication.
+# jeton en lecture seule par défaut, aucun secret hors du job de publication ; ces règles sont vérifiées
+# à chaque build par le job « Règles de sécurité » (.github/scripts/verifier-depot.sh, docs/SECURITE.md).
 name: Build
 
 on:
@@ -75,6 +76,18 @@ jobs:
           fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "official=$official" >> "$GITHUB_OUTPUT"
+
+  # Règles de sécurité du dépôt (docs/SECURITE.md) : actions épinglées, permissions en lecture seule,
+  # aucun déclencheur dangereux, secrets de signature seulement dans la publication, aucune clé suivie.
+  securite:
+    name: Règles de sécurité
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: bash .github/scripts/verifier-depot.sh
 
   android:
     name: Tests, lint et APK
@@ -145,7 +158,7 @@ jobs:
 
   prerelease:
     name: Pré-version de développement
-    needs: [version, android]
+    needs: [version, android, securite]
     # Push sur une branche ou lancement manuel sans numéro ; jamais pour une pull request, ni pour
     # Dependabot (jeton en lecture seule). Aucun secret : l'APK garde sa clé de test.
     if: >-
@@ -180,7 +193,7 @@ jobs:
 
   release:
     name: Publication officielle
-    needs: [version, android]
+    needs: [version, android, securite]
     if: needs.version.outputs.official == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -264,8 +277,8 @@ jobs:
       - name: Release
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Carnet du Raider $VERSION" --notes-file notes.md
+            gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Le Carnet du Raider $VERSION" --notes-file notes.md
           else
             # Crée le tag vX.Y.Z sur le commit compilé, puis la Release.
-            gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" --title "Carnet du Raider $VERSION" --notes-file notes.md
+            gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" --title "Le Carnet du Raider $VERSION" --notes-file notes.md
           fi

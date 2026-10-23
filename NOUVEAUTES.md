@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.12.2
+
+- **Nouveau nom** : l'appli s'appelle désormais « Le Carnet du Raider ».
+- Sécurité du projet renforcée : chaque publication vérifie d'abord les règles de sécurité du dépôt.
+
 ## 0.12.1
 
 - **Terminé** : dans Mes ateliers, Mes projets et Mes expéditions, une nouvelle pastille « Terminé », à côté de « Aucun », pour un établi au niveau maximum ou un projet dont toutes les étapes sont faites. Sa carte devient « validée », à la manière d'ARC Raiders : fond légèrement vert, coin vert plié avec une coche, et sous son nom les bandes du logo en vert avec « TERMINÉ » et ce qui a été fait (« 3 niveaux sur 3 »).

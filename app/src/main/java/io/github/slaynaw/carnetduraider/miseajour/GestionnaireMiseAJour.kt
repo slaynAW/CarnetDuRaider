@@ -169,7 +169,7 @@ class GestionnaireMiseAJour(context: Context, private val portee: CoroutineScope
 
     /** L'APK doit être cette appli, dans la version annoncée. */
     private fun verifierArchive(apk: File, manifeste: Manifeste) {
-        val info = infoArchive(apk) ?: throw ArchiveRefusee("Fichier refusé\u00a0: ce n'est pas une version de Carnet du Raider.")
+        val info = infoArchive(apk) ?: throw ArchiveRefusee("Fichier refusé\u00a0: ce n'est pas une version du Carnet du Raider.")
         val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else @Suppress("DEPRECATION") info.versionCode.toLong()
         if (info.packageName != app.packageName || code != manifeste.code) {
             throw ArchiveRefusee("Fichier refusé\u00a0: ce n'est pas la version annoncée.")
