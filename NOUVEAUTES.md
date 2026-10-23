@@ -5,6 +5,10 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.13.1
+
+- **Raid** : « Meilleure carte » s'affiche sur une capture en jeu de la carte (Ville enfouie, Champ de bataille du Barrage, Col de Pendola, Le Portail bleu, Riven Tides), assombrie à gauche pour que le texte reste lisible. Les autres cartes gardent le fond rouge en attendant leur image.
+
 ## 0.13.0
 
 - **Bandeaux vivants** : le motif en tête de chaque onglet bouge doucement, en boucle. Un reflet passe sur les bandes de l'Accueil, les cases de la caisse d'Objets s'assombrissent une à une, la cible du Raid cherche puis verrouille, le repère des Cartes flotte en émettant une onde, une impulsion pousse les chevrons des Objectifs et une ligne de scan parcourt le plan des Builds.

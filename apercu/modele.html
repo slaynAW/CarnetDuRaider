@@ -88,6 +88,9 @@ button.carte:hover { background: var(--releve); }
 .prochain:hover { filter: brightness(1.08); }
 .prochain small { font: 700 11px var(--titre); letter-spacing: 2px; }
 .prochain strong { font: 700 22px/1.2 var(--titre); }
+/* Meilleure carte sur une capture en jeu de la carte (CarteMeilleure, EcranRaid.kt) : « ombre latérale ». */
+.prochain.plein.photo { background: linear-gradient(90deg, rgba(20,20,23,.94) 0%, rgba(20,20,23,.72) 52%, rgba(20,20,23,.1) 100%), var(--photo) center / cover, var(--fond); color: var(--texte); padding: 18px; }
+.prochain.plein.photo small { color: var(--rouge); }
 .verdict { background: var(--v, var(--or)); color: var(--sur-couleur); clip-path: var(--coupee); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
 .verdict.neutre { color: var(--texte); }
 .verdict small { font: 700 11px var(--titre); letter-spacing: 1.5px; }
@@ -539,6 +542,8 @@ const S = { onglet: "ACCUEIL", filtre: "TOUS", build: 0, ecran: null, recherche:
 // ---- Écrans ----
 // Motif de chaque section, à droite de son bandeau (BandeauSection.kt), dans une grille de largeur × 132 ; il vit
 // doucement, en boucle (classes « m-… »).
+// Cartes qui ont une capture en jeu pour « Meilleure carte » (assets/fonds, liste écrite par construire.py).
+const FONDS = new Set(/*FONDS*/);
 const ENCRE = "#141417";
 const MOTIFS = {
   ACCUEIL: [210, `<defs><clipPath id="motif-bandes"><path d="M40 132h26L118 0H92z"/><path d="M80 132h26L158 0h-26z"/><path d="M120 132h26L198 0h-26z"/><path d="M160 132h26L238 0h-26z"/></clipPath></defs><path d="M40 132h26L118 0H92z" fill="#3CC4D8"/><path d="M80 132h26L158 0h-26z" fill="#6CCB5F"/><path d="M120 132h26L198 0h-26z" fill="#F2B233"/><path d="M160 132h26L238 0h-26z" fill="#F0544A"/><g clip-path="url(#motif-bandes)"><path class="m-reflet" d="M0 132h16L68 0H52z" fill="#fff" opacity=".45"/></g>`],
@@ -970,7 +975,7 @@ function ecranOngletRaid() {
   const couverts = conseil.parcours.reduce((n, e) => n + e.objets.length, 0), meilleure = conseil.cartes[0];
   return `${bandeauSection("RAID", restants.length ? `${pluriel(restants.length, "objet", "objets")} à trouver` : objs.length ? "Rien à chercher en raid" : "Rien à chercher pour l'instant")}
   ${restants.length ? "" : `<p class="doux" style="margin:0">${objs.length ? "Tes objectifs en cours ne demandent aucun objet à rapporter." : "Rien à chercher pour l'instant."}</p>`}
-  ${meilleure ? `<div class="prochain plein"><small>MEILLEURE CARTE</small><strong>${echap(nomC(meilleure.carteId))}</strong>
+  ${meilleure ? `<div class="prochain plein${FONDS.has(meilleure.carteId) ? ` photo" style="--photo:url('fonds/${meilleure.carteId}.webp')` : ""}"><small>MEILLEURE CARTE</small><strong>${echap(nomC(meilleure.carteId))}</strong>
     <b>${meilleure.objets.length} de tes ${pluriel(restants.length, "objet", "objets")} à trouver${meilleure.zones[0] ? ` · surtout ${echap(meilleure.zones[0].zone)}` : ""}</b></div>` : ""}
   ${liste.length ? `${etiquette("Ce qu'il te faut", "--rouge", "h4")}
   ${liste.map(ligneATrouver).join("")}` : ""}
