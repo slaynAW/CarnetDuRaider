@@ -1,36 +1,45 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,7 +49,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,85 +75,132 @@ fun EcranCartes(vm: CarnetViewModel, ouvrirPlan: (String) -> Unit) {
     val t = maintenant(1_000)
     val calendrier = remember(etat.donnees) { etat.donnees?.let(vm::calendrierOfficiel) }
     val region = vm.region
+    var aVenirChoisi by rememberSaveable { mutableStateOf(false) }
+    val enCours = calendrier?.enCours(region, t).orEmpty()
+    val cartes = vm.catalogue.donnees.cartes
+    // Une condition sur une carte absente des données du jeu s'affiche quand même, sans plan.
+    val inconnues = enCours.map { it.carte }.filter { nom -> cartes.none { it.nom == nom } }.distinct()
+    val actives = cartes.count { c -> enCours.any { it.carte == c.nom } } + inconnues.size
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                BandeauSection(Onglet.CARTES, "Plans, zones et conditions")
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Region.entries.forEach { r ->
-                        PuceFiltre(r.libelle, choisie = r == region, couleur = Signal.Cyan, onClick = { vm.changerRegion(r) })
-                    }
-                }
-                Text(
-                    when {
-                        etat.chargement -> "Lecture du calendrier officiel d'Embark…"
-                        etat.donnees != null -> "Calendrier officiel d'Embark, lu ${depuis(etat.donnees!!.luLe, t)}. Heures de ton téléphone."
-                        else -> "Le calendrier officiel d'Embark n'a pas encore été lu."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Signal.TexteDiscret,
-                )
-                etat.erreur?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Signal.Rouge) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { runCatching { liens.openUri(Calendrier.ADRESSE) } }, shape = RoundedCornerShape(6.dp)) {
-                        Text("Calendrier officiel", color = Signal.Cyan)
-                    }
-                    TextButton(onClick = { portee.launch { vm.calendrier.actualiser() } }, enabled = !etat.chargement) {
-                        Text("Actualiser", color = Signal.TexteDoux)
-                    }
-                }
-            }
-        }
-
-        // Chaque carte avec ses conditions en cours : on sait tout de suite où il se passe quelque chose.
-        if (calendrier != null) {
-            val enCours = calendrier.enCours(region, t)
-            item { Titre("Conditions de la carte") }
-            val cartes = vm.catalogue.donnees.cartes.map { it.nom } +
-                enCours.map { it.carte }.filter { nom -> vm.catalogue.donnees.cartes.none { it.nom == nom } }.distinct()
-            items(cartes, key = { "maintenant-$it" }) { carte ->
-                val id = vm.catalogue.donnees.cartes.firstOrNull { it.nom == carte }?.id
-                CarteMaintenant(carte, enCours.filter { it.carte == carte }, t, onClick = id?.let { { ouvrirPlan(it) } })
-            }
-        }
-
-        item { Titre("Plans des cartes") }
-        item {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                vm.catalogue.donnees.cartes.forEach { c ->
-                    Surface(onClick = { ouvrirPlan(c.id) }, color = Signal.Surface, shape = RoundedCornerShape(6.dp)) {
-                        Column(Modifier.width(132.dp)) {
-                            ApercuPlan(c.id, Modifier.fillMaxWidth().height(96.dp))
-                            Text(c.nom, style = MaterialTheme.typography.labelMedium, maxLines = 2, modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp))
+    EcranDeSection(
+        Onglet.CARTES,
+        if (calendrier != null) pluriel(actives, "carte avec une condition en cours", "cartes avec une condition en cours") else "Plans, zones et conditions",
+    ) { defilement ->
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            state = defilement,
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            when {
+                                etat.chargement -> "Lecture du calendrier officiel d'Embark…"
+                                etat.donnees != null -> "Calendrier officiel d'Embark · lu ${depuis(etat.donnees!!.luLe, t)}"
+                                else -> "Le calendrier officiel d'Embark n'a pas encore été lu."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Signal.TexteDiscret,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { portee.launch { vm.calendrier.actualiser() } }, enabled = !etat.chargement) {
+                            Icon(Icons.Filled.Refresh, contentDescription = "Actualiser le calendrier", tint = Signal.TexteDoux)
                         }
+                        ChoixRegion(region, vm::changerRegion)
+                    }
+                    etat.erreur?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Signal.Rouge) }
+                    TextButton(onClick = { runCatching { liens.openUri(Calendrier.ADRESSE) } }, contentPadding = PaddingValues(0.dp)) {
+                        Text("Ouvrir le calendrier officiel", color = Signal.Cyan, style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
-        }
-
-        if (calendrier != null) {
-            val aVenir = calendrier.aVenir(region, t, HORIZON_MS)
-            item { Titre("Dans les prochaines heures") }
-            if (aVenir.isEmpty()) {
-                item { Discret("Aucune condition annoncée dans les 6 prochaines heures.") }
-            }
-            aVenir.groupBy { it.debut }.forEach { (debut, creneaux) ->
-                item(key = "avenir-$debut") { Horaire(debut, creneaux, t) }
+            if (calendrier != null) {
+                item { Onglets(aVenirChoisi, choisir = { aVenirChoisi = it }) }
             }
 
-            val prochaines = calendrier.prochaineFois(region, t)
-            if (prochaines.isNotEmpty()) {
-                item { Titre("Prochaine fois") }
+            if (!aVenirChoisi || calendrier == null) {
+                // Chaque carte sur sa capture en jeu, avec ses conditions en cours ; la toucher ouvre son plan.
+                items(cartes, key = { "carte-${it.id}" }) { c ->
+                    CarteMaintenant(c.id, c.nom, enCours.filter { it.carte == c.nom }, t, calendrier != null, onClick = { ouvrirPlan(c.id) })
+                }
+                items(inconnues, key = { "inconnue-$it" }) { nom ->
+                    CarteMaintenant(null, nom, enCours.filter { it.carte == nom }, t, calendrierLu = true, onClick = null)
+                }
+            } else {
+                val aVenir = calendrier.aVenir(region, t, HORIZON_MS)
                 item { Discret("Touche la cloche pour être prévenu avant le début d'une condition.") }
-                items(prochaines, key = { "prochaine-${it.conditionId ?: it.condition}" }) { ProchaineFois(vm, it, t) }
+                item { Titre("Dans les prochaines heures") }
+                if (aVenir.isEmpty()) {
+                    item { Discret("Aucune condition annoncée dans les 6 prochaines heures.") }
+                }
+                aVenir.groupBy { it.debut }.forEach { (debut, creneaux) ->
+                    item(key = "avenir-$debut") { Horaire(vm, debut, creneaux, t) }
+                }
+                val prochaines = calendrier.prochaineFois(region, t)
+                if (prochaines.isNotEmpty()) {
+                    item { Titre("Prochaine fois") }
+                    items(prochaines, key = { "prochaine-${it.conditionId ?: it.condition}" }) { ProchaineFois(vm, it, t) }
+                }
+                if (calendrier.connuJusqua(region) < t + HORIZON_MS) {
+                    item { Discret("Le calendrier lu s'arrête bientôt\u00a0: actualise-le une fois connecté.") }
+                }
             }
-            if (calendrier.connuJusqua(region) < t + HORIZON_MS) {
-                item { Discret("Le calendrier lu s'arrête bientôt\u00a0: actualise-le une fois connecté.") }
+        }
+    }
+}
+
+/** La région du calendrier, en pastille : la toucher ouvre la liste des régions. */
+@Composable
+private fun ChoixRegion(region: Region, changer: (Region) -> Unit) {
+    var ouvert by remember { mutableStateOf(false) }
+    Box {
+        Surface(
+            onClick = { ouvert = true },
+            color = Signal.Fond,
+            contentColor = Signal.Cyan,
+            shape = RoundedCornerShape(50),
+            border = BorderStroke(1.5.dp, Signal.Cyan),
+            modifier = Modifier.semantics { contentDescription = "Région du calendrier\u00a0: ${region.libelle}. Changer de région" },
+        ) {
+            Row(Modifier.padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(region.libelle, style = MaterialTheme.typography.labelLarge)
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+        }
+        DropdownMenu(expanded = ouvert, onDismissRequest = { ouvert = false }) {
+            Region.entries.forEach { r ->
+                DropdownMenuItem(
+                    text = { Text(r.libelle, color = if (r == region) Signal.Cyan else Signal.Texte) },
+                    onClick = {
+                        changer(r)
+                        ouvert = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** « En ce moment » / « À venir » : deux vues du calendrier, l'une ou l'autre. */
+@Composable
+private fun Onglets(aVenir: Boolean, choisir: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(Signal.Surface).padding(3.dp).selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        listOf(false to "En ce moment", true to "À venir").forEach { (valeur, texte) ->
+            val choisi = valeur == aVenir
+            Surface(
+                selected = choisi,
+                onClick = { choisir(valeur) },
+                color = if (choisi) Signal.Cyan else Signal.Surface,
+                contentColor = if (choisi) Signal.SurCouleur else Signal.TexteDoux,
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.weight(1f).height(40.dp).semantics { role = Role.Tab },
+            ) {
+                Box(contentAlignment = Alignment.Center) { Text(texte, style = MaterialTheme.typography.titleSmall) }
             }
         }
     }
@@ -161,31 +221,64 @@ private fun Point(creneau: Creneau) {
     Box(Modifier.size(8.dp).clip(CircleShape).background(if (creneau.majeure) Signal.Rouge else Signal.Cyan))
 }
 
-/** Une carte et ses conditions en cours, avec leur minuteur ; la toucher ouvre son plan. */
+/**
+ * Une carte, sur sa capture en jeu (assombrie à gauche, comme la meilleure carte du Raid), avec ses
+ * conditions en cours et leur minuteur, et « Plan ». Un trait cyan à gauche signale une condition en cours.
+ */
 @Composable
-private fun CarteMaintenant(carte: String, creneaux: List<Creneau>, t: Long, onClick: (() -> Unit)?) {
-    Surface(onClick = { onClick?.invoke() }, enabled = onClick != null, color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconeCarte(if (creneaux.isEmpty()) Signal.TexteDiscret else Signal.Cyan)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(carte, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                if (creneaux.isEmpty()) {
-                    Text("Aucune condition", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret)
-                }
-                creneaux.forEach { c ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            c.condition,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (c.majeure) Signal.Rouge else Signal.Cyan,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(chrono(c.fin - t), style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"), color = Signal.TexteDoux)
+private fun CarteMaintenant(carteId: String?, carte: String, creneaux: List<Creneau>, t: Long, calendrierLu: Boolean, onClick: (() -> Unit)?) {
+    val image = rememberFondCarte(carteId)
+    Surface(
+        onClick = { onClick?.invoke() },
+        enabled = onClick != null,
+        color = Signal.Surface,
+        shape = RoundedCornerShape(6.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(Modifier.heightIn(min = 92.dp)) {
+            if (image != null) FondEnJeu(image)
+            Box(Modifier.matchParentSize().padding(end = 0.dp)) {
+                Box(Modifier.width(3.dp).fillMaxHeight().background(if (creneaux.isEmpty()) Signal.Trait else Signal.Cyan))
+            }
+            Row(
+                Modifier.padding(start = 16.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(carte, style = MaterialTheme.typography.titleMedium)
+                    if (creneaux.isEmpty()) {
+                        Text(if (calendrierLu) "Aucune condition" else "Conditions\u00a0: calendrier pas encore lu", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDiscret)
+                    }
+                    creneaux.forEach { c ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Point(c)
+                            Text(
+                                c.condition,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (c.majeure) Signal.Rouge else Signal.Texte,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            Text("encore ${chrono(c.fin - t)}", style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"), color = Signal.TexteDoux)
+                        }
                     }
                 }
-            }
-            if (onClick != null) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Plan", tint = Signal.TexteDiscret)
+                if (onClick != null) {
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Signal.Fond.copy(alpha = 0.72f))
+                            .border(1.dp, Signal.Cyan.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                            .heightIn(min = 44.dp)
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        IconeCarte(Signal.Cyan)
+                        Text("Plan", style = MaterialTheme.typography.labelLarge, color = Signal.Cyan)
+                    }
+                }
             }
         }
     }
@@ -215,17 +308,21 @@ private fun IconeCarte(couleur: Color) {
 }
 
 @Composable
-private fun Horaire(debut: Long, creneaux: List<Creneau>, t: Long) {
+private fun Horaire(vm: CarnetViewModel, debut: Long, creneaux: List<Creneau>, t: Long) {
     Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 4.dp)) {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(heureLocale(debut, t), style = MaterialTheme.typography.titleMedium)
                 Text("dans ${chrono(debut - t)}", style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"), color = Signal.Or)
             }
             creneaux.forEach { c ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Point(c)
-                    Text("${c.condition} · ${c.carte}", style = MaterialTheme.typography.bodyMedium)
+                    Column(Modifier.weight(1f)) {
+                        Text(c.condition, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(c.carte, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+                    }
+                    c.conditionId?.let { BoutonAlerte(vm, it, c.condition) }
                 }
             }
         }
