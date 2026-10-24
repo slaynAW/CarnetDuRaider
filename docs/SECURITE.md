@@ -47,10 +47,6 @@ anglais). Coche-les dans l'ordre.
 - [ ] Coche **Restrict deletions** et **Block force pushes**.
 - [ ] Coche **Require a pull request before merging**, *Required approvals* : **0** (tu es seul ; tu
       fusionnes tes propres pull requests).
-      Laisse **décochée** l'approbation supplémentaire des changements non attribués
-      (*require extra approval for unattributed changes*) : avec elle, une pull request dont les commits
-      ne sont pas attribués à ton compte (commits poussés par Claude Code, par exemple) attend l'approbation
-      d'une autre personne et ne peut jamais être fusionnée.
 - [ ] Coche **Require status checks to pass** → **Add checks** : `Règles de sécurité` et
       `Tests, lint et APK`.
 - [ ] *Bypass list* : laisse-la vide. **Create**.
