@@ -29,12 +29,21 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--or); outlin
 .contenu { flex: 1; display: flex; flex-direction: column; gap: 12px; padding-block: 8px 96px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.nav-in { max-width: 460px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr);
+.nav-in { position: relative; max-width: 460px; margin: 0 auto;
   padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
 .nav button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 12px; color: var(--texte-doux); font-size: 12px; white-space: nowrap; }
-.nav .pastille { width: 48px; height: 30px; border-radius: 15px; display: grid; place-items: center; }
+.nav .pastille { position: relative; width: 48px; height: 30px; border-radius: 15px; display: grid; place-items: center; }
+/* Une seule pastille glisse d'un onglet à l'autre en prenant sa couleur (BarreOnglets.kt). */
+.nav-boutons { display: grid; grid-template-columns: repeat(6, 1fr); }
+.glisseur { position: absolute; top: 10px; left: 0; width: 48px; height: 30px; border-radius: 15px; background: var(--c, transparent); transition: transform .28s cubic-bezier(.3,0,.2,1), background-color .28s cubic-bezier(.3,0,.2,1); }
+.nav button[aria-current="page"].arrive .pastille { color: var(--sur-couleur); }
+/* Changement d'onglet : le nouvel écran apparaît en fondu. */
+.contenu.apparait { animation: apparait .18s .06s ease-out both; }
+/* Fondu avant de disparaître : carte d'objectif validée, bandeau « Objectif terminé ». */
+.efface { transition: opacity .28s linear; opacity: 0 !important; }
+@keyframes apparait { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .glisseur { transition: none; } .contenu.apparait { animation: none; } }
 .nav button[aria-current="page"] { color: var(--c); }
-.nav button[aria-current="page"] .pastille { background: var(--c); color: var(--sur-couleur); }
 svg.ic { width: 22px; height: 22px; fill: currentColor; }
 h2 { font: 800 30px/1.1 var(--titre); margin: 0; text-wrap: balance; }
 h3 { font: 700 26px/1.15 var(--titre); margin: 0; text-wrap: balance; }
@@ -93,7 +102,10 @@ button.carte:hover { background: var(--releve); }
 .zones-raid em { flex: none; font: 700 12px/16px var(--titre); font-style: normal; padding: 3px 9px; border-radius: 99px; background: rgba(240,84,74,.30); box-shadow: inset 0 0 0 1px var(--rouge); color: var(--texte); }
 .prochain.plein:not(.photo) .zones-raid em { background: rgba(20,20,23,.14); box-shadow: inset 0 0 0 1px rgba(20,20,23,.35); color: var(--sur-couleur); }
 /* Tuiles de l'accueil (TuileSection, EcranAccueil.kt). */
-.tuiles-accueil { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tuiles-accueil { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tuile-a .sous-titre { margin-top: 10px; font: 700 9.5px/12px var(--titre); letter-spacing: 1.1px; text-transform: uppercase; color: var(--texte-discret); }
+.tuile-a .puce-a { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.tuile-a .puce-a::before { content: ""; flex: none; width: 4px; height: 4px; border-radius: 1px; background: var(--c); }
 .tuile-a { position: relative; display: flex; flex-direction: column; width: 100%; padding: 12px 10px; background: var(--surface); border-radius: 6px; text-align: left; overflow: hidden; }
 .tuile-a::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--c); }
 .tuile-a:hover { filter: brightness(1.08); }
@@ -112,6 +124,32 @@ button.carte:hover { background: var(--releve); }
    « ombre latérale ». */
 .prochain.plein.photo { background: linear-gradient(90deg, rgba(20,20,23,.94) 0%, rgba(20,20,23,.72) 52%, rgba(20,20,23,.1) 100%), var(--photo) center / cover, var(--fond); color: var(--texte); padding: 18px; }
 .prochain.plein.photo small { color: var(--rouge); }
+/* « Ton prochain raid » à l'accueil (ProchainRaid, FondAnime.kt) : sur toute la largeur, la capture bouge
+   lentement comme filmée à l'épaule (16 s), avec deux glitchs très brefs par boucle, et les bandes du logo en pied. */
+.prochain.accueil { position: relative; overflow: hidden; width: auto; border-radius: 0; clip-path: none; padding: 16px 20px 22px;
+  margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); }
+.prochain.accueil.photo { background: var(--fond); }
+.prochain.accueil > :not(.fond-anime):not(.bandes-pied) { position: relative; }
+.fond-anime { position: absolute; inset: 0; overflow: hidden; }
+.fond-anime::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,20,23,.94), rgba(20,20,23,.55) 60%, rgba(20,20,23,.12)), linear-gradient(0deg, rgba(20,20,23,.55), rgba(20,20,23,0) 45%); }
+.fond-anime .cadre { position: absolute; inset: 0; background: var(--photo) center / cover; transform: scale(1.06); will-change: transform; animation: epaule 16s cubic-bezier(.37,0,.63,1) infinite; }
+.fond-anime .cadre i { position: absolute; inset: 0; background: inherit; opacity: 0; }
+.fond-anime .g1 { clip-path: inset(32% 0 60% 0); animation: glitch1 16s linear infinite; }
+.fond-anime .g2 { clip-path: inset(62% 0 33% 0); animation: glitch2 16s linear infinite; }
+.fond-anime .cadre i::before, .fond-anime .cadre i::after { content: ""; position: absolute; left: 0; right: 0; height: 1px; }
+.fond-anime .g1::before { top: 32%; background: rgba(60,196,216,.45); } .fond-anime .g1::after { top: calc(40% - 1px); background: rgba(240,84,74,.45); }
+.fond-anime .g2::before { top: 62%; background: rgba(60,196,216,.45); } .fond-anime .g2::after { top: calc(67% - 1px); background: rgba(240,84,74,.45); }
+@keyframes epaule { 0% { transform: translate3d(0,0,0) rotate(0) scale(1.06); } 18% { transform: translate3d(-2.5px,1.5px,0) rotate(-.25deg) scale(1.06); } 37% { transform: translate3d(1.5px,2.5px,0) rotate(.18deg) scale(1.06); }
+  55% { transform: translate3d(3px,-1px,0) rotate(.3deg) scale(1.06); } 74% { transform: translate3d(-1px,-2.5px,0) rotate(-.15deg) scale(1.06); } 100% { transform: translate3d(0,0,0) rotate(0) scale(1.06); } }
+@keyframes glitch1 { 0%, 30.99% { opacity: 0; transform: none; } 31% { opacity: .85; transform: translateX(6px); } 31.45% { transform: translateX(-3.6px); } 31.9%, 100% { opacity: 0; transform: none; } }
+@keyframes glitch2 { 0%, 82.99% { opacity: 0; transform: none; } 83% { opacity: .85; transform: translateX(-5px); } 83.45% { transform: translateX(3px); } 83.9%, 100% { opacity: 0; transform: none; } }
+.bandes-pied { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; display: flex; }
+.bandes-pied i { flex: 1; } .bandes-pied i:nth-child(1) { background: var(--cyan); } .bandes-pied i:nth-child(2) { background: var(--vert); } .bandes-pied i:nth-child(3) { background: var(--or); } .bandes-pied i:nth-child(4) { background: var(--rouge); }
+/* Changement de build : le nouveau glisse légèrement depuis le côté de son onglet, en fondu (EcranBuilds.kt). */
+.entre-d { animation: entre-d .26s cubic-bezier(.2,.7,.3,1) both; } .entre-g { animation: entre-g .26s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes entre-d { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes entre-g { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fond-anime .cadre, .fond-anime .cadre i, .entre-d, .entre-g { animation: none; } }
 .verdict { background: var(--v, var(--or)); color: var(--sur-couleur); clip-path: var(--coupee); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
 .verdict.neutre { color: var(--texte); }
 .verdict small { font: 700 11px var(--titre); letter-spacing: 1.5px; }
@@ -319,6 +357,18 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .pastille-region { flex: none; appearance: none; border: 1.5px solid var(--cyan); border-radius: 99px; background: var(--fond); color: var(--cyan); font: 600 13px var(--titre); padding: 7px 28px 7px 12px;
   background-image: linear-gradient(45deg, transparent 50%, var(--cyan) 50%), linear-gradient(135deg, var(--cyan) 50%, transparent 50%); background-position: calc(100% - 14px) 52%, calc(100% - 9px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
 /* Builds : puces sur une ligne, case vide en pointillés, matériaux. */
+/* Les six builds sur une ligne, en onglets de même largeur (OngletBuild, EcranBuilds.kt). */
+.onglets-builds { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-bottom: 1px solid var(--trait); }
+.onglets-builds button { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 4px 2px 0; color: var(--texte-doux); }
+.onglets-builds button.vide { color: var(--texte-discret); }
+.onglets-builds i { height: 12px; font: normal 10px/12px var(--corps); color: var(--violet); }
+.onglets-builds b { max-width: 100%; font: 600 12px/16px var(--titre); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.onglets-builds small { font-size: 10px; color: var(--texte-discret); }
+.onglets-builds button::after { content: ""; align-self: stretch; height: 2px; margin-top: 6px; border-radius: 2px; }
+.onglets-builds button[aria-selected="true"] { color: var(--texte); }
+.onglets-builds button[aria-selected="true"] b { font-weight: 700; }
+.onglets-builds button[aria-selected="true"] small { color: var(--violet); }
+.onglets-builds button[aria-selected="true"]::after { background: var(--violet); }
 .puces-builds { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 0 max(16px, env(safe-area-inset-left, 0px)); }
 .puces-builds::-webkit-scrollbar { display: none; }
 .puces-builds .pf small { font: 600 12px var(--corps); opacity: .75; margin-left: 6px; }
@@ -345,7 +395,7 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
   </header>
   <main class="contenu" id="contenu"></main>
 </div>
-<nav class="nav" aria-label="Onglets"><div class="nav-in" id="nav"></div></nav>
+<nav class="nav" aria-label="Onglets"><div class="nav-in"><span class="glisseur" id="glisseur"></span><div class="nav-boutons" id="nav"></div></div></nav>
 <div id="dialogue"></div>
 <div id="celebration"></div>
 
@@ -713,8 +763,7 @@ function ecranAccueil() {
   const h = new Date().getHours();
   return `${bandeauSection("ACCUEIL", `${h >= 18 || h < 5 ? "Bonsoir" : "Bonjour"}, Raider`)}
   ${prochainRaid()}
-  ${tuileSection("CARTES", `<span class="petit doux" style="margin-top:8px">Dans l'appli Android, une frise montre ici la condition en cours (avec ce qu'il lui reste) et les suivantes, et combien de conditions ont une alerte.</span>`)}
-  <div class="tuiles-accueil">${tuileObjets()}${tuileObjectifs()}${tuileBuild()}</div>
+  <div class="tuiles-accueil">${tuileObjets()}${tuileSection("CARTES", `<span class="sous-titre">Maintenant</span><span class="petit doux" style="margin-top:4px">Dans l'appli Android${NB}: la condition en cours et ce qu'il lui reste, puis la suivante, avec sa cloche si elle a une alerte.</span>`)}${tuileObjectifs()}${tuileBuild()}</div>
   <p class="petit discret">Données du jeu ${echap(D.versionJeu)}, noms français officiels uniquement.</p>`;
 }
 
@@ -729,7 +778,8 @@ function prochainRaid() {
     : restants.length ? `<strong>Rien dans le butin des cartes</strong><span class="doux">Ce qu'il te faut s'obtient autrement${NB}: regarde l'onglet Raid.</span>`
     : objectifs().length ? `<strong>Rien à chercher en raid</strong><span class="doux">Tes objectifs en cours ne demandent aucun objet${NB}: valide-les quand c'est fait en jeu.</span>`
     : `<strong>Rien à chercher pour l'instant</strong><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira où aller.</span>`;
-  return `<button class="prochain ${premiere ? "plein" : ""}${premiere && FONDS.has(premiere.carteId) ? ` photo" style="--photo:url('fonds/${premiere.carteId}.webp')` : ""}" data-action="onglet" data-onglet="${restants.length || objectifs().length ? "RAID" : "OBJECTIFS"}"><small>TON PROCHAIN RAID</small>${contenu}</button>`;
+  const photo = premiere && FONDS.has(premiere.carteId);
+  return `<button class="prochain accueil ${premiere ? "plein" : ""}${photo ? ` photo" style="--photo:url('fonds/${premiere.carteId}.webp')` : ""}" data-action="onglet" data-onglet="${restants.length || objectifs().length ? "RAID" : "OBJECTIFS"}">${photo ? `<span class="fond-anime" aria-hidden="true"><span class="cadre"><i class="g1"></i><i class="g2"></i></span></span>` : ""}<small>TON PROCHAIN RAID</small>${contenu}<span class="bandes-pied" aria-hidden="true"><i></i><i></i><i></i><i></i></span></button>`;
 }
 
 // Une tuile de l'accueil (TuileSection, EcranAccueil.kt) : fin trait de la couleur de la section, son icône et son nom.
@@ -739,34 +789,36 @@ function tuileSection(cle, contenu) {
 }
 const chiffre = (n, unite) => `<span class="chiffre"><b>${n}</b> ${unite}</span>`;
 
-// Ce qui est à garder et l'objet le plus demandé encore à trouver (TuileObjets).
+// Ce qui est à garder, l'objet le plus demandé encore à trouver et ceux qui tombent des ARC (TuileObjets).
 function tuileObjets() {
   const restants = aTrouver().filter(x => !x.trouve).sort((a, b) => b.reste - a.reste), objs = objectifsDuRaid(), pb = aGarderBuilds();
-  const aGarder = D.objets.filter(o => verdict(o.id, objs, pb).type !== "inutile").length;
-  return tuileSection("OBJETS", `${chiffre(aGarder, "à garder")}<span class="pousse"></span>${restants.length
-    ? `<span class="ligne" style="gap:4px;margin-top:10px">${restants.slice(0, 3).map(x => icone(x.id, 22)).join("")}</span><span class="petit doux coupe" style="margin-top:5px">${echap(nomObjet(restants[0].id))} ×${restants[0].reste}</span>`
-    : `<span class="petit doux" style="margin-top:8px">Garder, recycler ou vendre${NB}?</span>`}`);
+  const aGarder = D.objets.filter(o => verdict(o.id, objs, pb).type !== "inutile").length, arc = restants.filter(x => objets.get(x.id)?.lieux.includes("ARC")).length, p = restants[0];
+  return tuileSection("OBJETS", `${chiffre(aGarder, "à garder")}${p
+    ? `<span class="sous-titre">Le plus demandé</span><span class="ligne" style="gap:7px;margin-top:5px">${icone(p.id, 24)}<span class="petit coupe flex">${echap(nomObjet(p.id))}</span><b style="font:700 13px var(--titre);color:var(--or)">×${p.reste}</b></span>${arc ? `<span class="puce-a petit">${pluriel(arc, "objet", "objets")} sur les ARC détruits</span>` : ""}`
+    : `<span class="petit doux" style="margin-top:10px">Garder, recycler ou vendre${NB}?</span>`}`);
 }
 
-// Les objectifs en cours, par sorte, et ce qui a été rapporté (TuileObjectifs).
+// Les objectifs en cours par sorte, et celui qui est le plus près d'être fini (TuileObjectifs).
 function tuileObjectifs() {
   const objs = objectifs(), l = listeDeCourses();
-  if (!objs.length) return tuileSection("OBJECTIFS", `${chiffre(0, "en cours")}<span class="pousse"></span><span class="petit doux" style="margin-top:8px">Touche pour indiquer tes objectifs</span>`);
+  if (!objs.length) return tuileSection("OBJECTIFS", `${chiffre(0, "en cours")}<span class="petit doux" style="margin-top:10px">Touche pour indiquer tes quêtes, ateliers, projets ou expéditions</span>`);
   const n = g => objs.filter(o => groupeObjectif(o) === g).length;
   const sortes = [[n("quetes"), "quête", "quêtes"], [n("ateliers"), "atelier", "ateliers"], [n("projets"), "projet", "projets"], [n("expeditions"), "expédition", "expéditions"]]
     .filter(x => x[0]).map(x => pluriel(...x)).join(" · ");
-  const besoin = l.lignes.reduce((s, x) => s + x.besoin, 0), apporte = l.lignes.reduce((s, x) => s + x.apporte, 0);
-  return tuileSection("OBJECTIFS", `${chiffre(objs.length, "en cours")}<span class="petit doux" style="margin-top:4px">${sortes}</span><span class="pousse"></span>${besoin
-    ? `<span class="barre" style="--c:var(--vert);height:3px;margin-top:10px"><i style="width:${l.progression * 100}%"></i></span><span class="petit doux" style="margin-top:5px">${apporte} sur ${besoin}</span>`
-    : `<span class="petit doux" style="margin-top:10px">Rien à rapporter</span>`}`);
+  const parObjectif = new Map();
+  for (const ligne of l.lignes) for (const b of ligne.pour) { const v = parObjectif.get(b.libelle) || [0, 0]; v[0] += Math.min(b.apporte, b.quantite); v[1] += b.quantite; parObjectif.set(b.libelle, v); }
+  const proche = [...parObjectif].filter(([, v]) => v[1] && v[0] < v[1]).sort((a, b) => b[1][0] / b[1][1] - a[1][0] / a[1][1] || (a[1][1] - a[1][0]) - (b[1][1] - b[1][0]))[0]; // à égalité : celui à qui il manque le moins
+  return tuileSection("OBJECTIFS", `${chiffre(objs.length, "en cours")}<span class="petit doux" style="margin-top:3px">${sortes}</span>${proche
+    ? `<span class="sous-titre">Le plus proche</span><span class="petit coupe" style="margin-top:4px">${echap(proche[0])}</span><span class="ligne" style="gap:8px;margin-top:4px"><span class="barre flex" style="--c:var(--vert);height:3px"><i style="width:${proche[1][0] / proche[1][1] * 100}%"></i></span><span class="petit doux">${proche[1][0]}/${proche[1][1]}</span></span>` : ""}`);
 }
 
-// Le build préféré (sinon le premier rempli) : son nom et ses cases remplies (TuileBuild).
+// Le build préféré (sinon le premier rempli) : son nom, ses cases et les matériaux pour le fabriquer (TuileBuild).
 function tuileBuild() {
   const l = builds(), plein = b => Object.keys(b.objets).length, rang = l.findIndex(b => b.prefere && plein(b)) >= 0 ? l.findIndex(b => b.prefere && plein(b)) : l.findIndex(plein), b = l[rang];
-  if (!b) return tuileSection("BUILDS", `<span class="nom" style="margin-top:10px">Aucun build</span><span class="pousse"></span><span class="petit doux" style="margin-top:8px">Touche pour préparer ton équipement</span>`);
-  return tuileSection("BUILDS", `<span class="nom" style="margin-top:10px">${echap(nomBuild(b, rang))}${b.prefere ? " ★" : ""}</span><span class="pousse"></span>
-    <span class="cases">${CASES.map(c => `<i${b.objets[c[0]] ? ' class="pleine"' : ""}></i>`).join("")}</span><span class="petit doux" style="margin-top:5px">${CASES.filter(c => b.objets[c[0]]).length} sur ${CASES.length}</span>`);
+  if (!b) return tuileSection("BUILDS", `<span class="nom" style="margin-top:10px">Aucun build</span><span class="petit doux" style="margin-top:4px">Touche pour préparer ton équipement${NB}: ses objets passent en «${NB}Garder${NB}».</span>`);
+  const mat = aFabriquer(b);
+  return tuileSection("BUILDS", `<span class="nom" style="margin-top:10px;font-size:16px">${echap(nomBuild(b, rang))}${b.prefere ? " ★" : ""}</span><span class="petit doux">${plein(b)} cases sur ${CASES.length}</span>${mat.length
+    ? `<span class="sous-titre">Pour le fabriquer</span><span class="ligne" style="gap:5px;margin-top:6px">${mat.slice(0, 3).map(m => icone(m.id ?? m[0], 24)).join("")}</span><span class="petit doux" style="margin-top:5px">${pluriel(mat.length, "matériau", "matériaux")} à garder</span>` : ""}`);
 }
 
 // Le verdict en un mot, pour la liste (PuceVerdict, EcranObjets.kt) : Garder (objectifs), Build, Vendre ou Recycler, encadré de sa couleur.
@@ -1264,7 +1316,7 @@ function ecranBuilds() {
   const i = Math.min(S.build, liste.length - 1), b = liste[i], remplis = liste.filter(x => Object.keys(x.objets).length).length;
   const mat = aFabriquer(b), tous6 = ouvert(`build:${i}:materiaux`), autres = CASES.filter(c => c[2] === "DIVERS");
   return `${bandeauSection("BUILDS", `${pluriel(remplis, "build", "builds")} sur ${liste.length} ${remplis > 1 ? "remplis" : "rempli"}`)}
-  <div class="puces-builds">${ordreBuilds(liste).map(k => { const x = liste[k], n = Object.keys(x.objets).length; return `<button class="pf" style="--c:var(--violet)" aria-pressed="${k === i}" data-action="build" data-id="${k}"${x.prefere ? ' aria-description="Build préféré"' : ""}>${x.prefere ? "★ " : ""}${echap(nomBuild(x, k))}${n ? `<small>${n}/${CASES.length}</small>` : ""}</button>`; }).join("")}</div>
+  <div class="onglets-builds" role="tablist">${ordreBuilds(liste).map(k => { const x = liste[k], n = Object.keys(x.objets).length; return `<button role="tab" aria-selected="${k === i}" class="${n ? "" : "vide"}" data-action="build" data-id="${k}"${x.prefere ? ' aria-description="Build préféré"' : ""}><i>${x.prefere ? "★" : ""}</i><b>${echap(nomBuild(x, k))}</b><small>${n ? `${n}/${CASES.length}` : "vide"}</small></button>`; }).join("")}</div>
   <div class="ligne" style="gap:4px"><span class="flex" style="min-width:0">${b.prefere ? `${etiquette("Build préféré", "--violet")}<br>` : ""}
     ${S.renommer ? `<input class="champ" type="text" maxlength="30" placeholder="Build ${i + 1}" value="${echap(b.nom)}" data-build-nom="${i}" aria-label="Nom du build">` : `<h3 style="font-size:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${echap(nomBuild(b, i))}</h3>`}</span>
     <button class="icone-bouton" style="color:var(${b.prefere ? "--violet" : "--texte-discret"})" data-action="build-prefere" data-id="${i}" aria-pressed="${b.prefere}" aria-label="${b.prefere ? "Ne plus en faire mon build préféré" : "En faire mon build préféré"}">${ETOILE}</button>
@@ -1354,7 +1406,14 @@ let minuterieValidation = null;
 function montrerValidation(v) {
   S.validation = { objetsNotes: 0, termines: [], ...v };
   clearTimeout(minuterieValidation);
-  minuterieValidation = setTimeout(() => { S.validation = null; rendre(); }, 8000);
+  // 3 secondes, puis un petit fondu avant de disparaître (BandeauValidation, CarnetApp.kt).
+  minuterieValidation = setTimeout(() => {
+    const bandeau = document.querySelector("#dialogue > *");
+    const oublier = () => { S.validation = null; rendre(); };
+    if (!bandeau || matchMedia("(prefers-reduced-motion: reduce)").matches) { oublier(); return; }
+    bandeau.classList.add("efface");
+    minuterieValidation = setTimeout(oublier, 300);
+  }, 3000);
 }
 // Objectif fait en jeu (« C'est fait »), même sans tout avoir noté (une quête sans objet à rapporter, par
 // exemple) : la suite s'ajoute, ce qui avait été rapporté pour lui est oublié ; la suite peut être déjà complète.
@@ -1374,6 +1433,23 @@ addEventListener("scroll", () => {
   const r = replie ? scrollY > 4 : scrollY > 24;
   if (r !== replie) { replie = r; document.querySelector(".section")?.classList.toggle("replie", r); }
 }, { passive: true });
+// La pastille des onglets (BarreOnglets.kt) : elle glisse sous l'onglet actif ; son icône passe en sombre à l'arrivée.
+let ongletAffiche = null;
+function placerGlisseur() {
+  const g = document.getElementById("glisseur"), actif = document.querySelector('.nav button[aria-current="page"]');
+  if (!actif) { g.style.opacity = "0"; return; }
+  const p = actif.querySelector(".pastille");
+  g.style.opacity = "1";
+  g.style.setProperty("--c", actif.style.getPropertyValue("--c"));
+  g.style.transform = `translateX(${p.offsetLeft}px)`; // la pastille est positionnée : son offsetLeft se mesure depuis la barre
+  if (ongletAffiche !== S.onglet) {
+    const contenu = document.getElementById("contenu");
+    if (ongletAffiche !== null) { contenu.classList.remove("apparait"); void contenu.offsetWidth; contenu.classList.add("apparait"); }
+    ongletAffiche = S.onglet;
+    const calme = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(() => document.querySelector('.nav button[aria-current="page"]')?.classList.add("arrive"), calme ? 0 : 240);
+  } else actif.classList.add("arrive");
+}
 function rendre() {
   // Retour de raid quitté (Valider, retour, autre onglet, réglages) : il est validé.
   if (S.raid && S.ecran !== "raid") validerRetour();
@@ -1384,7 +1460,8 @@ function rendre() {
     : e === "projets" ? ecranProjets(false) : e === "expeditions" ? ecranProjets(true) : e === "choix-build" ? ecranChoixBuild()
     : e === "raid" ? ecranRaid() : e === "reglages" ? ecranReglages() : e === "choix-butin" ? ecranChoixButin()
     : { ACCUEIL: ecranAccueil, OBJETS: ecranObjets, RAID: ecranOngletRaid, CARTES: ecranCartes, OBJECTIFS: ecranObjectifs, BUILDS: ecranBuilds }[S.onglet]();
-  document.getElementById("nav").innerHTML = ONGLETS.map(([k, t, c, d]) => `<button data-action="onglet" data-onglet="${k}" style="--c:var(${c})" ${S.onglet === k && !S.ecran ? 'aria-current="page"' : ""}><span class="pastille"><svg class="ic" viewBox="0 0 24 24"><path d="${d}"/></svg></span>${t}</button>`).join("");
+  document.getElementById("nav").innerHTML = ONGLETS.map(([k, t, c, d]) => `<button data-action="onglet" data-onglet="${k}" style="--c:var(${c})" ${S.onglet === k && !S.ecran ? `aria-current="page" class="${ongletAffiche === k ? "arrive" : ""}"` : ""}><span class="pastille"><svg class="ic" viewBox="0 0 24 24"><path d="${d}"/></svg></span>${t}</button>`).join("");
+  placerGlisseur();
   document.getElementById("dialogue").innerHTML = bandeauValidation();
   if (S.celebration !== celebrationAffichee) {
     celebrationAffichee = S.celebration;
@@ -1434,7 +1511,12 @@ document.addEventListener("click", ev => {
     case "fin-celebration": S.celebration = null; if (S.validation) montrerValidation(S.validation); rendre(); return;
     case "region": M.region = id; break;
     case "filtre": S.filtre = id; rendre(); return;
-    case "build": S.build = +id; S.renommer = false; rendre(); return;
+    case "build": {
+      const ordre = ordreBuilds(builds()), sens = ordre.indexOf(+id) > ordre.indexOf(S.build) ? "entre-d" : "entre-g", change = +id !== S.build;
+      S.build = +id; S.renommer = false; rendre();
+      if (change) for (let el = document.querySelector(".onglets-builds")?.nextElementSibling; el; el = el.nextElementSibling) el.classList.add(sens);
+      return;
+    }
     case "butin-ecran": S.rechercheButin = ""; return ouvrir("choix-butin");
     case "butin-choisir": changerButin(id, (M.butin?.[id] ?? 0) + 1); S.ecran = null; break;
     case "butin-ajouter": changerButin(id, (M.butin?.[id] ?? 0) + 1); break;
@@ -1451,13 +1533,15 @@ document.addEventListener("click", ev => {
       const o = objectifDepuisCle(b.dataset.cle), carte = b.closest(".carte"), calme = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const derniere = o.type === "etabli" ? o.niveau === niveauMax(etablis.get(o.id)) : o.type === "projet" && o.etape === (projets.get(o.id)?.etapes.length ?? 0) - 1;
       b.disabled = true; carte?.classList.add("balaie");
-      const fin = () => { valider(o); enregistrer(); rendre(); };
-      if (calme) { fin(); return; }
+      const valide = () => { valider(o); enregistrer(); rendre(); };
+      // Un petit fondu de la carte avant qu'elle s'en aille (FONDU_MS, EcranObjectifs.kt).
+      const fin = () => { if (!carte) { valide(); return; } carte.classList.add("efface"); setTimeout(valide, 280); };
+      if (calme) { valide(); return; }
       setTimeout(() => {
         if (!derniere || !carte) { fin(); return; }
         const x = o.type === "etabli" ? etablis.get(o.id) : projets.get(o.id), n = o.type === "etabli" ? x.niveaux.length : x.etapes.length;
         carte.insertAdjacentHTML("beforeend", `<div class="cloture" role="status" aria-label="Terminé${NB}: ${echap(x.nom)}"><span><strong>TERMINÉ</strong><i aria-hidden="true"></i><small>${echap(x.nom)} · ${pluriel(n, o.type === "etabli" ? "niveau" : "étape", o.type === "etabli" ? "niveaux" : "étapes")} sur ${n}</small></span><svg width="52" height="30" viewBox="0 0 35 20" aria-hidden="true" style="flex:none"><path d="M0 20h5l7.2-20h-5z" fill="#3CC4D8"/><path d="M7.5 20h5l7.2-20h-5z" fill="#6CCB5F"/><path d="M15 20h5l7.2-20h-5z" fill="#F2B233"/><path d="M22.5 20h5l7.2-20h-5z" fill="#F0544A"/></svg></div>`);
-        setTimeout(fin, 1550 + 3000);
+        setTimeout(fin, 1550 + 1000);
       }, 760);
       return;
     }

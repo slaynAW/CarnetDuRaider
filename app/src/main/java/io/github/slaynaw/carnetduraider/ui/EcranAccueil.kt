@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -86,12 +85,14 @@ fun EcranAccueil(
 
                     ProchainRaid(vm, aller)
 
-                    if (calendrier != null) FriseConditions(vm, calendrier, onClick = { aller(Onglet.CARTES) })
-
-                    // Trois tuiles de même hauteur : objets, objectifs, build.
-                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Quatre tuiles, deux par ligne et de même hauteur : objets, cartes, objectifs, build.
+                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         val tuile = Modifier.weight(1f).fillMaxHeight()
                         TuileObjets(vm, tuile, onClick = { aller(Onglet.OBJETS) })
+                        TuileCartes(vm, calendrier, tuile, onClick = { aller(Onglet.CARTES) })
+                    }
+                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        val tuile = Modifier.weight(1f).fillMaxHeight()
                         TuileObjectifs(vm, tuile, onClick = { aller(Onglet.OBJECTIFS) })
                         TuileBuild(vm, tuile, onClick = { aller(Onglet.BUILDS) })
                     }
@@ -128,12 +129,12 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
             else -> Signal.Rouge
         },
         contentColor = if (surRouge) Signal.SurCouleur else Signal.Texte,
-        shape = FormeCoupee,
-        modifier = Modifier.fillMaxWidth(),
+        // Sur toute la largeur de l'écran, par-delà les marges de la liste.
+        modifier = Modifier.pleineLargeur(20.dp),
     ) {
-        Box {
-            if (premiere != null && fond != null) FondEnJeu(fond)
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.fillMaxWidth()) {
+            if (premiere != null && fond != null) FondEnJeuAnime(fond)
+            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Etiquette("Ton prochain raid", if (premiere != null && fond != null) Signal.Rouge else LocalContentColor.current)
                 when {
                     premiere != null -> {
@@ -180,6 +181,10 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
                     }
                 }
             }
+            // Les quatre bandes du logo en pied.
+            Row(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp)) {
+                listOf(Signal.Cyan, Signal.Vert, Signal.Or, Signal.Rouge).forEach { Box(Modifier.weight(1f).fillMaxHeight().background(it)) }
+            }
         }
     }
 }
@@ -200,83 +205,77 @@ private fun PastilleNombre(texte: String, surRouge: Boolean) {
     )
 }
 
-/**
- * Conditions de la carte des prochaines heures, en frise : la condition en cours (en cyan, avec ce qu'il lui
- * reste), puis les suivantes ; et combien de conditions ont une alerte.
- */
-@Composable
-private fun FriseConditions(vm: CarnetViewModel, calendrier: Calendrier, onClick: () -> Unit) {
-    val t = maintenant(30_000)
-    val reglages by vm.alertes.reglages.collectAsState()
-    val creneaux = (calendrier.enCours(vm.region, t) + calendrier.aVenir(vm.region, t, 6 * Calendrier.UNE_HEURE)).take(3)
-    TuileSection(Onglet.CARTES, Modifier.fillMaxWidth(), onClick, droite = {
-        if (reglages.conditions.isNotEmpty()) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(Icons.Filled.Notifications, contentDescription = null, tint = Signal.Cyan, modifier = Modifier.size(13.dp))
-                Text("${reglages.conditions.size} suivies", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
-            }
-        }
-    }) {
-        if (creneaux.isEmpty()) {
-            Text("Rien d'annoncé dans les prochaines heures.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 8.dp))
-        } else {
-            Row(Modifier.padding(top = 10.dp).fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                creneaux.forEach { CaseCreneau(it, t, Modifier.weight(1f).fillMaxHeight()) }
-                repeat(3 - creneaux.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CaseCreneau(c: Creneau, t: Long, modifier: Modifier) {
-    val enCours = c.enCours(t)
-    val forme = RoundedCornerShape(5.dp)
-    Column(
-        modifier
-            .background(if (enCours) Signal.Cyan.copy(alpha = 0.12f) else Signal.Releve, forme)
-            .border(1.dp, if (enCours) Signal.Cyan.copy(alpha = 0.45f) else Signal.Trait, forme)
-            .padding(horizontal = 9.dp, vertical = 8.dp),
-    ) {
-        PetiteEtiquette(if (enCours) "Encore ${duree(c.fin - t)}" else "Dans ${duree(c.debut - t)}", if (enCours) Signal.Cyan else Signal.TexteDiscret)
-        Text(
-            c.condition,
-            style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp, lineHeight = 15.sp),
-            color = if (c.majeure) Signal.Rouge else Signal.Texte,
-            modifier = Modifier.padding(top = 3.dp),
-        )
-        Text(c.carte, style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-/** Ce qui est à garder (objectifs et builds) et l'objet le plus demandé encore à trouver. */
+/** Ce qui est à garder (objectifs et builds), l'objet le plus demandé encore à trouver et ceux qui tombent des ARC. */
 @Composable
 private fun TuileObjets(vm: CarnetViewModel, modifier: Modifier, onClick: () -> Unit) {
     val restants = vm.aTrouver().filter { !it.trouve }.sortedByDescending { it.reste }
     val aGarder = remember(restants, vm.builds) { vm.catalogue.tous.count { vm.verdict(it.id) !is Verdict.Inutile } }
+    val surLesArc = restants.count { "ARC" in (vm.catalogue.objet(it.objetId)?.lieux ?: emptyList()) }
     TuileSection(Onglet.OBJETS, modifier, onClick) {
         Chiffre("$aGarder", "à garder")
-        Spacer(Modifier.weight(1f))
-        if (restants.isEmpty()) {
-            Text("Garder, recycler ou vendre ?", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 8.dp))
+        val premier = restants.firstOrNull()
+        if (premier == null) {
+            Text("Garder, recycler ou vendre ?", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 10.dp))
         } else {
-            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                restants.take(3).forEach { IconeObjet(it.objetId, vm.catalogue.objet(it.objetId)?.rarete, 22.dp) }
+            SousTitre("Le plus demandé")
+            Row(Modifier.padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                IconeObjet(premier.objetId, vm.catalogue.objet(premier.objetId)?.rarete, 24.dp)
+                Text(vm.catalogue.nomObjet(premier.objetId), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text("×${premier.reste}", style = TextStyle(fontFamily = Prompt, fontWeight = FontWeight.Bold, fontSize = 13.sp), color = Signal.Or)
             }
-            val premier = restants.first()
-            Text(
-                "${vm.catalogue.nomObjet(premier.objetId)} ×${premier.reste}",
-                style = MaterialTheme.typography.bodySmall,
-                color = Signal.TexteDoux,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 5.dp),
-            )
+            if (surLesArc > 0) LignePuce("${pluriel(surLesArc, "objet", "objets")} sur les ARC détruits", Signal.Or)
         }
     }
 }
 
-/** Les objectifs en cours, par sorte (quêtes, ateliers, projets, expéditions), et ce qui a été rapporté. */
+/**
+ * Les conditions de la carte : celle en cours (et ce qu'il lui reste, en barre), puis la suivante, avec une
+ * cloche si elle a une alerte. Avant la lecture du calendrier officiel, la tuile le dit.
+ */
+@Composable
+private fun TuileCartes(vm: CarnetViewModel, calendrier: Calendrier?, modifier: Modifier, onClick: () -> Unit) {
+    val t = maintenant(30_000)
+    val reglages by vm.alertes.reglages.collectAsState()
+    TuileSection(Onglet.CARTES, modifier, onClick) {
+        if (calendrier == null) {
+            Text("Conditions de la carte : lecture du calendrier officiel…", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 10.dp))
+            return@TuileSection
+        }
+        val enCours = calendrier.enCours(vm.region, t).firstOrNull()
+        val suivante = calendrier.aVenir(vm.region, t, 6 * Calendrier.UNE_HEURE).firstOrNull()
+        if (enCours == null && suivante == null) {
+            Text("Rien d'annoncé dans les prochaines heures.", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 10.dp))
+            return@TuileSection
+        }
+        if (enCours != null) {
+            SousTitre("Maintenant")
+            LigneCondition(enCours, "encore ${duree(enCours.fin - t)}", suivie = enCours.conditionId in reglages.conditions)
+            Barre(((t - enCours.debut).toFloat() / (enCours.fin - enCours.debut).coerceAtLeast(1)), Signal.Cyan, Modifier.padding(top = 6.dp), epaisseur = 3.dp)
+        }
+        if (suivante != null) {
+            SousTitre("Ensuite")
+            LigneCondition(suivante, "dans ${duree(suivante.debut - t)}", suivie = suivante.conditionId in reglages.conditions)
+        }
+    }
+}
+
+@Composable
+private fun LigneCondition(c: Creneau, quand: String, suivie: Boolean) {
+    Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            c.condition,
+            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp, lineHeight = 16.sp),
+            color = if (c.majeure) Signal.Rouge else Signal.Texte,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (suivie) Icon(Icons.Filled.Notifications, contentDescription = "Alerte", tint = Signal.Cyan, modifier = Modifier.size(12.dp))
+    }
+    Text("${c.carte} · $quand", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, maxLines = 1, overflow = TextOverflow.Ellipsis)
+}
+
+/** Les objectifs en cours par sorte (quêtes, ateliers, projets, expéditions), et celui qui est le plus près d'être fini. */
 @Composable
 private fun TuileObjectifs(vm: CarnetViewModel, modifier: Modifier, onClick: () -> Unit) {
     val objectifs = vm.objectifs
@@ -284,38 +283,43 @@ private fun TuileObjectifs(vm: CarnetViewModel, modifier: Modifier, onClick: () 
     TuileSection(Onglet.OBJECTIFS, modifier, onClick) {
         Chiffre("${objectifs.size}", "en cours")
         if (objectifs.isEmpty()) {
-            Spacer(Modifier.weight(1f))
-            Text("Touche pour indiquer tes objectifs", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 8.dp))
-        } else {
-            val quetes = objectifs.count { it is Objectif.QueteATerminer }
-            val ateliers = objectifs.count { it is Objectif.NiveauDEtabli }
-            val projets = objectifs.filterIsInstance<Objectif.EtapeDeProjet>()
-            val expeditions = projets.count { vm.catalogue.projet(it.projetId)?.expedition == true }
-            Text(
-                listOfNotNull(
-                    quetes.takeIf { it > 0 }?.let { pluriel(it, "quête", "quêtes") },
-                    ateliers.takeIf { it > 0 }?.let { pluriel(it, "atelier", "ateliers") },
-                    (projets.size - expeditions).takeIf { it > 0 }?.let { pluriel(it, "projet", "projets") },
-                    expeditions.takeIf { it > 0 }?.let { pluriel(it, "expédition", "expéditions") },
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = Signal.TexteDoux,
-                maxLines = 2,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            Spacer(Modifier.weight(1f))
-            val besoin = liste.lignes.sumOf { it.besoin }
-            if (besoin > 0) {
-                Barre(liste.progression.toFloat(), Signal.Vert, Modifier.padding(top = 10.dp), epaisseur = 3.dp)
-                Text("${liste.lignes.sumOf { it.apporte }} sur $besoin", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 5.dp))
-            } else {
-                Text("Rien à rapporter", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 10.dp))
+            Text("Touche pour indiquer tes quêtes, ateliers, projets ou expéditions", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 10.dp))
+            return@TuileSection
+        }
+        val quetes = objectifs.count { it is Objectif.QueteATerminer }
+        val ateliers = objectifs.count { it is Objectif.NiveauDEtabli }
+        val projets = objectifs.filterIsInstance<Objectif.EtapeDeProjet>()
+        val expeditions = projets.count { vm.catalogue.projet(it.projetId)?.expedition == true }
+        Text(
+            listOfNotNull(
+                quetes.takeIf { it > 0 }?.let { pluriel(it, "quête", "quêtes") },
+                ateliers.takeIf { it > 0 }?.let { pluriel(it, "atelier", "ateliers") },
+                (projets.size - expeditions).takeIf { it > 0 }?.let { pluriel(it, "projet", "projets") },
+                expeditions.takeIf { it > 0 }?.let { pluriel(it, "expédition", "expéditions") },
+            ).joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall,
+            color = Signal.TexteDoux,
+            modifier = Modifier.padding(top = 3.dp),
+        )
+        // Le plus près d'être fini : la plus grande part des objets demandés déjà rapportés.
+        val proche = liste.lignes.flatMap { it.pour }.groupBy { it.libelle }
+            .map { (libelle, besoins) -> Triple(libelle, besoins.sumOf { minOf(it.apporte, it.quantite) }, besoins.sumOf { it.quantite }) }
+            .filter { it.third > 0 && it.second < it.third }
+            // À égalité, celui à qui il manque le moins d'objets.
+            .sortedWith(compareByDescending<Triple<String, Int, Int>> { it.second.toDouble() / it.third }.thenBy { it.third - it.second })
+            .firstOrNull()
+        if (proche != null) {
+            SousTitre("Le plus proche")
+            Text(proche.first, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Barre(proche.second.toFloat() / proche.third, Signal.Vert, Modifier.weight(1f), epaisseur = 3.dp)
+                Text("${proche.second}/${proche.third}", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
             }
         }
     }
 }
 
-/** Le build préféré (sinon le premier rempli) : son nom et ses cases remplies. */
+/** Le build préféré (sinon le premier rempli) : son nom, ses cases remplies et les matériaux pour le fabriquer. */
 @Composable
 private fun TuileBuild(vm: CarnetViewModel, modifier: Modifier, onClick: () -> Unit) {
     val rang = vm.builds.indexOfFirst { it.prefere && !it.vide }.takeIf { it >= 0 } ?: vm.builds.indexOfFirst { !it.vide }
@@ -323,39 +327,40 @@ private fun TuileBuild(vm: CarnetViewModel, modifier: Modifier, onClick: () -> U
     TuileSection(Onglet.BUILDS, modifier, onClick) {
         if (build == null) {
             Text("Aucun build", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 10.dp))
-            Spacer(Modifier.weight(1f))
-            Text("Touche pour préparer ton équipement", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 8.dp))
-        } else {
-            Text(
-                vm.outilsBuilds.nom(build, rang) + if (build.prefere) " ★" else "",
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 10.dp),
-            )
-            Spacer(Modifier.weight(1f))
-            val cases = CaseBuild.entries
-            val remplies = cases.count { build.objets[it] != null }
-            Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                cases.chunked(6).forEach { ligne ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        ligne.forEach { case ->
-                            val forme = RoundedCornerShape(2.dp)
-                            Box(
-                                Modifier
-                                    .weight(1f)
-                                    .height(9.dp)
-                                    .then(
-                                        if (build.objets[case] != null) Modifier.background(Signal.Violet.copy(alpha = 0.8f), forme)
-                                        else Modifier.border(1.dp, Signal.Trait, forme),
-                                    ),
-                            )
-                        }
-                    }
-                }
-            }
-            Text("$remplies sur ${cases.size}", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 5.dp))
+            Text("Touche pour préparer ton équipement : ses objets passent en « Garder ».", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 4.dp))
+            return@TuileSection
         }
+        Text(
+            vm.outilsBuilds.nom(build, rang) + if (build.prefere) " ★" else "",
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 10.dp),
+        )
+        Text("${build.objets.size} cases sur ${CaseBuild.entries.size}", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux)
+        val materiaux = remember(build) { vm.outilsBuilds.aFabriquer(build) }
+        if (materiaux.isNotEmpty()) {
+            SousTitre("Pour le fabriquer")
+            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                materiaux.take(3).forEach { (id, _) -> IconeObjet(id, vm.catalogue.objet(id)?.rarete, 24.dp) }
+            }
+            Text("${pluriel(materiaux.size, "matériau", "matériaux")} à garder", style = MaterialTheme.typography.bodySmall, color = Signal.TexteDoux, modifier = Modifier.padding(top = 5.dp))
+        }
+    }
+}
+
+/** Petit titre en capitales discrètes à l'intérieur d'une tuile (« LE PLUS DEMANDÉ », « ENSUITE »…). */
+@Composable
+private fun SousTitre(texte: String) {
+    PetiteEtiquette(texte, Signal.TexteDiscret, Modifier.padding(top = 10.dp))
+}
+
+/** Une ligne précédée d'un petit carré de la couleur de la section. */
+@Composable
+private fun LignePuce(texte: String, couleur: Color) {
+    Row(Modifier.padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(Modifier.size(4.dp).background(couleur, RoundedCornerShape(1.dp)))
+        Text(texte, style = MaterialTheme.typography.bodySmall, maxLines = 2)
     }
 }
 

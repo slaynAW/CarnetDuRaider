@@ -1,5 +1,14 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,12 +28,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -55,6 +63,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.semantics
@@ -64,6 +74,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import io.github.slaynaw.carnetduraider.CarnetViewModel
 import io.github.slaynaw.carnetduraider.core.Build
 import io.github.slaynaw.carnetduraider.core.Builds
@@ -87,7 +100,8 @@ private const val MATERIAUX_AFFICHES = 6
 @Composable
 fun EcranBuilds(vm: CarnetViewModel, choisir: (rang: Int, case: CaseBuild) -> Unit) {
     var rang by rememberSaveable { mutableIntStateOf(Builds.ouvert(vm.builds)) }
-    val build = vm.builds.getOrNull(rang) ?: return
+    if (vm.builds.getOrNull(rang) == null) return
+    val anime = animationsActives()
     val remplis = vm.builds.count { !it.vide }
     EcranDeSection(Onglet.BUILDS, "${pluriel(remplis, "build", "builds")} sur ${vm.builds.size} ${if (remplis > 1) "remplis" else "rempli"}") { defilement, haut ->
         LazyColumn(
@@ -97,37 +111,91 @@ fun EcranBuilds(vm: CarnetViewModel, choisir: (rang: Int, case: CaseBuild) -> Un
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(Builds.ordre(vm.builds), key = { it }) { i ->
-                        PuceBuild(vm, i, choisie = i == rang, onClick = { rang = i })
+                // Les six builds sur une ligne, en onglets de même largeur : jamais besoin de défiler.
+                Row(
+                    Modifier
+                        .padding(horizontal = 20.dp)
+                        .fillMaxWidth()
+                        .drawBehind { drawRect(Signal.Trait, topLeft = Offset(0f, size.height - 1.dp.toPx()), size = Size(size.width, 1.dp.toPx())) },
+                ) {
+                    Builds.ordre(vm.builds).forEach { i ->
+                        OngletBuild(vm, i, choisi = i == rang, onClick = { rang = i }, modifier = Modifier.weight(1f))
                     }
                 }
             }
-            item(key = "build-$rang") {
-                Box(Modifier.padding(horizontal = 20.dp)) { CarteBuild(vm, rang, build, choisir = { choisir(rang, it) }) }
+            item(key = "build") {
+                // Changement de build : le nouveau glisse légèrement depuis le côté de son onglet, en fondu.
+                val ordre = Builds.ordre(vm.builds)
+                AnimatedContent(
+                    targetState = rang,
+                    transitionSpec = {
+                        if (!anime) {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        } else {
+                            val sens = if (ordre.indexOf(targetState) > ordre.indexOf(initialState)) 1 else -1
+                            (fadeIn(tween(220, delayMillis = 40)) + slideInHorizontally(tween(260)) { sens * it / 14 }) togetherWith
+                                fadeOut(tween(100)) using SizeTransform(clip = false)
+                        }
+                    },
+                    label = "build",
+                ) { r ->
+                    val b = vm.builds.getOrNull(r) ?: return@AnimatedContent
+                    Box(Modifier.padding(horizontal = 20.dp)) { CarteBuild(vm, r, b, choisir = { choisir(r, it) }) }
+                }
             }
         }
     }
 }
 
-/** Puce d'un build : étoile s'il est le préféré, son nom et ses cases remplies sur douze. */
+/**
+ * Onglet d'un build : l'étoile au-dessus s'il est le préféré, son nom (coupé s'il est long), ses cases remplies
+ * sur douze (« vide » sinon) et un trait violet sous le build choisi.
+ */
 @Composable
-private fun PuceBuild(vm: CarnetViewModel, rang: Int, choisie: Boolean, onClick: () -> Unit) {
+private fun OngletBuild(vm: CarnetViewModel, rang: Int, choisi: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val b = vm.builds[rang]
     val nom = vm.outilsBuilds.nom(b, rang)
-    Surface(
-        selected = choisie,
-        onClick = onClick,
-        color = if (choisie) Signal.Violet else Signal.Surface,
-        contentColor = if (choisie) Signal.SurCouleur else Signal.Texte,
-        shape = RoundedCornerShape(50),
-        modifier = Modifier.heightIn(min = 40.dp).semantics { if (b.prefere) stateDescription = "Build préféré" },
+    val cases = CaseBuild.entries.size
+    Column(
+        modifier
+            .selectable(selected = choisi, role = Role.Tab, onClick = onClick)
+            .semantics(mergeDescendants = true) { stateDescription = buildString {
+                if (b.prefere) append("Build préféré, ")
+                append(if (b.vide) "vide" else "${b.objets.size} cases sur $cases")
+            } }
+            .heightIn(min = 56.dp)
+            .padding(top = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (b.prefere) Icon(Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(16.dp))
-            Text(nom, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 160.dp))
-            if (!b.vide) Text("${b.objets.size}/${CaseBuild.entries.size}", style = MaterialTheme.typography.labelMedium)
+        Box(Modifier.height(12.dp), contentAlignment = Alignment.Center) {
+            if (b.prefere) Icon(Icons.Filled.Star, contentDescription = null, tint = Signal.Violet, modifier = Modifier.size(11.dp))
         }
+        Text(
+            nom,
+            style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp),
+            fontWeight = if (choisi) FontWeight.Bold else FontWeight.SemiBold,
+            color = when {
+                choisi -> Signal.Texte
+                b.vide -> Signal.TexteDiscret
+                else -> Signal.TexteDoux
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp),
+        )
+        Text(
+            if (b.vide) "vide" else "${b.objets.size}/$cases",
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp),
+            fontWeight = FontWeight.Normal,
+            color = if (choisi) Signal.Violet else Signal.TexteDiscret,
+        )
+        Box(
+            Modifier
+                .padding(top = 6.dp)
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(if (choisi) Signal.Violet else Color.Transparent, RoundedCornerShape(2.dp)),
+        )
     }
 }
 

@@ -1,6 +1,14 @@
 package io.github.slaynaw.carnetduraider.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +22,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,10 +37,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -137,6 +141,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     }
 
     Box(Modifier.fillMaxSize()) {
+        val anime = animationsActives()
         Scaffold(
             containerColor = Signal.Fond,
             topBar = {
@@ -151,24 +156,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                 }
             },
             bottomBar = {
-                NavigationBar(containerColor = Signal.Surface) {
-                    Onglet.entries.forEach { o ->
-                        NavigationBarItem(
-                            selected = onglet == o,
-                            onClick = { aller(o) },
-                            icon = { Icon(o.icone, contentDescription = null) },
-                            // Six onglets : libellés sur une ligne, un peu plus serrés.
-                            label = { Text(o.titre, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp)) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Signal.SurCouleur,
-                                selectedTextColor = o.couleur,
-                                indicatorColor = o.couleur,
-                                unselectedIconColor = Signal.TexteDoux,
-                                unselectedTextColor = Signal.TexteDoux,
-                            ),
-                        )
-                    }
-                }
+                BarreOnglets(onglet, ::aller)
             },
         ) { marges ->
             Box(Modifier.fillMaxSize().padding(marges)) {
@@ -206,7 +194,15 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                         afficherMiseAJour = { dialogueMiseAJour = true },
                         onRetour = { reglages = false },
                     )
-                    else -> when (onglet) {
+                    // Changement d'onglet : le nouvel écran apparaît en fondu (instantané avec « Supprimer les animations »).
+                    else -> AnimatedContent(
+                        targetState = onglet,
+                        transitionSpec = {
+                            if (anime) fadeIn(tween(180, delayMillis = 60)) togetherWith fadeOut(tween(60))
+                            else EnterTransition.None togetherWith ExitTransition.None
+                        },
+                        label = "onglet",
+                    ) { ongletAffiche -> when (ongletAffiche) {
                         Onglet.ACCUEIL -> EcranAccueil(
                             vm,
                             aller = ::aller,
@@ -232,7 +228,7 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
                         })
                         Onglet.OBJECTIFS -> EcranObjectifs(vm, choisir = { choixEnCours = it }, voirRaid = { aller(Onglet.RAID) })
                         Onglet.BUILDS -> EcranBuilds(vm, choisir = { rang, case -> choixBuild = "$rang:${case.name}" })
-                    }
+                    } }
                 }
                 // Après une validation (retour de raid, niveau construit…) : « Annuler » pendant quelques secondes.
                 if (vm.celebration == null) BandeauValidation(vm, Modifier.align(Alignment.BottomCenter))
@@ -255,12 +251,16 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     }
 }
 
-/** Après une validation : ce qui a été fait, avec « Annuler » pendant quelques secondes. */
+/** Après une validation : ce qui a été fait, avec « Annuler » pendant 3 secondes. */
 @Composable
 private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier) {
     val validation = vm.derniereValidation ?: return
+    val anime = animationsActives()
+    val opacite = remember(validation) { Animatable(1f) }
     LaunchedEffect(validation) {
-        delay(8_000)
+        delay(3_000)
+        // Un petit fondu avant de disparaître.
+        if (anime) opacite.animateTo(0f, tween(300))
         vm.oublierValidation()
     }
     val detail = when {
@@ -276,7 +276,7 @@ private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier
         contentColor = Signal.SurCouleur,
         shape = FormeCoupee,
         shadowElevation = 6.dp,
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth().graphicsLayer { alpha = opacite.value },
     ) {
         Row(Modifier.padding(start = 16.dp, end = 6.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
