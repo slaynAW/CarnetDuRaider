@@ -190,7 +190,7 @@ private fun periode(onglet: Onglet): Int = when (onglet) {
 }
 
 /** Élargit l'élément de [marge] de chaque côté : il passe sous les marges de la liste qui le contient. */
-private fun Modifier.pleineLargeur(marge: Dp): Modifier = this.layout { mesurable, contraintes ->
+internal fun Modifier.pleineLargeur(marge: Dp): Modifier = this.layout { mesurable, contraintes ->
     val m = marge.roundToPx()
     val largeur = contraintes.maxWidth + 2 * m
     val place = mesurable.measure(contraintes.copy(minWidth = largeur, maxWidth = largeur))

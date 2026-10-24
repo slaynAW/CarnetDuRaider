@@ -129,12 +129,12 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
             else -> Signal.Rouge
         },
         contentColor = if (surRouge) Signal.SurCouleur else Signal.Texte,
-        shape = FormeCoupee,
-        modifier = Modifier.fillMaxWidth(),
+        // Sur toute la largeur de l'écran, par-delà les marges de la liste.
+        modifier = Modifier.pleineLargeur(20.dp),
     ) {
-        Box {
-            if (premiere != null && fond != null) FondEnJeu(fond)
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.fillMaxWidth()) {
+            if (premiere != null && fond != null) FondEnJeuAnime(fond)
+            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Etiquette("Ton prochain raid", if (premiere != null && fond != null) Signal.Rouge else LocalContentColor.current)
                 when {
                     premiere != null -> {
@@ -180,6 +180,10 @@ private fun ProchainRaid(vm: CarnetViewModel, aller: (Onglet) -> Unit) {
                         )
                     }
                 }
+            }
+            // Les quatre bandes du logo en pied.
+            Row(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp)) {
+                listOf(Signal.Cyan, Signal.Vert, Signal.Or, Signal.Rouge).forEach { Box(Modifier.weight(1f).fillMaxHeight().background(it)) }
             }
         }
     }

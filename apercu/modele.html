@@ -122,6 +122,32 @@ button.carte:hover { background: var(--releve); }
    « ombre latérale ». */
 .prochain.plein.photo { background: linear-gradient(90deg, rgba(20,20,23,.94) 0%, rgba(20,20,23,.72) 52%, rgba(20,20,23,.1) 100%), var(--photo) center / cover, var(--fond); color: var(--texte); padding: 18px; }
 .prochain.plein.photo small { color: var(--rouge); }
+/* « Ton prochain raid » à l'accueil (ProchainRaid, FondAnime.kt) : sur toute la largeur, la capture bouge
+   lentement comme filmée à l'épaule (16 s), avec deux glitchs très brefs par boucle, et les bandes du logo en pied. */
+.prochain.accueil { position: relative; overflow: hidden; width: auto; border-radius: 0; clip-path: none; padding: 16px 20px 22px;
+  margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); }
+.prochain.accueil.photo { background: var(--fond); }
+.prochain.accueil > :not(.fond-anime):not(.bandes-pied) { position: relative; }
+.fond-anime { position: absolute; inset: 0; overflow: hidden; }
+.fond-anime::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,20,23,.94), rgba(20,20,23,.55) 60%, rgba(20,20,23,.12)), linear-gradient(0deg, rgba(20,20,23,.55), rgba(20,20,23,0) 45%); }
+.fond-anime .cadre { position: absolute; inset: 0; background: var(--photo) center / cover; transform: scale(1.06); will-change: transform; animation: epaule 16s cubic-bezier(.37,0,.63,1) infinite; }
+.fond-anime .cadre i { position: absolute; inset: 0; background: inherit; opacity: 0; }
+.fond-anime .g1 { clip-path: inset(32% 0 60% 0); animation: glitch1 16s linear infinite; }
+.fond-anime .g2 { clip-path: inset(62% 0 33% 0); animation: glitch2 16s linear infinite; }
+.fond-anime .cadre i::before, .fond-anime .cadre i::after { content: ""; position: absolute; left: 0; right: 0; height: 1px; }
+.fond-anime .g1::before { top: 32%; background: rgba(60,196,216,.45); } .fond-anime .g1::after { top: calc(40% - 1px); background: rgba(240,84,74,.45); }
+.fond-anime .g2::before { top: 62%; background: rgba(60,196,216,.45); } .fond-anime .g2::after { top: calc(67% - 1px); background: rgba(240,84,74,.45); }
+@keyframes epaule { 0% { transform: translate3d(0,0,0) rotate(0) scale(1.06); } 18% { transform: translate3d(-2.5px,1.5px,0) rotate(-.25deg) scale(1.06); } 37% { transform: translate3d(1.5px,2.5px,0) rotate(.18deg) scale(1.06); }
+  55% { transform: translate3d(3px,-1px,0) rotate(.3deg) scale(1.06); } 74% { transform: translate3d(-1px,-2.5px,0) rotate(-.15deg) scale(1.06); } 100% { transform: translate3d(0,0,0) rotate(0) scale(1.06); } }
+@keyframes glitch1 { 0%, 30.99% { opacity: 0; transform: none; } 31% { opacity: .85; transform: translateX(6px); } 31.45% { transform: translateX(-3.6px); } 31.9%, 100% { opacity: 0; transform: none; } }
+@keyframes glitch2 { 0%, 82.99% { opacity: 0; transform: none; } 83% { opacity: .85; transform: translateX(-5px); } 83.45% { transform: translateX(3px); } 83.9%, 100% { opacity: 0; transform: none; } }
+.bandes-pied { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; display: flex; }
+.bandes-pied i { flex: 1; } .bandes-pied i:nth-child(1) { background: var(--cyan); } .bandes-pied i:nth-child(2) { background: var(--vert); } .bandes-pied i:nth-child(3) { background: var(--or); } .bandes-pied i:nth-child(4) { background: var(--rouge); }
+/* Changement de build : le nouveau glisse légèrement depuis le côté de son onglet, en fondu (EcranBuilds.kt). */
+.entre-d { animation: entre-d .26s cubic-bezier(.2,.7,.3,1) both; } .entre-g { animation: entre-g .26s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes entre-d { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes entre-g { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fond-anime .cadre, .fond-anime .cadre i, .entre-d, .entre-g { animation: none; } }
 .verdict { background: var(--v, var(--or)); color: var(--sur-couleur); clip-path: var(--coupee); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
 .verdict.neutre { color: var(--texte); }
 .verdict small { font: 700 11px var(--titre); letter-spacing: 1.5px; }
@@ -750,7 +776,8 @@ function prochainRaid() {
     : restants.length ? `<strong>Rien dans le butin des cartes</strong><span class="doux">Ce qu'il te faut s'obtient autrement${NB}: regarde l'onglet Raid.</span>`
     : objectifs().length ? `<strong>Rien à chercher en raid</strong><span class="doux">Tes objectifs en cours ne demandent aucun objet${NB}: valide-les quand c'est fait en jeu.</span>`
     : `<strong>Rien à chercher pour l'instant</strong><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira où aller.</span>`;
-  return `<button class="prochain ${premiere ? "plein" : ""}${premiere && FONDS.has(premiere.carteId) ? ` photo" style="--photo:url('fonds/${premiere.carteId}.webp')` : ""}" data-action="onglet" data-onglet="${restants.length || objectifs().length ? "RAID" : "OBJECTIFS"}"><small>TON PROCHAIN RAID</small>${contenu}</button>`;
+  const photo = premiere && FONDS.has(premiere.carteId);
+  return `<button class="prochain accueil ${premiere ? "plein" : ""}${photo ? ` photo" style="--photo:url('fonds/${premiere.carteId}.webp')` : ""}" data-action="onglet" data-onglet="${restants.length || objectifs().length ? "RAID" : "OBJECTIFS"}">${photo ? `<span class="fond-anime" aria-hidden="true"><span class="cadre"><i class="g1"></i><i class="g2"></i></span></span>` : ""}<small>TON PROCHAIN RAID</small>${contenu}<span class="bandes-pied" aria-hidden="true"><i></i><i></i><i></i><i></i></span></button>`;
 }
 
 // Une tuile de l'accueil (TuileSection, EcranAccueil.kt) : fin trait de la couleur de la section, son icône et son nom.
@@ -1377,7 +1404,7 @@ let minuterieValidation = null;
 function montrerValidation(v) {
   S.validation = { objetsNotes: 0, termines: [], ...v };
   clearTimeout(minuterieValidation);
-  minuterieValidation = setTimeout(() => { S.validation = null; rendre(); }, 8000);
+  minuterieValidation = setTimeout(() => { S.validation = null; rendre(); }, 3000);
 }
 // Objectif fait en jeu (« C'est fait »), même sans tout avoir noté (une quête sans objet à rapporter, par
 // exemple) : la suite s'ajoute, ce qui avait été rapporté pour lui est oublié ; la suite peut être déjà complète.
@@ -1475,7 +1502,12 @@ document.addEventListener("click", ev => {
     case "fin-celebration": S.celebration = null; if (S.validation) montrerValidation(S.validation); rendre(); return;
     case "region": M.region = id; break;
     case "filtre": S.filtre = id; rendre(); return;
-    case "build": S.build = +id; S.renommer = false; rendre(); return;
+    case "build": {
+      const ordre = ordreBuilds(builds()), sens = ordre.indexOf(+id) > ordre.indexOf(S.build) ? "entre-d" : "entre-g", change = +id !== S.build;
+      S.build = +id; S.renommer = false; rendre();
+      if (change) for (let el = document.querySelector(".onglets-builds")?.nextElementSibling; el; el = el.nextElementSibling) el.classList.add(sens);
+      return;
+    }
     case "butin-ecran": S.rechercheButin = ""; return ouvrir("choix-butin");
     case "butin-choisir": changerButin(id, (M.butin?.[id] ?? 0) + 1); S.ecran = null; break;
     case "butin-ajouter": changerButin(id, (M.butin?.[id] ?? 0) + 1); break;
@@ -1498,7 +1530,7 @@ document.addEventListener("click", ev => {
         if (!derniere || !carte) { fin(); return; }
         const x = o.type === "etabli" ? etablis.get(o.id) : projets.get(o.id), n = o.type === "etabli" ? x.niveaux.length : x.etapes.length;
         carte.insertAdjacentHTML("beforeend", `<div class="cloture" role="status" aria-label="Terminé${NB}: ${echap(x.nom)}"><span><strong>TERMINÉ</strong><i aria-hidden="true"></i><small>${echap(x.nom)} · ${pluriel(n, o.type === "etabli" ? "niveau" : "étape", o.type === "etabli" ? "niveaux" : "étapes")} sur ${n}</small></span><svg width="52" height="30" viewBox="0 0 35 20" aria-hidden="true" style="flex:none"><path d="M0 20h5l7.2-20h-5z" fill="#3CC4D8"/><path d="M7.5 20h5l7.2-20h-5z" fill="#6CCB5F"/><path d="M15 20h5l7.2-20h-5z" fill="#F2B233"/><path d="M22.5 20h5l7.2-20h-5z" fill="#F0544A"/></svg></div>`);
-        setTimeout(fin, 1550 + 3000);
+        setTimeout(fin, 1550 + 1000);
       }, 760);
       return;
     }

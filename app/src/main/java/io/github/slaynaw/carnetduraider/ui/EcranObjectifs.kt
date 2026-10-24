@@ -314,7 +314,7 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
 private const val CLOTURE_MS = 1550
 
 /** Durée pendant laquelle « TERMINÉ » reste affiché, après la clôture. */
-private const val TENUE_MS = 3_000L
+private const val TENUE_MS = 1_000L
 
 /** Les bandes du logo glissent en place, vives au départ et douces à l'arrivée. */
 private val EasingBandes = CubicBezierEasing(0.2f, 0.7f, 0.3f, 1f)

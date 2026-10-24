@@ -249,12 +249,12 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
     }
 }
 
-/** Après une validation : ce qui a été fait, avec « Annuler » pendant quelques secondes. */
+/** Après une validation : ce qui a été fait, avec « Annuler » pendant 3 secondes. */
 @Composable
 private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier) {
     val validation = vm.derniereValidation ?: return
     LaunchedEffect(validation) {
-        delay(8_000)
+        delay(3_000)
         vm.oublierValidation()
     }
     val detail = when {

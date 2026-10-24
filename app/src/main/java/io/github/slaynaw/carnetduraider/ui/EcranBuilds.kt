@@ -1,5 +1,14 @@
 package io.github.slaynaw.carnetduraider.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -91,7 +100,8 @@ private const val MATERIAUX_AFFICHES = 6
 @Composable
 fun EcranBuilds(vm: CarnetViewModel, choisir: (rang: Int, case: CaseBuild) -> Unit) {
     var rang by rememberSaveable { mutableIntStateOf(Builds.ouvert(vm.builds)) }
-    val build = vm.builds.getOrNull(rang) ?: return
+    if (vm.builds.getOrNull(rang) == null) return
+    val anime = animationsActives()
     val remplis = vm.builds.count { !it.vide }
     EcranDeSection(Onglet.BUILDS, "${pluriel(remplis, "build", "builds")} sur ${vm.builds.size} ${if (remplis > 1) "remplis" else "rempli"}") { defilement, haut ->
         LazyColumn(
@@ -113,8 +123,25 @@ fun EcranBuilds(vm: CarnetViewModel, choisir: (rang: Int, case: CaseBuild) -> Un
                     }
                 }
             }
-            item(key = "build-$rang") {
-                Box(Modifier.padding(horizontal = 20.dp)) { CarteBuild(vm, rang, build, choisir = { choisir(rang, it) }) }
+            item(key = "build") {
+                // Changement de build : le nouveau glisse légèrement depuis le côté de son onglet, en fondu.
+                val ordre = Builds.ordre(vm.builds)
+                AnimatedContent(
+                    targetState = rang,
+                    transitionSpec = {
+                        if (!anime) {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        } else {
+                            val sens = if (ordre.indexOf(targetState) > ordre.indexOf(initialState)) 1 else -1
+                            (fadeIn(tween(220, delayMillis = 40)) + slideInHorizontally(tween(260)) { sens * it / 14 }) togetherWith
+                                fadeOut(tween(100)) using SizeTransform(clip = false)
+                        }
+                    },
+                    label = "build",
+                ) { r ->
+                    val b = vm.builds.getOrNull(r) ?: return@AnimatedContent
+                    Box(Modifier.padding(horizontal = 20.dp)) { CarteBuild(vm, r, b, choisir = { choisir(r, it) }) }
+                }
             }
         }
     }
@@ -345,7 +372,8 @@ private fun CaseDuBuild(vm: CarnetViewModel, case: CaseBuild, objetId: String?, 
 /** Choix de l'objet d'une case : seulement les objets de son emplacement, avec une recherche. */
 @Composable
 fun EcranChoixObjetBuild(vm: CarnetViewModel, rang: Int, case: CaseBuild, onRetour: () -> Unit, ouvrir: (String) -> Unit) {
-    val build = vm.builds.getOrNull(rang) ?: return
+    if (vm.builds.getOrNull(rang) == null) return
+    val anime = animationsActives()
     var recherche by rememberSaveable { mutableStateOf("") }
     val tous = remember(case) { vm.outilsBuilds.choix(case) }
     val cle = Catalogue.normaliser(recherche)

@@ -120,11 +120,11 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   se valide en un geste (« C'est fait », `CarnetViewModel.valider`, après le même balayage sur sa carte,
   `dessinBalayage` ; pour la dernière étape ou le dernier niveau, `Planificateur.derniereEtape`, la clôture
   suit : un bandeau sombre recouvre la carte, « TERMINÉ » s'y resserre en vert, une fine ligne verte s'étire
-  et les quatre bandes du logo glissent en place, puis tout reste affiché 3 secondes, `Cloture`), avec « Annuler » : jamais de saisie obligatoire.
+  et les quatre bandes du logo glissent en place, puis tout reste affiché 1 seconde, `Cloture`), avec « Annuler » (3 secondes, `BandeauValidation`) : jamais de saisie obligatoire.
 - Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (en onglets de même largeur sur une ligne, `OngletBuild` :
   nom, cases remplies ou « vide », trait violet sous le choisi ; le build préféré, un seul, `Build.prefere`, étoile, en premier et ouvert à l'arrivée :
   `Builds.ordre`, `Builds.ouvert` ; le build choisi dessous, nom changé au crayon, cases groupées
-  Équipement / Armes / Consommables, « Autres » repliées), un nom et un objet par case (Module, Bouclier,
+  Équipement / Armes / Consommables (au changement de build, il glisse légèrement depuis le côté de son onglet), « Autres » repliées), un nom et un objet par case (Module, Bouclier,
   Arme 1, Arme 2, Soins, Grenades, puis six « Autres » : `CaseBuild.AUTRE_1` garde le nom enregistré
   « DIVERS » de l'ancienne case ; la fiche et « Vider la case » sont dans le choix de l'objet),
   d'après `Objet.emplacement` (famille de l'objet dans le jeu, produit par le script) ; matériaux d'après
@@ -136,8 +136,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs en cours ; cartes classées
   par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
   carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil (`EcranAccueil`) montre les cinq
-  sections sans défiler : le prochain raid (meilleure carte, objets sur les ARC, ses deux meilleures zones avec
-  leur nombre d'objets en pastille), puis quatre tuiles deux par deux (`TuileSection`) : objets à garder, le plus
+  sections sans défiler : le prochain raid sur toute la largeur (meilleure carte, objets sur les ARC, ses deux meilleures zones avec
+  leur nombre d'objets en pastille ; capture qui bouge lentement « à l'épaule » avec deux glitchs très brefs par
+  boucle de 16 s, `FondEnJeuAnime`, immobile avec « Supprimer les animations » ; bandes du logo en pied), puis quatre tuiles deux par deux (`TuileSection`) : objets à garder, le plus
   demandé et ceux qui tombent des ARC ; conditions de la carte (en cours avec sa barre, puis la suivante et sa
   cloche) ; objectifs par sorte et le plus proche d'être fini ; build préféré, ses cases et ses matériaux. En tête du Raid, la meilleure carte (« Où chercher » déplie ses zones et la carte
   suivante du parcours), puis ce qu'il te faut en liste compacte ; « Mes objectifs » et « Où aller »
@@ -162,7 +163,7 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   `RetourDeRaid.bilan` donne les objectifs terminés, les objets qui ont atteint le nombre demandé et si
   toute la liste est trouvée : animation `ui/CelebrationRaid.kt` (objectif terminé à la manière d'ARC
   Raiders : bande verte, « OBJECTIF TERMINÉ », tampon « VALIDÉ » ; « Raid terminé, objets trouvés »),
-  puis « Annuler » pendant quelques secondes.
+  puis « Annuler » pendant 3 secondes.
 - Calendrier des conditions de la carte (`core/…/calendrier`, `app/…/calendrier`) : lu sur la page
   officielle d'Embark (arcraiders.com/map-conditions, JSON embarqué dans la page, noms anglais), puis
   affiché avec les noms français officiels des données du jeu (correspondance par `cleCalendrier`).
