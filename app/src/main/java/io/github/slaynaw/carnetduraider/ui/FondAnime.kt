@@ -72,8 +72,11 @@ fun BoxScope.FondEnJeuAnime(image: ImageBitmap) {
         val p = temps?.value
         val (dx, dy, rotation) = if (p == null) Triple(0f, 0f, 0f) else position(p)
         val camera: DrawScope.(Float) -> Unit = { decalage ->
+            // En pixels avant la transformation : son bloc ne connaît pas la densité de l'écran.
+            val x = dx.dp.toPx() + decalage
+            val y = dy.dp.toPx()
             withTransform({
-                translate(dx.dp.toPx() + decalage, dy.dp.toPx())
+                translate(x, y)
                 rotate(rotation)
                 scale(AGRANDI, AGRANDI)
             }) { dessinerRecadre(image) }
