@@ -372,8 +372,7 @@ private fun CaseDuBuild(vm: CarnetViewModel, case: CaseBuild, objetId: String?, 
 /** Choix de l'objet d'une case : seulement les objets de son emplacement, avec une recherche. */
 @Composable
 fun EcranChoixObjetBuild(vm: CarnetViewModel, rang: Int, case: CaseBuild, onRetour: () -> Unit, ouvrir: (String) -> Unit) {
-    if (vm.builds.getOrNull(rang) == null) return
-    val anime = animationsActives()
+    val build = vm.builds.getOrNull(rang) ?: return
     var recherche by rememberSaveable { mutableStateOf("") }
     val tous = remember(case) { vm.outilsBuilds.choix(case) }
     val cle = Catalogue.normaliser(recherche)
