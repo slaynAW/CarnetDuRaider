@@ -81,7 +81,7 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   sa couleur (`BandeauSection` : code « 0N / … » de `Onglet.code`, « 01 / SPERANZA » pour l'Accueil, nom en capitales, motif propre à la
   section, coin coupé ; le motif vit en boucle, lentement : reflet, cases de l'inventaire, cible qui cherche puis
   verrouille, repère et son onde, impulsion des chevrons, ligne de scan ; le texte jamais, et rien avec « Supprimer
-  les animations »), l'onglet actif prend la même couleur ; il se replie en barre de 56 dp dès que la liste
+  les animations »), l'onglet actif prend la même couleur (`BarreOnglets` : une seule pastille glisse d'un onglet à l'autre en prenant sa couleur, le nouvel écran apparaît en fondu) ; il se replie en barre de 56 dp dès que la liste
   défile (`EcranDeSection` : posé par-dessus la liste, qui garde sa hauteur et réserve la place du bandeau
   déplié ; le repli ne la fait jamais sauter, même quand elle dépasse à peine de l'écran). Cartes à coins presque droits (6 dp), cartes mises en avant au coin coupé
   (`FormeCoupee`), petites étiquettes en capitales (`Etiquette`). Écrans compacts (refonte UX 0.14) : le
@@ -121,8 +121,8 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   `dessinBalayage` ; pour la dernière étape ou le dernier niveau, `Planificateur.derniereEtape`, la clôture
   suit : un bandeau sombre recouvre la carte, « TERMINÉ » s'y resserre en vert, une fine ligne verte s'étire
   et les quatre bandes du logo glissent en place, puis tout reste affiché 3 secondes, `Cloture`), avec « Annuler » : jamais de saisie obligatoire.
-- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (une puce par build sur une ligne, avec
-  ses cases remplies ; le build préféré, un seul, `Build.prefere`, étoile, en premier et ouvert à l'arrivée :
+- Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (en onglets de même largeur sur une ligne, `OngletBuild` :
+  nom, cases remplies ou « vide », trait violet sous le choisi ; le build préféré, un seul, `Build.prefere`, étoile, en premier et ouvert à l'arrivée :
   `Builds.ordre`, `Builds.ouvert` ; le build choisi dessous, nom changé au crayon, cases groupées
   Équipement / Armes / Consommables, « Autres » repliées), un nom et un objet par case (Module, Bouclier,
   Arme 1, Arme 2, Soins, Grenades, puis six « Autres » : `CaseBuild.AUTRE_1` garde le nom enregistré
@@ -137,9 +137,9 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
   carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil (`EcranAccueil`) montre les cinq
   sections sans défiler : le prochain raid (meilleure carte, objets sur les ARC, ses deux meilleures zones avec
-  leur nombre d'objets en pastille), la frise des conditions de la carte (`FriseConditions` : en cours puis
-  à venir, conditions suivies), puis trois tuiles (`TuileSection`) : objets à garder et le plus demandé,
-  objectifs en cours par sorte et ce qui a été rapporté, build préféré et ses cases. En tête du Raid, la meilleure carte (« Où chercher » déplie ses zones et la carte
+  leur nombre d'objets en pastille), puis quatre tuiles deux par deux (`TuileSection`) : objets à garder, le plus
+  demandé et ceux qui tombent des ARC ; conditions de la carte (en cours avec sa barre, puis la suivante et sa
+  cloche) ; objectifs par sorte et le plus proche d'être fini ; build préféré, ses cases et ses matériaux. En tête du Raid, la meilleure carte (« Où chercher » déplie ses zones et la carte
   suivante du parcours), puis ce qu'il te faut en liste compacte ; « Mes objectifs » et « Où aller »
   repliés ; « Retour de raid » en bas à droite (`BoutonRetourRaid`) : petite pastille en verre rouge
   opaque à 84 %, la liste passe dessous en filigrane ; en boucle, lentement, les bandes du logo s'allument puis
