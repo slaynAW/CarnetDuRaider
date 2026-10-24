@@ -5,6 +5,11 @@ Chaque section « ## X.Y.Z » est affichée dans l'application au moment de prop
 avant de publier une version (docs/MISES-A-JOUR.md). Les noms du jeu cités ici suivent la même règle
 que l'application : uniquement les traductions françaises officielles d'Embark Studios.
 
+## 0.14.4
+
+- **Raid** : le bouton « Retour de raid » est plus discret. C'est une petite pastille en bas à droite, en verre rouge qui laisse voir la liste quand elle passe dessous. De temps en temps, les bandes du logo s'allument et le texte passe à « Indiquer mon butin » : on le remarque sans qu'il crie.
+- **Accueil** : les cinq sections d'un coup d'œil, sans faire défiler. En tête, ton prochain raid avec ses deux meilleures zones et leur nombre d'objets bien en vue ; puis les conditions de la carte en frise (celle en cours, puis les suivantes) ; enfin trois tuiles : les objets à garder et le plus demandé, tes objectifs en cours et ce que tu as rapporté, ton build préféré et ses cases remplies.
+
 ## 0.14.3
 
 - **« C'est fait »** : quand tu valides un objectif, le balayage vert traverse d'abord sa carte, comme dans Mes ateliers et Mes projets.

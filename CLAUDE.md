@@ -135,10 +135,15 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   les mêmes objectifs, y compris ceux qui ne demandent aucun objet. Ce
   qu'il faut trouver (`Planificateur.aTrouver`) = ce qui manque aux objectifs en cours ; cartes classées
   par la somme des indices de butin des objets encore à trouver (chaque objet compte au plus 1 par
-  carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil reprend la
-  meilleure carte. En tête du Raid, la meilleure carte (« Où chercher » déplie ses zones et la carte
+  carte), zones où chercher, et parcours de 1 à 3 cartes pour tout trouver. L'accueil (`EcranAccueil`) montre les cinq
+  sections sans défiler : le prochain raid (meilleure carte, objets sur les ARC, ses deux meilleures zones avec
+  leur nombre d'objets en pastille), la frise des conditions de la carte (`FriseConditions` : en cours puis
+  à venir, conditions suivies), puis trois tuiles (`TuileSection`) : objets à garder et le plus demandé,
+  objectifs en cours par sorte et ce qui a été rapporté, build préféré et ses cases. En tête du Raid, la meilleure carte (« Où chercher » déplie ses zones et la carte
   suivante du parcours), puis ce qu'il te faut en liste compacte ; « Mes objectifs » et « Où aller »
-  repliés ; « Retour de raid » fixé en bas. « Meilleure carte » (et « Ton prochain raid » à l'accueil) s'affiche sur une capture en jeu de la carte (`FondEnJeu`,
+  repliés ; « Retour de raid » en bas à droite (`BoutonRetourRaid`) : petite pastille en verre rouge
+  opaque à 84 %, la liste passe dessous en filigrane ; en boucle, lentement, les bandes du logo s'allument puis
+  le texte bascule de « RETOUR DE RAID » à « INDIQUER MON BUTIN » (rien avec « Supprimer les animations »). « Meilleure carte » (et « Ton prochain raid » à l'accueil) s'affiche sur une capture en jeu de la carte (`FondEnJeu`,
   `app/src/main/assets/fonds/<carte>.webp`, « ombre latérale » : assombrie à gauche sous le texte), sinon
   sur le rouge du Raid ; l'onglet Cartes montre chaque carte sur la sienne. Ces captures sont les seules images qui ne viennent pas du script d'import : prises
   en jeu et fournies par le mainteneur, jamais d'un site tiers.

@@ -86,6 +86,26 @@ button.carte:hover { background: var(--releve); }
 .prochain.plein { border-radius: 0; clip-path: var(--coupee); }
 .prochain.plein { background: var(--rouge); color: var(--sur-couleur); }
 .prochain:hover { filter: brightness(1.08); }
+/* Les deux meilleures zones du prochain raid, nombre d'objets en pastille (PastilleNombre, EcranAccueil.kt). */
+.zones-raid { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(243,238,228,.16); }
+.zones-raid > span { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.zones-raid > span > span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zones-raid em { flex: none; font: 700 12px/16px var(--titre); font-style: normal; padding: 3px 9px; border-radius: 99px; background: rgba(240,84,74,.30); box-shadow: inset 0 0 0 1px var(--rouge); color: var(--texte); }
+.prochain.plein:not(.photo) .zones-raid em { background: rgba(20,20,23,.14); box-shadow: inset 0 0 0 1px rgba(20,20,23,.35); color: var(--sur-couleur); }
+/* Tuiles de l'accueil (TuileSection, EcranAccueil.kt). */
+.tuiles-accueil { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tuile-a { position: relative; display: flex; flex-direction: column; width: 100%; padding: 12px 10px; background: var(--surface); border-radius: 6px; text-align: left; overflow: hidden; }
+.tuile-a::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--c); }
+.tuile-a:hover { filter: brightness(1.08); }
+.tuile-a .tete { display: flex; align-items: center; gap: 5px; font: 700 9.5px/12px var(--titre); letter-spacing: 1.1px; text-transform: uppercase; color: var(--c); }
+.tuile-a .tete svg { width: 14px; height: 14px; fill: var(--c); flex: none; }
+.tuile-a .chiffre { margin-top: 10px; font-size: 12px; color: var(--texte-doux); }
+.tuile-a .chiffre b { font: 700 24px/26px var(--titre); color: var(--texte); }
+.tuile-a .pousse { flex: 1; }
+.tuile-a .coupe { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tuile-a .cases { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 10px; }
+.tuile-a .cases i { height: 9px; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--trait); }
+.tuile-a .cases i.pleine { background: rgba(180,140,242,.8); box-shadow: none; }
 .prochain small { font: 700 11px var(--titre); letter-spacing: 2px; }
 .prochain strong { font: 700 22px/1.2 var(--titre); }
 /* « Meilleure carte » et « Ton prochain raid » sur une capture en jeu de la carte (FondEnJeu, FondCarte.kt) :
@@ -242,6 +262,20 @@ h5 { margin: 6px 0 0; font: 600 14px var(--titre); color: var(--or); }
 .action-fixe button { pointer-events: auto; display: block; width: 100%; max-width: 428px; margin: 0 auto; min-height: 52px; padding: 14px 16px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
   background: var(--c, var(--or)); color: var(--sur-couleur); font: 700 16px/1.2 var(--titre); }
 .place-fixe { flex: none; height: 64px; }
+/* Bouton « Retour de raid » du Raid (BoutonRetourRaid.kt) : pastille en verre rouge, la liste passe dessous. */
+.retour-raid { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 5; pointer-events: none; }
+.retour-raid > div { max-width: 428px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 14px 16px; display: flex; justify-content: flex-end; }
+.retour-raid button { pointer-events: auto; min-height: 42px; padding: 0 16px 0 14px; display: flex; align-items: center; gap: 10px; border-radius: 99px;
+  background: linear-gradient(180deg, rgba(66,34,36,.84), rgba(44,25,27,.84)); box-shadow: 0 10px 26px rgba(0,0,0,.45), inset 0 0 0 1px rgba(240,84,74,.28); }
+.retour-raid svg { flex: none; }
+.retour-raid svg path { opacity: .28; animation: rr-bande 4s ease-in-out infinite; }
+.retour-raid svg path:nth-child(2) { animation-delay: .1s; } .retour-raid svg path:nth-child(3) { animation-delay: .2s; } .retour-raid svg path:nth-child(4) { animation-delay: .3s; }
+@keyframes rr-bande { 0%, 66% { opacity: .28; } 76%, 90% { opacity: 1; } 100% { opacity: .28; } }
+.retour-raid .fen { display: block; height: 16px; overflow: hidden; font: 700 11px/16px var(--titre); letter-spacing: 2.2px; color: #F7E9E3; white-space: nowrap; text-align: left; }
+.retour-raid .fen span { display: block; height: 16px; animation: rr-bascule 8s cubic-bezier(.7,0,.3,1) infinite; }
+.retour-raid .fen .or { color: var(--or); }
+@keyframes rr-bascule { 0%, 44% { transform: translateY(0); } 50%, 94% { transform: translateY(-16px); } 100% { transform: translateY(-32px); } }
+@media (prefers-reduced-motion: reduce) { .retour-raid svg path, .retour-raid .fen span { animation: none; opacity: 1; } }
 /* Accordéon (EnTeteAccordeon, Composants.kt) : le secondaire à un geste. */
 .accordeon { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 12px 8px 14px; background: var(--surface); border-radius: 6px; text-align: left; }
 .accordeon b { font: 600 15px/1.3 var(--titre); }
@@ -664,6 +698,8 @@ function bandeauSection(k, sous) {
 const ouvert = cle => S.ouverts.has(cle);
 const accordeon = (cle, titre, resume, c) => `<button class="accordeon" style="--c:var(${c})" data-action="basculer" data-id="${echap(cle)}" aria-expanded="${ouvert(cle)}"><span class="flex"><b>${echap(titre)}</b>${resume ? `<br><span class="petit doux">${echap(resume)}</span>` : ""}</span><span class="fleche" aria-hidden="true">⌄</span></button>`;
 // Bouton principal fixé en bas (BoutonFixe) ; la liste garde de la place pour lui (.place-fixe).
+// Bouton « Retour de raid » du Raid (BoutonRetourRaid) : bandes du logo qui s'allument, texte qui bascule.
+const boutonRetourRaid = () => `<div class="place-fixe"></div><div class="retour-raid"><div><button data-action="raid" aria-label="Retour de raid${NB}: indiquer mon butin"><svg width="24" height="14" viewBox="0 0 35 20" aria-hidden="true"><path d="M0 20h5l7.2-20h-5z" fill="#3CC4D8"/><path d="M7.5 20h5l7.2-20h-5z" fill="#6CCB5F"/><path d="M15 20h5l7.2-20h-5z" fill="#F2B233"/><path d="M22.5 20h5l7.2-20h-5z" fill="#F0544A"/></svg><span class="fen" aria-hidden="true"><span>RETOUR DE RAID</span><span class="or">INDIQUER MON BUTIN</span><span>RETOUR DE RAID</span></span></button></div></div>`;
 const actionFixe = (texte, c, action) => `<div class="place-fixe"></div><div class="action-fixe"><button style="--c:var(${c})" data-action="${action}">${texte}</button></div>`;
 const etiquette = (texte, c, balise = "span") => `<${balise} class="etiquette" style="--c:var(${c})">${echap(texte)}</${balise}>`;
 const pf = (texte, choisie, c, action, id) => `<button class="pf" style="--c:var(${c})" aria-pressed="${choisie}" data-action="${action}" data-id="${id}">${echap(texte)}</button>`;
@@ -676,47 +712,61 @@ const detailAvancement = o => besoins(o).map(q => `${echap(nomObjet(q.id))} ${Ma
 function ecranAccueil() {
   const h = new Date().getHours();
   return `${bandeauSection("ACCUEIL", `${h >= 18 || h < 5 ? "Bonsoir" : "Bonjour"}, Raider`)}
-  <button class="carte ligne" data-action="onglet" data-onglet="OBJETS" style="padding:15px 18px">
-    <svg class="ic" viewBox="0 0 24 24" style="color:var(--or)"><path d="${ONGLETS[1][3]}"/></svg>
-    <span class="flex"><span class="nom" style="font:600 14px var(--titre)">Garder, recycler ou vendre${NB}?</span><br><span class="doux">Cherche un objet…</span></span></button>
   ${prochainRaid()}
-  <button class="carte" data-action="onglet" data-onglet="CARTES" style="display:flex;flex-direction:column;gap:4px;padding:12px 16px"><b style="font:600 14px var(--titre);color:var(--cyan)">Conditions de la carte</b><span class="petit doux">Dans l'appli Android, les conditions en cours et à venir s'affichent ici avec leur minuteur.</span></button>
-  ${mesObjectifs()}
-  ${monBuild()}
+  ${tuileSection("CARTES", `<span class="petit doux" style="margin-top:8px">Dans l'appli Android, une frise montre ici la condition en cours (avec ce qu'il lui reste) et les suivantes, et combien de conditions ont une alerte.</span>`)}
+  <div class="tuiles-accueil">${tuileObjets()}${tuileObjectifs()}${tuileBuild()}</div>
   <p class="petit discret">Données du jeu ${echap(D.versionJeu)}, noms français officiels uniquement.</p>`;
 }
 
-// Où aller au prochain raid pour trouver ce qui manque (ProchainRaid, EcranAccueil.kt).
+// Où aller au prochain raid (ProchainRaid, EcranAccueil.kt) : la carte, combien d'objets on y trouve (et combien
+// tombent des ARC), puis ses deux meilleures zones avec leur nombre d'objets en pastille.
 function prochainRaid() {
   const restants = aTrouver().filter(x => !x.trouve), conseil = conseilRaid(restants.map(x => x.id)), premiere = conseil.cartes[0];
-  const nomC = id => cartes.get(id)?.nom ?? NOM_A_VERIFIER;
+  const nomC = id => cartes.get(id)?.nom ?? NOM_A_VERIFIER, arc = restants.filter(x => objets.get(x.id)?.lieux.includes("ARC")).length;
   const contenu = premiere ? `<strong>Va sur ${echap(nomC(premiere.carteId))}</strong>
-      <b>${premiere.objets.length} de tes ${pluriel(restants.length, "objet", "objets")} à trouver${premiere.zones[0] ? ` · surtout ${echap(premiere.zones[0].zone)}` : ""}</b>
-      ${conseil.parcours.length > 1 ? `<span class="petit">Puis ${echap(conseil.parcours.slice(1).map(e => nomC(e.carteId)).join(", "))} pour tout trouver.</span>` : ""}`
+      <b>${premiere.objets.length} de tes ${pluriel(restants.length, "objet", "objets")} à trouver${arc ? ` · ${arc} sur les ARC détruits` : ""}</b>
+      ${premiere.zones.length ? `<span class="zones-raid">${premiere.zones.slice(0, 2).map(z => `<span><span>${echap(z.zone)}</span><em>${pluriel(z.objets.length, "objet", "objets")}</em></span>`).join("")}</span>` : ""}`
     : restants.length ? `<strong>Rien dans le butin des cartes</strong><span class="doux">Ce qu'il te faut s'obtient autrement${NB}: regarde l'onglet Raid.</span>`
     : objectifs().length ? `<strong>Rien à chercher en raid</strong><span class="doux">Tes objectifs en cours ne demandent aucun objet${NB}: valide-les quand c'est fait en jeu.</span>`
     : `<strong>Rien à chercher pour l'instant</strong><span class="doux">Indique ce que tu as en cours (quêtes, ateliers, projets, expéditions)${NB}: l'appli te dira où aller.</span>`;
   return `<button class="prochain ${premiere ? "plein" : ""}${premiere && FONDS.has(premiere.carteId) ? ` photo" style="--photo:url('fonds/${premiere.carteId}.webp')` : ""}" data-action="onglet" data-onglet="${restants.length || objectifs().length ? "RAID" : "OBJECTIFS"}"><small>TON PROCHAIN RAID</small>${contenu}</button>`;
 }
 
-// Où en sont les objectifs en cours (MesObjectifs, EcranAccueil.kt).
-function mesObjectifs() {
-  const objs = objectifs(), l = listeDeCourses();
-  return `<button class="carte" data-action="onglet" data-onglet="OBJECTIFS" style="display:flex;flex-direction:column;gap:8px;padding:14px 16px">
-    <b style="font:600 14px var(--titre);color:var(--vert)">Objectifs</b>
-    ${objs.length ? `<span>${pluriel(objs.length, "objectif en cours", "objectifs en cours")} · ${pluriel(l.lignes.filter(x => !x.complet).length, "objet", "objets")} à trouver</span><span class="barre" style="--c:var(--vert)"><i style="width:${l.progression * 100}%"></i></span>`
-      : `<span class="doux">Rien en cours. Touche ici pour indiquer tes quêtes, ateliers, projets ou expéditions en cours.</span>`}</button>`;
+// Une tuile de l'accueil (TuileSection, EcranAccueil.kt) : fin trait de la couleur de la section, son icône et son nom.
+function tuileSection(cle, contenu) {
+  const o = ONGLETS.find(x => x[0] === cle);
+  return `<button class="tuile-a" style="--c:var(${o[2]})" data-action="onglet" data-onglet="${cle}"><span class="tete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${o[3]}"/></svg>${o[1]}</span>${contenu}</button>`;
+}
+const chiffre = (n, unite) => `<span class="chiffre"><b>${n}</b> ${unite}</span>`;
+
+// Ce qui est à garder et l'objet le plus demandé encore à trouver (TuileObjets).
+function tuileObjets() {
+  const restants = aTrouver().filter(x => !x.trouve).sort((a, b) => b.reste - a.reste), objs = objectifsDuRaid(), pb = aGarderBuilds();
+  const aGarder = D.objets.filter(o => verdict(o.id, objs, pb).type !== "inutile").length;
+  return tuileSection("OBJETS", `${chiffre(aGarder, "à garder")}<span class="pousse"></span>${restants.length
+    ? `<span class="ligne" style="gap:4px;margin-top:10px">${restants.slice(0, 3).map(x => icone(x.id, 22)).join("")}</span><span class="petit doux coupe" style="margin-top:5px">${echap(nomObjet(restants[0].id))} ×${restants[0].reste}</span>`
+    : `<span class="petit doux" style="margin-top:8px">Garder, recycler ou vendre${NB}?</span>`}`);
 }
 
-// Le build préféré (sinon le premier rempli) en un coup d'œil (MonBuild, EcranAccueil.kt).
-function monBuild() {
-  const l = builds(), rang = l.findIndex(b => b.prefere && Object.keys(b.objets).length) >= 0 ? l.findIndex(b => b.prefere && Object.keys(b.objets).length) : l.findIndex(b => Object.keys(b.objets).length), b = l[rang];
-  const mat = b ? aFabriquer(b).length : 0;
-  return `<button class="carte" data-action="onglet" data-onglet="BUILDS" style="display:flex;flex-direction:column;gap:8px;padding:14px 16px">
-    <b style="font:600 14px var(--titre);color:var(--violet)">${b?.prefere ? "Mon build préféré" : "Mes builds"}</b>
-    ${b ? `<span class="nom">${echap(nomBuild(b, rang))}</span><span class="ligne" style="gap:6px">${CASES.map(c => b.objets[c[0]]).filter(Boolean).slice(0, 7).map(id => icone(id, 36)).join("")}</span>
-      ${mat ? `<span class="petit doux">Pour le fabriquer${NB}: ${pluriel(mat, "matériau", "matériaux")} à garder</span>` : ""}`
-    : `<span class="doux">Aucun build. Touche ici pour préparer ton équipement${NB}: ses objets passent en «${NB}Garder${NB}».</span>`}</button>`;
+// Les objectifs en cours, par sorte, et ce qui a été rapporté (TuileObjectifs).
+function tuileObjectifs() {
+  const objs = objectifs(), l = listeDeCourses();
+  if (!objs.length) return tuileSection("OBJECTIFS", `${chiffre(0, "en cours")}<span class="pousse"></span><span class="petit doux" style="margin-top:8px">Touche pour indiquer tes objectifs</span>`);
+  const n = g => objs.filter(o => groupeObjectif(o) === g).length;
+  const sortes = [[n("quetes"), "quête", "quêtes"], [n("ateliers"), "atelier", "ateliers"], [n("projets"), "projet", "projets"], [n("expeditions"), "expédition", "expéditions"]]
+    .filter(x => x[0]).map(x => pluriel(...x)).join(" · ");
+  const besoin = l.lignes.reduce((s, x) => s + x.besoin, 0), apporte = l.lignes.reduce((s, x) => s + x.apporte, 0);
+  return tuileSection("OBJECTIFS", `${chiffre(objs.length, "en cours")}<span class="petit doux" style="margin-top:4px">${sortes}</span><span class="pousse"></span>${besoin
+    ? `<span class="barre" style="--c:var(--vert);height:3px;margin-top:10px"><i style="width:${l.progression * 100}%"></i></span><span class="petit doux" style="margin-top:5px">${apporte} sur ${besoin}</span>`
+    : `<span class="petit doux" style="margin-top:10px">Rien à rapporter</span>`}`);
+}
+
+// Le build préféré (sinon le premier rempli) : son nom et ses cases remplies (TuileBuild).
+function tuileBuild() {
+  const l = builds(), plein = b => Object.keys(b.objets).length, rang = l.findIndex(b => b.prefere && plein(b)) >= 0 ? l.findIndex(b => b.prefere && plein(b)) : l.findIndex(plein), b = l[rang];
+  if (!b) return tuileSection("BUILDS", `<span class="nom" style="margin-top:10px">Aucun build</span><span class="pousse"></span><span class="petit doux" style="margin-top:8px">Touche pour préparer ton équipement</span>`);
+  return tuileSection("BUILDS", `<span class="nom" style="margin-top:10px">${echap(nomBuild(b, rang))}${b.prefere ? " ★" : ""}</span><span class="pousse"></span>
+    <span class="cases">${CASES.map(c => `<i${b.objets[c[0]] ? ' class="pleine"' : ""}></i>`).join("")}</span><span class="petit doux" style="margin-top:5px">${CASES.filter(c => b.objets[c[0]]).length} sur ${CASES.length}</span>`);
 }
 
 // Le verdict en un mot, pour la liste (PuceVerdict, EcranObjets.kt) : Garder (objectifs), Build, Vendre ou Recycler, encadré de sa couleur.
@@ -1156,7 +1206,7 @@ function ecranOngletRaid() {
   ${autres.length ? `<p class="doux" style="margin:0">Aussi${NB}: ${echap(autres.map(c => `${nomC(c.carteId)} (${pluriel(c.objets.length, "objet", "objets")})`).join(" · "))}</p>` : ""}
   <p class="petit discret" style="margin:0">Classement d'après les tables de butin du jeu (condition normale). Les taux de drop exacts ne sont pas publiés${NB}: le jeu tire le butin sur ses serveurs. Les conditions en cours sur chaque carte s'affichent dans l'appli Android.</p>` : ""}` : ""}
   ${conseil.sansButin.length ? `${etiquette("Pas dans le butin", "--rouge", "h4")}${conseil.sansButin.map(id => `<button class="carte ligne" style="padding:10px;text-align:left" data-action="fiche" data-id="${id}">${icone(id, 36)}<span class="flex"><span class="nom">${echap(nomObjet(id))}</span><br><span class="petit doux">${echap(autreMoyen(objets.get(id)))}</span></span></button>`).join("")}` : ""}
-  ${restants.length ? actionFixe(`Retour de raid${NB}: ajouter mon butin`, "--rouge", "raid") : ""}`;
+  ${restants.length ? boutonRetourRaid() : ""}`;
 }
 
 // Un objet du butin recherché (LigneButin, EcranRaid.kt) : rapportés sur voulus, quantité, retirer.
