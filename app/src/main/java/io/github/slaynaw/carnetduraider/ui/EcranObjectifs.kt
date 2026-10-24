@@ -241,11 +241,12 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
     val portee = rememberCoroutineScope()
     val passage = remember(objectif.cle) { Animatable(1f) }
     val cloture = remember(objectif.cle) { Animatable(0f) }
+    val opacite = remember(objectif.cle) { Animatable(1f) }
     var valide by remember(objectif.cle) { mutableStateOf(false) }
     // La dernière étape (ou le dernier niveau) a droit à sa fin : la clôture, après le balayage.
     val derniere = remember(objectif) { vm.planificateur.derniereEtape(objectif) }
     val anime = animationsActives()
-    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = Signal.Surface, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = opacite.value }) {
         Box {
             Column(
                 Modifier
@@ -289,6 +290,8 @@ fun CarteObjectif(vm: CarnetViewModel, objectif: Objectif) {
                                         // « TERMINÉ » reste affiché un moment avant que l'objectif s'en aille.
                                         if (anime) delay(TENUE_MS)
                                     }
+                                    // Un petit fondu avant que la carte s'en aille.
+                                    if (anime) opacite.animateTo(0f, tween(FONDU_MS, easing = LinearEasing))
                                 } finally {
                                     vm.valider(objectif)
                                 }
@@ -315,6 +318,9 @@ private const val CLOTURE_MS = 1550
 
 /** Durée pendant laquelle « TERMINÉ » reste affiché, après la clôture. */
 private const val TENUE_MS = 1_000L
+
+/** Fondu de la carte validée, juste avant qu'elle s'en aille. */
+private const val FONDU_MS = 280
 
 /** Les bandes du logo glissent en place, vives au départ et douces à l'arrivée. */
 private val EasingBandes = CubicBezierEasing(0.2f, 0.7f, 0.3f, 1f)

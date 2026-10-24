@@ -120,7 +120,7 @@ guillemets `« … »`. Apostrophe droite `'` acceptée dans le code.
   se valide en un geste (« C'est fait », `CarnetViewModel.valider`, après le même balayage sur sa carte,
   `dessinBalayage` ; pour la dernière étape ou le dernier niveau, `Planificateur.derniereEtape`, la clôture
   suit : un bandeau sombre recouvre la carte, « TERMINÉ » s'y resserre en vert, une fine ligne verte s'étire
-  et les quatre bandes du logo glissent en place, puis tout reste affiché 1 seconde, `Cloture`), avec « Annuler » (3 secondes, `BandeauValidation`) : jamais de saisie obligatoire.
+  et les quatre bandes du logo glissent en place, puis tout reste affiché 1 seconde, `Cloture`, et la carte s'efface en fondu), avec « Annuler » (3 secondes puis fondu, `BandeauValidation`) : jamais de saisie obligatoire.
 - Mes builds (`core/Builds.kt`, `ui/EcranBuilds.kt`) : six builds (en onglets de même largeur sur une ligne, `OngletBuild` :
   nom, cases remplies ou « vide », trait violet sous le choisi ; le build préféré, un seul, `Build.prefere`, étoile, en premier et ouvert à l'arrivée :
   `Builds.ordre`, `Builds.ouvert` ; le build choisi dessous, nom changé au crayon, cases groupées

@@ -39,6 +39,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--or); outlin
 .nav button[aria-current="page"].arrive .pastille { color: var(--sur-couleur); }
 /* Changement d'onglet : le nouvel écran apparaît en fondu. */
 .contenu.apparait { animation: apparait .18s .06s ease-out both; }
+/* Fondu avant de disparaître : carte d'objectif validée, bandeau « Objectif terminé ». */
+.efface { transition: opacity .28s linear; opacity: 0 !important; }
 @keyframes apparait { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .glisseur { transition: none; } .contenu.apparait { animation: none; } }
 .nav button[aria-current="page"] { color: var(--c); }
@@ -1404,7 +1406,14 @@ let minuterieValidation = null;
 function montrerValidation(v) {
   S.validation = { objetsNotes: 0, termines: [], ...v };
   clearTimeout(minuterieValidation);
-  minuterieValidation = setTimeout(() => { S.validation = null; rendre(); }, 3000);
+  // 3 secondes, puis un petit fondu avant de disparaître (BandeauValidation, CarnetApp.kt).
+  minuterieValidation = setTimeout(() => {
+    const bandeau = document.querySelector("#dialogue > *");
+    const oublier = () => { S.validation = null; rendre(); };
+    if (!bandeau || matchMedia("(prefers-reduced-motion: reduce)").matches) { oublier(); return; }
+    bandeau.classList.add("efface");
+    minuterieValidation = setTimeout(oublier, 300);
+  }, 3000);
 }
 // Objectif fait en jeu (« C'est fait »), même sans tout avoir noté (une quête sans objet à rapporter, par
 // exemple) : la suite s'ajoute, ce qui avait été rapporté pour lui est oublié ; la suite peut être déjà complète.
@@ -1524,8 +1533,10 @@ document.addEventListener("click", ev => {
       const o = objectifDepuisCle(b.dataset.cle), carte = b.closest(".carte"), calme = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const derniere = o.type === "etabli" ? o.niveau === niveauMax(etablis.get(o.id)) : o.type === "projet" && o.etape === (projets.get(o.id)?.etapes.length ?? 0) - 1;
       b.disabled = true; carte?.classList.add("balaie");
-      const fin = () => { valider(o); enregistrer(); rendre(); };
-      if (calme) { fin(); return; }
+      const valide = () => { valider(o); enregistrer(); rendre(); };
+      // Un petit fondu de la carte avant qu'elle s'en aille (FONDU_MS, EcranObjectifs.kt).
+      const fin = () => { if (!carte) { valide(); return; } carte.classList.add("efface"); setTimeout(valide, 280); };
+      if (calme) { valide(); return; }
       setTimeout(() => {
         if (!derniere || !carte) { fin(); return; }
         const x = o.type === "etabli" ? etablis.get(o.id) : projets.get(o.id), n = o.type === "etabli" ? x.niveaux.length : x.etapes.length;

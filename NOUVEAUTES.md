@@ -10,7 +10,7 @@ que l'application : uniquement les traductions françaises officielles d'Embark 
 - **Ton prochain raid** : sur toute la largeur de l'écran, avec les bandes du logo en pied. La capture de la carte bouge lentement, comme filmée à l'épaule, avec de rares petits glitchs.
 - **Accueil** : sous ton prochain raid, quatre tuiles plus utiles. Objets : ce qui est à garder, l'objet le plus demandé et ceux qui tombent des ARC. Cartes : la condition en cours et ce qu'il lui reste, puis la suivante (avec sa cloche si tu as une alerte). Objectifs : tes objectifs par sorte et celui qui est le plus près d'être fini. Builds : ton build préféré, ses cases et les matériaux pour le fabriquer.
 - **Builds** : les six builds tiennent sur une seule ligne, sans faire défiler ; en changeant de build, le nouveau glisse doucement à sa place.
-- **Objectifs** : après la clôture d'une dernière étape, « TERMINÉ » ne reste plus qu'une seconde, et le bandeau « Annuler » en bas de l'écran 3 secondes.
+- **Objectifs** : après la clôture d'une dernière étape, « TERMINÉ » ne reste plus qu'une seconde, et le bandeau « Annuler » en bas de l'écran 3 secondes ; l'objectif validé et le bandeau s'effacent en fondu.
 - **Onglets** : quand tu changes de section, la pastille glisse jusqu'au nouvel onglet en prenant sa couleur, et l'écran apparaît en fondu.
 
 ## 0.14.4

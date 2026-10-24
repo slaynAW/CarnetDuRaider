@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -253,8 +255,12 @@ fun CarnetApp(ongletDemande: Onglet? = null, demandeTraitee: () -> Unit = {}, vm
 @Composable
 private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier) {
     val validation = vm.derniereValidation ?: return
+    val anime = animationsActives()
+    val opacite = remember(validation) { Animatable(1f) }
     LaunchedEffect(validation) {
         delay(3_000)
+        // Un petit fondu avant de disparaître.
+        if (anime) opacite.animateTo(0f, tween(300))
         vm.oublierValidation()
     }
     val detail = when {
@@ -270,7 +276,7 @@ private fun BandeauValidation(vm: CarnetViewModel, modifier: Modifier = Modifier
         contentColor = Signal.SurCouleur,
         shape = FormeCoupee,
         shadowElevation = 6.dp,
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth().graphicsLayer { alpha = opacite.value },
     ) {
         Row(Modifier.padding(start = 16.dp, end = 6.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
