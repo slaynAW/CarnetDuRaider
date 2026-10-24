@@ -36,6 +36,14 @@ fun chrono(ms: Long): String {
     return if (h > 0) "$h:${m.toString().padStart(2, '0')}:$sec" else "$m:$sec"
 }
 
+/** Durée arrondie à la minute supérieure : « 42 min », « 1 h 10 », « 3 h » (jamais négative). */
+fun duree(ms: Long): String {
+    val minutes = (ms.coerceAtLeast(0) + 59_999) / 60_000
+    if (minutes < 60) return "$minutes min"
+    val reste = minutes % 60
+    return if (reste == 0L) "${minutes / 60} h" else "${minutes / 60} h ${reste.toString().padStart(2, '0')}"
+}
+
 private val heure = DateTimeFormatter.ofPattern("HH:mm", Locale.FRENCH)
 private val jour = DateTimeFormatter.ofPattern("EEE d MMM", Locale.FRENCH)
 
